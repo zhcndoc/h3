@@ -1,0 +1,5 @@
+{
+  "serverless": true,
+  "build_command": "bun run build",
+  "output_dir": ".docs/dist"
+}

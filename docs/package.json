@@ -1,4 +1,5 @@
 {
+  "name": "h3-docs",
   "private": true,
   "type": "module",
   "scripts": {
