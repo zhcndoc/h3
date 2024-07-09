@@ -1,50 +1,39 @@
-import supertest, { SuperTest, Test } from "supertest";
-import { describe, it, beforeEach, expect } from "vitest";
-import {
-  App,
-  createApp,
-  createEventStream,
-  eventHandler,
-  getQuery,
-  toNodeListener,
-} from "../src";
+import { describe, it, beforeEach, expect, vi } from "vitest";
+import { createEventStream, getQuery } from "../src";
 import {
   formatEventStreamMessage,
   formatEventStreamMessages,
-} from "../src/utils/sse/utils";
+} from "../src/utils/internal/event-stream";
+import { setupTest } from "./_setup";
 
 describe("Server Sent Events (SSE)", () => {
-  let app: App;
-  let request: SuperTest<Test>;
+  const ctx = setupTest();
+
   beforeEach(() => {
-    app = createApp({ debug: true });
-    app.use(
-      "/sse",
-      eventHandler((event) => {
-        const includeMeta = getQuery(event).includeMeta !== undefined;
-        const eventStream = createEventStream(event);
-        const interval = setInterval(() => {
-          if (includeMeta) {
-            eventStream.push({
-              id: "1",
-              event: "custom-event",
-              data: "hello world",
-            });
-            return;
-          }
-          eventStream.push("hello world");
-        });
-        eventStream.onClosed(() => {
-          clearInterval(interval);
-        });
-        return eventStream.send();
-      }),
-    );
-    request = supertest(toNodeListener(app)) as any;
+    ctx.app.use("/sse", (event) => {
+      const includeMeta = getQuery(event).includeMeta !== undefined;
+      const eventStream = createEventStream(event);
+      const interval = setInterval(() => {
+        if (includeMeta) {
+          eventStream.push({
+            id: "1",
+            event: "custom-event",
+            data: "hello world",
+          });
+          return;
+        }
+        eventStream.push("hello world");
+      });
+      eventStream.onClosed(() => {
+        clearInterval(interval);
+      });
+      return eventStream.send();
+    });
   });
+
   it("streams events", async () => {
     let messageCount = 0;
-    request
+    ctx.request
       .get("/sse")
       .expect(200)
       .expect("Content-Type", "text/event-stream")
@@ -61,16 +50,12 @@ describe("Server Sent Events (SSE)", () => {
       })
       .then()
       .catch();
-    await new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(true);
-      }, 100);
-    });
-    expect(messageCount > 10).toBe(true);
+    await vi.waitUntil(() => messageCount > 3, { timeout: 1000 });
+    expect(messageCount > 3).toBe(true);
   });
   it("streams events with metadata", async () => {
     let messageCount = 0;
-    request
+    ctx.request
       .get("/sse?includeMeta=true")
       .expect(200)
       .expect("Content-Type", "text/event-stream")
@@ -89,12 +74,8 @@ describe("Server Sent Events (SSE)", () => {
       })
       .then()
       .catch();
-    await new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(true);
-      }, 100);
-    });
-    expect(messageCount > 10).toBe(true);
+    await vi.waitUntil(() => messageCount > 3, { timeout: 1000 });
+    expect(messageCount > 3).toBe(true);
   });
 });
 

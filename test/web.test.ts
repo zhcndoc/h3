@@ -1,42 +1,31 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
-  createApp,
-  App,
-  eventHandler,
-  WebHandler,
-  toWebHandler,
-  readBody,
+  readTextBody,
+  setResponseStatus,
+  getRequestHeaders,
+  getQuery,
 } from "../src";
+import { setupTest } from "./_setup";
 
 describe("Web handler", () => {
-  let app: App;
-  let handler: WebHandler;
-
-  beforeEach(() => {
-    app = createApp({ debug: true });
-    handler = toWebHandler(app);
-  });
+  const ctx = setupTest();
 
   it("works", async () => {
-    app.use(
-      "/test",
-      eventHandler(async (event) => {
-        const body =
-          event.method === "POST" ? await readBody(event) : undefined;
-        event.node.res.statusCode = 201;
-        event.node.res.statusMessage = "Created";
-        return {
-          method: event.method,
-          path: event.path,
-          headers: [...event.headers.entries()],
-          body,
-          contextKeys: Object.keys(event.context),
-        };
-      }),
-    );
+    ctx.app.use("/test", async (event) => {
+      const body = await readTextBody(event);
+      setResponseStatus(event, 201, "Created");
+      return {
+        method: event.method,
+        path: event.path,
+        headers: getRequestHeaders(event),
+        query: getQuery(event),
+        body,
+        contextKeys: Object.keys(event.context),
+      };
+    });
 
-    const res = await handler(
-      new Request(new URL("/test/foo/bar", "http://localhost"), {
+    const res = await ctx.webHandler(
+      new Request(new URL("/test/foo/bar?test=123", "http://localhost"), {
         method: "POST",
         headers: {
           "X-Test": "true",
@@ -56,12 +45,15 @@ describe("Web handler", () => {
 
     expect(await res.json()).toMatchObject({
       method: "POST",
-      path: "/foo/bar",
+      path: "/foo/bar?test=123",
       body: "request body",
-      headers: [
-        ["content-type", "text/plain;charset=UTF-8"],
-        ["x-test", "true"],
-      ],
+      headers: {
+        "content-type": "text/plain;charset=UTF-8",
+        "x-test": "true",
+      },
+      query: {
+        test: "123",
+      },
       contextKeys: ["test"],
     });
   });

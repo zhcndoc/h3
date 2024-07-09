@@ -1,15 +1,8 @@
-import supertest, { SuperTest, Test } from "supertest";
+import type { ValidateFunction } from "../src/types";
 import { describe, it, expect, beforeEach } from "vitest";
 import { z } from "zod";
-import {
-  createApp,
-  toNodeListener,
-  App,
-  eventHandler,
-  readValidatedBody,
-  getValidatedQuery,
-  ValidateFunction,
-} from "../src";
+import { readValidatedJSONBody, getValidatedQuery } from "../src";
+import { setupTest } from "./_setup";
 
 // Custom validator
 const customValidate: ValidateFunction<{
@@ -32,42 +25,30 @@ const zodValidate = z.object({
 }).parse;
 
 describe("Validate", () => {
-  let app: App;
-  let request: SuperTest<Test>;
+  const ctx = setupTest();
 
-  beforeEach(() => {
-    app = createApp({ debug: true });
-    request = supertest(toNodeListener(app));
-  });
-
-  describe("readValidatedBody", () => {
+  describe("readValidatedJSONBody", () => {
     beforeEach(() => {
-      app.use(
-        "/custom",
-        eventHandler(async (event) => {
-          const data = await readValidatedBody(event, customValidate);
-          return data;
-        }),
-      );
+      ctx.app.use("/custom", async (event) => {
+        const data = await readValidatedJSONBody(event, customValidate);
+        return data;
+      });
 
-      app.use(
-        "/zod",
-        eventHandler(async (event) => {
-          const data = await readValidatedBody(event, zodValidate);
-          return data;
-        }),
-      );
+      ctx.app.use("/zod", async (event) => {
+        const data = await readValidatedJSONBody(event, zodValidate);
+        return data;
+      });
     });
 
     describe("custom validator", () => {
       it("Valid JSON", async () => {
-        const res = await request.post("/custom").send({ field: "value" });
+        const res = await ctx.request.post("/custom").send({ field: "value" });
         expect(res.body).toEqual({ field: "value", default: "default" });
         expect(res.status).toEqual(200);
       });
 
-      it("Valid x-www-form-urlencoded", async () => {
-        const res = await request
+      it("Validate x-www-form-urlencoded", async () => {
+        const res = await ctx.request
           .post("/custom")
           .set("Content-Type", "application/x-www-form-urlencoded")
           .send("field=value");
@@ -76,7 +57,7 @@ describe("Validate", () => {
       });
 
       it("Invalid JSON", async () => {
-        const res = await request.post("/custom").send({ invalid: true });
+        const res = await ctx.request.post("/custom").send({ invalid: true });
         expect(res.text).include("Invalid key");
         expect(res.status).toEqual(400);
       });
@@ -84,13 +65,13 @@ describe("Validate", () => {
 
     describe("zod validator", () => {
       it("Valid", async () => {
-        const res = await request.post("/zod").send({ field: "value" });
+        const res = await ctx.request.post("/zod").send({ field: "value" });
         expect(res.body).toEqual({ field: "value", default: "default" });
         expect(res.status).toEqual(200);
       });
 
       it("Invalid", async () => {
-        const res = await request.post("/zod").send({ invalid: true });
+        const res = await ctx.request.post("/zod").send({ invalid: true });
         expect(res.status).toEqual(400);
         expect(res.body.data?.issues?.[0]?.code).toEqual("invalid_type");
       });
@@ -99,32 +80,26 @@ describe("Validate", () => {
 
   describe("getQuery", () => {
     beforeEach(() => {
-      app.use(
-        "/custom",
-        eventHandler(async (event) => {
-          const data = await getValidatedQuery(event, customValidate);
-          return data;
-        }),
-      );
+      ctx.app.use("/custom", async (event) => {
+        const data = await getValidatedQuery(event, customValidate);
+        return data;
+      });
 
-      app.use(
-        "/zod",
-        eventHandler(async (event) => {
-          const data = await getValidatedQuery(event, zodValidate);
-          return data;
-        }),
-      );
+      ctx.app.use("/zod", async (event) => {
+        const data = await getValidatedQuery(event, zodValidate);
+        return data;
+      });
     });
 
     describe("custom validator", () => {
       it("Valid", async () => {
-        const res = await request.get("/custom?field=value");
+        const res = await ctx.request.get("/custom?field=value");
         expect(res.body).toEqual({ field: "value", default: "default" });
         expect(res.status).toEqual(200);
       });
 
       it("Invalid", async () => {
-        const res = await request.get("/custom?invalid=true");
+        const res = await ctx.request.get("/custom?invalid=true");
         expect(res.text).include("Invalid key");
         expect(res.status).toEqual(400);
       });
@@ -132,13 +107,13 @@ describe("Validate", () => {
 
     describe("zod validator", () => {
       it("Valid", async () => {
-        const res = await request.get("/zod?field=value");
+        const res = await ctx.request.get("/zod?field=value");
         expect(res.body).toEqual({ field: "value", default: "default" });
         expect(res.status).toEqual(200);
       });
 
       it("Invalid", async () => {
-        const res = await request.get("/zod?invalid=true");
+        const res = await ctx.request.get("/zod?invalid=true");
         expect(res.status).toEqual(400);
       });
     });

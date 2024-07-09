@@ -1,18 +1,18 @@
-import { describe, it, expectTypeOf } from "vitest";
 import type { QueryObject } from "ufo";
+import type { H3Event } from "../src/types";
+import { describe, it, expectTypeOf } from "vitest";
 import {
-  eventHandler,
-  H3Event,
+  defineEventHandler,
   getQuery,
-  readBody,
-  readValidatedBody,
+  readJSONBody,
+  readValidatedJSONBody,
   getValidatedQuery,
 } from "../src";
 
 describe("types", () => {
   describe("eventHandler", () => {
     it("object syntax definitions", async () => {
-      const handler = eventHandler({
+      const handler = defineEventHandler({
         onRequest: [
           (event) => {
             expectTypeOf(event).toEqualTypeOf<H3Event>();
@@ -21,9 +21,8 @@ describe("types", () => {
         async handler(event) {
           expectTypeOf(event).toEqualTypeOf<H3Event>();
 
-          const body = await readBody(event);
-          // TODO: Default to unknown in next major version
-          expectTypeOf(body).toBeAny();
+          const body = await readJSONBody(event);
+          expectTypeOf(body).toBeUnknown();
 
           return {
             foo: "bar",
@@ -35,7 +34,7 @@ describe("types", () => {
       }>();
     });
     it("return type (inferred)", () => {
-      const handler = eventHandler(() => {
+      const handler = defineEventHandler(() => {
         return {
           foo: "bar",
         };
@@ -45,7 +44,7 @@ describe("types", () => {
     });
 
     it("return type (simple generic)", () => {
-      const handler = eventHandler<string>(() => {
+      const handler = defineEventHandler<string>(() => {
         return "";
       });
       const response = handler({} as H3Event);
@@ -53,44 +52,43 @@ describe("types", () => {
     });
   });
 
-  describe("readBody", () => {
+  describe("readJSONBody", () => {
     it("untyped", () => {
-      eventHandler(async (event) => {
-        const body = await readBody(event);
-        // TODO: Default to unknown in next major version
-        expectTypeOf(body).toBeAny();
+      defineEventHandler(async (event) => {
+        const body = await readJSONBody(event);
+        expectTypeOf(body).toBeUnknown();
       });
     });
 
     it("typed via generic", () => {
-      eventHandler(async (event) => {
-        const body = await readBody<string>(event);
+      defineEventHandler(async (event) => {
+        const body = await readJSONBody<string>(event);
         expectTypeOf(body).not.toBeAny();
-        expectTypeOf(body).toBeString();
+        expectTypeOf(body!).toBeString();
       });
     });
 
     it("typed via validator", () => {
-      eventHandler(async (event) => {
+      defineEventHandler(async (event) => {
         const validator = (body: unknown) => body as { id: string };
-        const body = await readValidatedBody(event, validator);
+        const body = await readValidatedJSONBody(event, validator);
         expectTypeOf(body).not.toBeAny();
         expectTypeOf(body).toEqualTypeOf<{ id: string }>();
       });
     });
 
     it("typed via event handler", () => {
-      eventHandler<{ body: { id: string } }>(async (event) => {
-        const body = await readBody(event);
+      defineEventHandler<{ body: { id: string } }>(async (event) => {
+        const body = await readJSONBody(event);
         expectTypeOf(body).not.toBeAny();
-        expectTypeOf(body).toEqualTypeOf<{ id: string }>();
+        expectTypeOf(body).toEqualTypeOf<{ id: string } | undefined>();
       });
     });
   });
 
   describe("getQuery", () => {
     it("untyped", () => {
-      eventHandler((event) => {
+      defineEventHandler((event) => {
         const query = getQuery(event);
         expectTypeOf(query).not.toBeAny();
         expectTypeOf(query).toEqualTypeOf<QueryObject>();
@@ -98,7 +96,7 @@ describe("types", () => {
     });
 
     it("typed via generic", () => {
-      eventHandler((event) => {
+      defineEventHandler((event) => {
         const query = getQuery<{ id: string }>(event);
         expectTypeOf(query).not.toBeAny();
         expectTypeOf(query).toEqualTypeOf<{ id: string }>();
@@ -106,7 +104,7 @@ describe("types", () => {
     });
 
     it("typed via validator", () => {
-      eventHandler(async (event) => {
+      defineEventHandler(async (event) => {
         const validator = (body: unknown) => body as { id: string };
         const body = await getValidatedQuery(event, validator);
         expectTypeOf(body).not.toBeAny();
@@ -115,7 +113,7 @@ describe("types", () => {
     });
 
     it("typed via event handler", () => {
-      eventHandler<{ query: { id: string } }>((event) => {
+      defineEventHandler<{ query: { id: string } }>((event) => {
         const query = getQuery(event);
         expectTypeOf(query).not.toBeAny();
         expectTypeOf(query).toEqualTypeOf<{ id: string }>();

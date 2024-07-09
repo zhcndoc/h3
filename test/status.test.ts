@@ -1,30 +1,19 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import {
-  createApp,
-  App,
-  toPlainHandler,
-  PlainHandler,
-  eventHandler,
-  setResponseStatus,
-} from "../src";
+import { toPlainHandler } from "../src/adapters/web";
+import { setResponseStatus } from "../src";
+import { setupTest } from "./_setup";
 
 describe("setResponseStatus", () => {
-  let app: App;
-  let handler: PlainHandler;
+  const ctx = setupTest();
+  let handler: ReturnType<typeof toPlainHandler>;
 
   beforeEach(() => {
-    app = createApp({ debug: true });
-    handler = toPlainHandler(app);
+    handler = toPlainHandler(ctx.app);
   });
 
   describe("content response", () => {
     it("sets status 200 as default", async () => {
-      app.use(
-        "/test",
-        eventHandler(() => {
-          return "text";
-        }),
-      );
+      ctx.app.use("/test", () => "text");
 
       const res = await handler({
         method: "POST",
@@ -36,17 +25,16 @@ describe("setResponseStatus", () => {
         status: 200,
         statusText: "",
         body: "text",
-        headers: [["content-type", "text/html"]],
+        headers: {
+          "content-type": "text/html",
+        },
       });
     });
     it("override status and statusText with setResponseStatus method", async () => {
-      app.use(
-        "/test",
-        eventHandler((event) => {
-          setResponseStatus(event, 418, "status-text");
-          return "text";
-        }),
-      );
+      ctx.app.use("/test", (event) => {
+        setResponseStatus(event, 418, "status-text");
+        return "text";
+      });
 
       const res = await handler({
         method: "POST",
@@ -59,19 +47,18 @@ describe("setResponseStatus", () => {
         status: 418,
         statusText: "status-text",
         body: "text",
-        headers: [["content-type", "text/html"]],
+        headers: {
+          "content-type": "text/html",
+        },
       });
     });
   });
 
   describe("no content response", () => {
     it("sets status 204 as default", async () => {
-      app.use(
-        "/test",
-        eventHandler(() => {
-          return null;
-        }),
-      );
+      ctx.app.use("/test", () => {
+        return null;
+      });
 
       const res = await handler({
         method: "POST",
@@ -82,18 +69,15 @@ describe("setResponseStatus", () => {
       expect(res).toMatchObject({
         status: 204,
         statusText: "",
-        body: undefined,
-        headers: [],
+        body: null,
+        headers: {},
       });
     });
     it("override status and statusText with setResponseStatus method", async () => {
-      app.use(
-        "/test",
-        eventHandler((event) => {
-          setResponseStatus(event, 418, "status-text");
-          return null;
-        }),
-      );
+      ctx.app.use("/test", (event) => {
+        setResponseStatus(event, 418, "status-text");
+        return "";
+      });
 
       const res = await handler({
         method: "POST",
@@ -105,25 +89,21 @@ describe("setResponseStatus", () => {
       expect(res).toMatchObject({
         status: 418,
         statusText: "status-text",
-        body: undefined,
-        headers: [],
+        body: "",
+        headers: {},
       });
     });
 
     it("does not sets content-type for 304", async () => {
-      app.use(
-        "/test",
-        eventHandler((event) => {
-          setResponseStatus(event, 304, "Not Modified");
-          return "";
-        }),
-      );
+      ctx.app.use("/test", (event) => {
+        setResponseStatus(event, 304, "Not Modified");
+        return "";
+      });
 
       const res = await handler({
         method: "GET",
         path: "/test",
         headers: [],
-        body: "",
       });
 
       // console.log(res.headers);
@@ -131,8 +111,8 @@ describe("setResponseStatus", () => {
       expect(res).toMatchObject({
         status: 304,
         statusText: "Not Modified",
-        body: undefined,
-        headers: [],
+        body: null,
+        headers: {},
       });
     });
   });
