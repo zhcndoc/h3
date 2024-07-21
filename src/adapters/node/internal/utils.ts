@@ -1,21 +1,19 @@
+import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Readable as NodeReadableStream } from "node:stream";
-import type {
-  NodeHandler,
-  NodeIncomingMessage,
-  NodeMiddleware,
-  NodeServerResponse,
-} from "../../types/node";
-import type { ResponseBody } from "../../types";
-import { _kRaw } from "../../event";
-import { createError } from "../../error";
-import { splitCookiesString } from "../../utils/cookie";
+import { splitSetCookieString } from "cookie-es";
+import type { NodeHandler, NodeMiddleware } from "../../../types/node";
+import { createError } from "../../../error";
 import {
   sanitizeStatusCode,
   sanitizeStatusMessage,
-} from "../../utils/sanitize";
+} from "../../../utils/sanitize";
 
-export function _getBodyStream(
-  req: NodeIncomingMessage,
+export const kNodeReq: unique symbol = Symbol.for("h3.node.request");
+export const kNodeRes: unique symbol = Symbol.for("h3.node.response");
+export const kNodeInspect = Symbol.for("nodejs.util.inspect.custom");
+
+export function getBodyStream(
+  req: IncomingMessage,
 ): ReadableStream<Uint8Array> {
   return new ReadableStream({
     start(controller) {
@@ -32,15 +30,15 @@ export function _getBodyStream(
   });
 }
 
-export function _sendResponse(
-  nodeRes: NodeServerResponse,
-  handlerRes: ResponseBody,
+export function sendNodeResponse(
+  nodeRes: ServerResponse,
+  handlerRes?: BodyInit | null,
 ): Promise<void> {
   // Web Response
   if (handlerRes instanceof Response) {
     for (const [key, value] of handlerRes.headers) {
       if (key === "set-cookie") {
-        for (const setCookie of splitCookiesString(value)) {
+        for (const setCookie of splitSetCookieString(value)) {
           nodeRes.appendHeader(key, setCookie);
         }
       } else {
@@ -71,37 +69,39 @@ export function _sendResponse(
           },
         }),
       )
-      .then(() => _endResponse(nodeRes));
+      .then(() => endNodeResponse(nodeRes));
   }
 
   // Node.js Readable Streams
   // https://nodejs.org/api/stream.html#readable-streams
-  if (typeof (handlerRes as NodeReadableStream)?.pipe === "function") {
+  if (
+    typeof (handlerRes as unknown as NodeReadableStream)?.pipe === "function"
+  ) {
     return new Promise<void>((resolve, reject) => {
       // Pipe stream to response
-      (handlerRes as NodeReadableStream).pipe(nodeRes);
+      (handlerRes as unknown as NodeReadableStream).pipe(nodeRes);
 
       // Handle stream events (if supported)
-      if ((handlerRes as NodeReadableStream).on) {
-        (handlerRes as NodeReadableStream).on("end", resolve);
-        (handlerRes as NodeReadableStream).on("error", reject);
+      if ((handlerRes as unknown as NodeReadableStream).on) {
+        (handlerRes as unknown as NodeReadableStream).on("end", resolve);
+        (handlerRes as unknown as NodeReadableStream).on("error", reject);
       }
 
       // Handle request aborts
       nodeRes.once("close", () => {
-        (handlerRes as NodeReadableStream).destroy?.();
+        (handlerRes as unknown as NodeReadableStream).destroy?.();
         // https://react.dev/reference/react-dom/server/renderToPipeableStream
         (handlerRes as any).abort?.();
       });
-    }).then(() => _endResponse(nodeRes));
+    }).then(() => endNodeResponse(nodeRes));
   }
 
   // Send as string or buffer
-  return _endResponse(nodeRes, handlerRes);
+  return endNodeResponse(nodeRes, handlerRes);
 }
 
-export function _endResponse(
-  res: NodeServerResponse,
+export function endNodeResponse(
+  res: ServerResponse,
   chunk?: any,
 ): Promise<void> {
   return new Promise((resolve) => {
@@ -109,7 +109,7 @@ export function _endResponse(
   });
 }
 
-export function _normalizeHeaders(
+export function normalizeHeaders(
   headers: Record<string, string | null | undefined | number | string[]>,
 ): Record<string, string> {
   const normalized: Record<string, string> = Object.create(null);
@@ -123,9 +123,9 @@ export function _normalizeHeaders(
 
 const payloadMethods = ["PATCH", "POST", "PUT", "DELETE"] as string[];
 
-export function _readBody(
-  req: NodeIncomingMessage,
-): undefined | Promise<Uint8Array | undefined> {
+export function readNodeReqBody(
+  req: IncomingMessage,
+): undefined | Promise<Uint8Array> {
   // Check if request method requires a payload
   if (!req.method || !payloadMethods.includes(req.method?.toUpperCase())) {
     return;
@@ -161,8 +161,8 @@ export function _readBody(
 
 export function callNodeHandler(
   handler: NodeHandler | NodeMiddleware,
-  req: NodeIncomingMessage,
-  res: NodeServerResponse,
+  req: IncomingMessage,
+  res: ServerResponse,
 ) {
   const isMiddleware = handler.length > 2;
   return new Promise((resolve, reject) => {

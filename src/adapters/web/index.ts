@@ -1,26 +1,15 @@
-export {
-  // --Web--
+import type { H3, EventHandler, H3EventContext } from "../../types";
 
-  // Web Handler
-  fromWebHandler,
-  toWebHandler,
+export function toWebHandler(
+  app: H3,
+): (request: Request, context?: H3EventContext) => Promise<Response> {
+  return (request, context) => {
+    return Promise.resolve(app.fetch(request, { h3: context }));
+  };
+}
 
-  // Web Request
-  fromWebRequest,
-  toWebRequest,
-
-  // Web Context
-  getWebContext,
-
-  // --Plain--
-
-  // Plain Handler
-  fromPlainHandler,
-  toPlainHandler,
-
-  // Plain Request
-  fromPlainRequest,
-
-  // Call
-  callWithPlainRequest,
-} from "./utils";
+export function fromWebHandler(
+  handler: (request: Request, context?: H3EventContext) => Promise<Response>,
+): EventHandler {
+  return (event) => handler(event.request, event.context);
+}

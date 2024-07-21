@@ -1,15 +1,14 @@
 // Types
 export * from "./types";
 
-// App
-export { createApp } from "./app/app";
+// H3
+export { createH3 } from "./h3";
 
 // Event
-export { isEvent } from "./event";
+export { isEvent, mockEvent } from "./utils/event";
 
 // Handler
 export {
-  isEventHandler,
   defineEventHandler,
   defineLazyEventHandler,
   dynamicEventHandler,
@@ -20,47 +19,29 @@ export {
 // Error
 export { createError, isError } from "./error";
 
-// Router
-export { createRouter } from "./router";
-
 // ---- Adapters  ----
 
 // Node
 export {
-  getNodeContext,
   fromNodeHandler,
   toNodeHandler,
-  fromNodeRequest,
   defineNodeHandler,
   defineNodeMiddleware,
 } from "./adapters/node";
 
 // Web
-export {
-  getWebContext,
-  fromWebHandler,
-  toWebHandler,
-  fromWebRequest,
-  toWebRequest,
-  fromPlainHandler,
-  toPlainHandler,
-  fromPlainRequest,
-  callWithPlainRequest,
-} from "./adapters/web";
+export { fromWebHandler, toWebHandler } from "./adapters/web";
 
 // ------ Utils ------
 
 // Request
 export {
-  getRequestHeader,
-  getRequestHeaders,
   getRequestHost,
   getRequestIP,
   getRequestProtocol,
   getRequestURL,
   isMethod,
   getQuery,
-  getMethod,
   getValidatedQuery,
   assertMethod,
   getRouterParam,
@@ -70,21 +51,10 @@ export {
 
 // Response
 export {
-  appendResponseHeader,
-  appendResponseHeaders,
-  setResponseHeader,
-  setResponseHeaders,
-  setResponseStatus,
   writeEarlyHints,
-  removeResponseHeader,
-  clearResponseHeaders,
-  defaultContentType,
-  getResponseHeader,
-  getResponseHeaders,
-  getResponseStatus,
-  getResponseStatusText,
   redirect,
   iterable,
+  noContent,
 } from "./utils/response";
 
 // Proxy
@@ -96,14 +66,7 @@ export {
 } from "./utils/proxy";
 
 // Body
-export {
-  readRawBody,
-  getBodyStream,
-  readFormDataBody,
-  readJSONBody,
-  readTextBody,
-  readValidatedJSONBody,
-} from "./utils/body";
+export { readBody, readValidatedBody } from "./utils/body";
 
 // Cookie
 export {
@@ -111,7 +74,6 @@ export {
   deleteCookie,
   parseCookies,
   setCookie,
-  splitCookiesString,
 } from "./utils/cookie";
 
 // SSE
@@ -127,7 +89,7 @@ export { handleCacheHeaders } from "./utils/cache";
 export { serveStatic } from "./utils/static";
 
 // Base
-export { useBase } from "./utils/base";
+export { withBase } from "./utils/base";
 
 // Session
 export {
@@ -156,4 +118,4 @@ export { defineWebSocketHandler, defineWebSocket } from "./utils/ws";
 
 // ---- Deprecated ----
 
-export * from "./deprecated";
+export * from "./_deprecated";

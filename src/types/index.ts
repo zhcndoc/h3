@@ -1,16 +1,5 @@
-// App
-export type {
-  App,
-  AppOptions,
-  AppUse,
-  Stack,
-  InputLayer,
-  InputStack,
-  Layer,
-  WebSocketOptions,
-  Matcher,
-  H3Error,
-} from "./app";
+// H3
+export type { H3, H3Config, WebSocketOptions, H3Error } from "./h3";
 
 // Event
 export type { H3Event } from "./event";
@@ -23,28 +12,16 @@ export type {
   EventHandlerResolver,
   EventHandlerResponse,
   DynamicEventHandler,
-  ResponseBody,
   LazyEventHandler,
   InferEventInput,
   RequestMiddleware,
   ResponseMiddleware,
 } from "./handler";
 
-// Web
-export type {
-  PlainHandler,
-  PlainRequest,
-  PlainResponse,
-  WebHandler,
-} from "./web";
-
-// Router
-export type { Router, RouterOptions, RouterEntry } from "./router";
-
 // Context
 export type { H3EventContext } from "./context";
 
-// SSE
+// EventStream
 export type { EventStreamMessage, EventStreamOptions } from "./utils/sse";
 export type { EventStream } from "../utils/internal/event-stream";
 

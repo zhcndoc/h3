@@ -6,13 +6,10 @@ import type {
 } from "./types";
 import type {
   EventHandler,
-  LazyEventHandler,
   EventHandlerRequest,
   EventHandlerResponse,
   EventHandlerObject,
 } from "./types";
-import { _kRaw } from "./event";
-import { hasProp } from "./utils/internal/object";
 
 type _EventHandlerHooks<
   Request extends EventHandlerRequest = EventHandlerRequest,
@@ -54,7 +51,6 @@ export function defineEventHandler<
 ): EventHandler<Request, Response> {
   // Function Syntax
   if (typeof handler === "function") {
-    handler.__is_handler__ = true;
     return handler;
   }
   // Object Syntax
@@ -62,12 +58,11 @@ export function defineEventHandler<
     onRequest: _normalizeArray(handler.onRequest),
     onBeforeResponse: _normalizeArray(handler.onBeforeResponse),
   };
-  const _handler: EventHandler<Request, any> = (event: H3Event) => {
+  const _handler: EventHandler<Request, any> = (event) => {
     return _callHandler(event, handler.handler, _hooks);
   };
-  _handler.__is_handler__ = true;
-  _handler.__resolve__ = handler.handler.__resolve__;
-  _handler.__websocket__ = handler.websocket;
+  _handler.resolve = handler.handler.resolve;
+  _handler.websocket = { hooks: handler.websocket };
   return _handler as EventHandler<Request, Response>;
 }
 
@@ -110,15 +105,6 @@ export function defineResponseMiddleware<
   return fn;
 }
 
-/**
- * Checks if any kind of input is an event handler.
- * @param input The input to check.
- * @returns True if the input is an event handler, false otherwise.
- */
-export function isEventHandler(input: any): input is EventHandler {
-  return hasProp(input, "__is_handler__");
-}
-
 export function dynamicEventHandler(
   initial?: EventHandler,
 ): DynamicEventHandler {
@@ -134,9 +120,9 @@ export function dynamicEventHandler(
   return wrapper;
 }
 
-export function defineLazyEventHandler<T extends LazyEventHandler>(
-  factory: T,
-): Awaited<ReturnType<T>> {
+export function defineLazyEventHandler(
+  load: () => Promise<EventHandler> | EventHandler,
+): EventHandler {
   let _promise: Promise<typeof _resolved>;
   let _resolved: { handler: EventHandler };
 
@@ -145,7 +131,7 @@ export function defineLazyEventHandler<T extends LazyEventHandler>(
       return Promise.resolve(_resolved);
     }
     if (!_promise) {
-      _promise = Promise.resolve(factory()).then((r: any) => {
+      _promise = Promise.resolve(load()).then((r: any) => {
         const handler = r.default || r;
         if (typeof handler !== "function") {
           throw new (TypeError as any)(
@@ -160,14 +146,19 @@ export function defineLazyEventHandler<T extends LazyEventHandler>(
     return _promise;
   };
 
-  const handler = defineEventHandler((event) => {
+  const handler: EventHandler = (event) => {
     if (_resolved) {
       return _resolved.handler(event);
     }
     return resolveHandler().then((r) => r.handler(event));
-  }) as Awaited<ReturnType<T>>;
+  };
 
-  handler.__resolve__ = resolveHandler;
+  handler.resolve = (method, path) =>
+    Promise.resolve(
+      resolveHandler().then(({ handler }) =>
+        handler.resolve ? handler.resolve(method, path) : { handler },
+      ),
+    );
 
   return handler;
 }

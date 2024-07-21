@@ -1,12 +1,12 @@
 import type { SessionConfig } from "../src/types";
 import { describe, it, expect, beforeEach } from "vitest";
-import { createRouter, useSession, readJSONBody } from "../src";
+import { useSession, readBody, createApp } from "../src";
 import { setupTest } from "./_setup";
 
 describe("session", () => {
   const ctx = setupTest();
 
-  let router: ReturnType<typeof createRouter>;
+  let router: ReturnType<typeof createApp>;
 
   let cookie = "";
 
@@ -18,11 +18,11 @@ describe("session", () => {
   };
 
   beforeEach(() => {
-    router = createRouter({ preemptive: true });
+    router = createApp({});
     router.use("/", async (event) => {
       const session = await useSession(event, sessionConfig);
-      if (event.method === "POST") {
-        await session.update((await readJSONBody(event)) as any);
+      if (event.request.method === "POST") {
+        await session.update((await readBody(event)) as any);
       }
       return { session };
     });

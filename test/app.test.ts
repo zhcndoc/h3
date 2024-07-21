@@ -11,7 +11,7 @@ describe("app", () => {
     ctx.app.use("/api", (event) => ({ url: event.path }));
     const res = await ctx.request.get("/api");
 
-    expect(res.body).toEqual({ url: "/" });
+    expect(res.body).toEqual({ url: "/api" });
   });
 
   it("can return bigint directly", async () => {
@@ -56,11 +56,11 @@ describe("app", () => {
     expect(res.text).toBe("Hello World!");
   });
 
-  it("can return a 204 response", async () => {
+  it("can return a null response", async () => {
     ctx.app.use("/api", () => null);
     const res = await ctx.request.get("/api");
 
-    expect(res.statusCode).toBe(204);
+    expect(res.statusCode).toBe(200);
     expect(res.text).toEqual("");
     expect(res.ok).toBeTruthy();
   });
@@ -166,17 +166,16 @@ describe("app", () => {
     expect(JSON.parse(res.text).statusMessage).toBe("test");
   });
 
-  it("can return HTML directly", async () => {
-    ctx.app.use(() => "<h1>Hello world!</h1>");
+  it("can return text directly", async () => {
+    ctx.app.use(() => "Hello world!");
     const res = await ctx.request.get("/");
 
-    expect(res.text).toBe("<h1>Hello world!</h1>");
-    expect(res.header["content-type"]).toBe("text/html");
+    expect(res.text).toBe("Hello world!");
   });
 
   it("allows overriding Content-Type", async () => {
     ctx.app.use((event) => {
-      setResponseHeader(event, "content-type", "text/xhtml");
+      event.response.setHeader("content-type", "text/xhtml");
       return "<h1>Hello world!</h1>";
     });
     const res = await ctx.request.get("/");
@@ -209,23 +208,6 @@ describe("app", () => {
     expect(res.text).toBe("42");
   });
 
-  it("can use route arrays", async () => {
-    ctx.app.use(["/1", "/2"], () => "valid");
-
-    const responses = [
-      await ctx.request.get("/1"),
-      await ctx.request.get("/2"),
-    ].map((r) => r.text);
-    expect(responses).toEqual(["valid", "valid"]);
-  });
-
-  it("can use handler arrays", async () => {
-    ctx.app.use("/", [() => {}, () => {}, () => {}, () => "valid"]);
-
-    const response = await ctx.request.get("/");
-    expect(response.text).toEqual("valid");
-  });
-
   it("prohibits use of next() in non-promisified handlers", () => {
     ctx.app.use("/", () => {});
   });
@@ -251,18 +233,6 @@ describe("app", () => {
 
     const response = await ctx.request.get("/");
     expect(response.text).toEqual("done");
-  });
-
-  it("can use a custom matcher", async () => {
-    ctx.app.use("/odd", () => "Is odd!", {
-      match: (url) => Boolean(Number(url.slice(1)) % 2),
-    });
-
-    const res = await ctx.request.get("/odd/41");
-    expect(res.text).toBe("Is odd!");
-
-    const notFound = await ctx.request.get("/odd/2");
-    expect(notFound.status).toBe(404);
   });
 
   it("can normalise route definitions", async () => {

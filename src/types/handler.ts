@@ -1,21 +1,13 @@
-import type { Readable as NodeReadableStream } from "node:stream";
-import type { QueryObject } from "ufo";
 import type { H3Event } from "./event";
 import type { Hooks as WSHooks } from "crossws";
 import type { HTTPMethod } from "./http";
-import type { RouterEntry } from "./router";
-
-export type ResponseBody =
-  | undefined // middleware pass
-  | null // empty content
-  | BodyInit
-  | NodeReadableStream;
+import type { H3 } from "./h3";
 
 export type EventHandlerResponse<T = unknown> = T | Promise<T>;
 
 export interface EventHandlerRequest {
   body?: unknown;
-  query?: QueryObject;
+  query?: Record<string, string>;
   routerParams?: Record<string, string>;
 }
 
@@ -27,20 +19,22 @@ export type InferEventInput<
 
 type MaybePromise<T> = T | Promise<T>;
 
+export type ResolvedEventHandler = {
+  method?: HTTPMethod;
+  route?: string;
+  handler?: EventHandler;
+  params?: Record<string, string>;
+};
+
 export type EventHandlerResolver = (
   method: HTTPMethod,
   path: string,
-) => MaybePromise<
-  undefined | (Partial<RouterEntry> & { params?: Record<string, string> })
->;
+) => MaybePromise<undefined | ResolvedEventHandler>;
 
 export interface EventHandler<
   Request extends EventHandlerRequest = EventHandlerRequest,
   Response extends EventHandlerResponse = EventHandlerResponse,
-> {
-  __is_handler__?: true;
-  __resolve__?: EventHandlerResolver;
-  __websocket__?: Partial<WSHooks>;
+> extends Partial<Pick<H3, "handler" | "resolve" | "config" | "websocket">> {
   (event: H3Event<Request>): Response;
 }
 

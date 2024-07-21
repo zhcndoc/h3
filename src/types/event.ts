@@ -1,59 +1,38 @@
+import type { IncomingMessage, ServerResponse } from "node:http";
 import type { EventHandlerRequest, H3EventContext, HTTPMethod } from ".";
-import type { _kRaw } from "../event";
-
-type MaybePromise<T> = T | Promise<T>;
 
 export interface H3Event<
   _RequestT extends EventHandlerRequest = EventHandlerRequest,
 > {
-  // Internal raw context
-  [_kRaw]: RawEvent;
-
   // Context
-  context: H3EventContext;
+  readonly context: H3EventContext;
+
+  // Platform specific
+  node?: {
+    req: IncomingMessage;
+    res: ServerResponse;
+  };
 
   // Request
   readonly method: HTTPMethod;
   readonly path: string;
+  readonly url: URL;
   readonly headers: Headers;
+  readonly request: Request;
+  readonly ip?: string | undefined;
 
-  toString(): string;
-  toJSON(): string;
+  // Response
+  response: H3EventResponse;
 }
 
-export interface RawEvent {
-  // -- Context --
-  getContext: () => Record<string, unknown>;
+export interface H3EventResponse {
+  status?: number;
+  statusText?: string;
 
-  // -- Request --
+  _headersInit?: HeadersInit;
+  _headers?: Headers;
 
-  path: string;
-  readonly originalPath: string;
-  readonly method: HTTPMethod;
+  readonly headers: Headers;
 
-  readonly remoteAddress?: string | undefined;
-  readonly isSecure?: boolean | undefined;
-
-  getHeader: (key: string) => string | undefined;
-  getHeaders: () => Headers;
-
-  readRawBody: () => MaybePromise<Uint8Array | undefined>;
-  readTextBody: () => MaybePromise<string | undefined>;
-  readFormDataBody: () => MaybePromise<FormData | undefined>;
-  getBodyStream: () => ReadableStream<Uint8Array> | undefined;
-
-  // -- Response --
-
-  responseCode: number | undefined;
-  responseMessage: string | undefined;
-
-  setResponseHeader: (key: string, value: string) => void;
-  appendResponseHeader: (key: string, value: string) => void;
-  getResponseHeader: (key: string) => string | undefined;
-  getResponseHeaders: () => Headers;
-  getResponseSetCookie: () => string[];
-  removeResponseHeader: (key: string) => void;
-  writeHead: (code: number, message?: string) => void;
-  // sendResponse: (data?: RawResponse) => void | Promise<void>;
-  writeEarlyHints: (hints: Record<string, string>) => void | Promise<void>;
+  setHeader(name: string, value: string): void;
 }
