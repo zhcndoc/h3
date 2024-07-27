@@ -1,83 +1,98 @@
-import { describe, it, expect } from "vitest";
-import { setResponseStatus, noContent } from "../src";
-import { setupTest } from "./_setup";
+import { noContent } from "../src";
+import { describeMatrix } from "./_setup";
 
-async function webResponseToPlain(res: Response) {
-  return {
-    status: res.status,
-    statusText: res.statusText,
-    body: await res.text(),
-    headers: Object.fromEntries(res.headers),
-  };
-}
-
-describe("setResponseStatus", () => {
-  const ctx = setupTest();
+describeMatrix("event response", (t, { it, describe, expect }) => {
+  async function webResponseToPlain(res: Response) {
+    return {
+      status: res.status,
+      statusText: res.statusText,
+      body: await res.text(),
+      headers: Object.fromEntries(res.headers),
+    };
+  }
 
   describe("content response", () => {
     it("sets status 200 as default", async () => {
-      ctx.app.use("/test", () => "text");
+      t.app.all("/test", () => "text");
 
-      const res = await ctx.app.fetch("/test", {
+      const res = await t.fetch("/test", {
         method: "POST",
       });
 
       expect(await webResponseToPlain(res)).toMatchObject({
         status: 200,
-        statusText: "",
+        statusText: t.target === "node" ? "OK" : "",
         body: "text",
-        headers: {
-          "content-type": "text/plain;charset=UTF-8",
-        },
+        headers:
+          t.target === "web"
+            ? {
+                "content-type": "text/plain;charset=UTF-8",
+              }
+            : {
+                connection: "keep-alive",
+                "content-length": "4",
+                date: expect.any(String),
+                "keep-alive": "timeout=5",
+              },
       });
     });
+
     it("override status and statusText", async () => {
-      ctx.app.use("/test", (event) => {
+      t.app.all("/test", (event) => {
         event.response.status = 418;
-        event.response.statusText = "status-text";
+        event.response.statusText = "custom-status";
         return "text";
       });
 
-      const res = await ctx.app.fetch("/test", {
+      const res = await t.fetch("/test", {
         method: "POST",
         body: "",
       });
 
       expect(await webResponseToPlain(res)).toMatchObject({
         status: 418,
-        statusText: "status-text",
+        statusText: "custom-status",
         body: "text",
-        headers: {
-          "content-type": "text/plain;charset=UTF-8",
-        },
+        headers:
+          t.target === "web"
+            ? {
+                "content-type": "text/plain;charset=UTF-8",
+              }
+            : {
+                connection: "keep-alive",
+                "content-length": "4",
+                date: expect.any(String),
+                "keep-alive": "timeout=5",
+              },
       });
     });
   });
 
   describe("no content response", () => {
     it("sets status 204 as default", async () => {
-      ctx.app.use("/test", (event) => {
+      t.app.all("/test", (event) => {
         return noContent(event);
       });
 
-      const res = await ctx.app.fetch("/test", {
+      const res = await t.fetch("/test", {
         method: "POST",
       });
 
       expect(await webResponseToPlain(res)).toMatchObject({
         status: 204,
-        statusText: "",
+        statusText: t.target === "node" ? "No Content" : "",
         body: "",
         headers: {},
       });
     });
     it("override status and statusText with setResponseStatus method", async () => {
-      ctx.app.use("/test", (event) => {
-        setResponseStatus(event, 418, "status-text");
+      t.app.all("/test", (event) => {
+        event.response.status = 418;
+        event.response.statusText = "status-text";
         return "";
       });
 
-      const res = await ctx.app.fetch("/test", {
+      const res = await t.fetch("/test", {
         method: "POST",
         body: "",
       });
@@ -91,12 +106,13 @@ describe("setResponseStatus", () => {
     });
 
     it("does not sets content-type for 304", async () => {
-      ctx.app.use("/test", (event) => {
-        setResponseStatus(event, 304, "Not Modified");
+      t.app.all("/test", (event) => {
+        event.response.status = 304;
+        event.response.statusText = "Not Modified";
         return "";
       });
 
-      const res = await ctx.app.fetch("/test");
+      const res = await t.fetch("/test");
 
       expect(await webResponseToPlain(res)).toMatchObject({
         status: 304,

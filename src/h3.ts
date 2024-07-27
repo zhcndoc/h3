@@ -94,12 +94,12 @@ class _H3 implements H3 {
     // Prepare response
     const config = this.config;
     if (!(handlerRes instanceof Promise)) {
-      const preparedRes = prepareResponse(handlerRes, event, config);
+      const response = prepareResponse(handlerRes, event, config, true);
       return config.onBeforeResponse
-        ? Promise.resolve(config.onBeforeResponse(event, preparedRes)).then(
-            () => new Response(preparedRes.body, preparedRes),
+        ? Promise.resolve(config.onBeforeResponse(event, response)).then(
+            () => response,
           )
-        : new Response(preparedRes.body, preparedRes);
+        : response;
     }
     return handlerRes
       .catch((error) => {
@@ -111,17 +111,17 @@ class _H3 implements H3 {
           : h3Error;
       })
       .then((resolvedRes) => {
-        const preparedRes = prepareResponse(resolvedRes, event, config);
+        const response = prepareResponse(resolvedRes, event, config, true);
         return config.onBeforeResponse
-          ? Promise.resolve(config.onBeforeResponse(event, preparedRes)).then(
-              () => new Response(preparedRes.body, preparedRes),
+          ? Promise.resolve(config.onBeforeResponse(event, response)).then(
+              () => response,
             )
-          : new Response(preparedRes.body, preparedRes);
+          : response;
       });
   }
 
   _handler(event: H3Event) {
-    const pathname = event.url.pathname;
+    const pathname = event.pathname;
 
     let _chain: Promise<unknown> | undefined;
 
@@ -133,40 +133,42 @@ class _H3 implements H3 {
     // 2. Global middleware
     const _middleware = this._middleware;
     if (_middleware) {
-      _chain = (_chain || Promise.resolve()).then(async () => {
-        for (const entry of _middleware) {
-          const result = await entry.handler(event);
-          if (result !== undefined && result !== kNotFound) {
-            return result;
+      _chain = _chain || Promise.resolve();
+      for (const m of _middleware) {
+        _chain = _chain.then((_previous) => {
+          if (_previous !== undefined && _previous !== kNotFound) {
+            return _previous;
           }
-        }
-      });
+          if (m.method && m.method !== event.request.method) {
+            return;
+          }
+          return m.handler(event);
+        });
+      }
     }
 
     // 3. Middleware router
     const _mRouter = this._mRouter;
     if (_mRouter) {
-      _chain = (_chain || Promise.resolve()).then(async (_previous) => {
-        if (_previous !== undefined && _previous !== kNotFound) {
-          return _previous;
-        }
-        const matches = findAllRoutes(_mRouter, event.request.method, pathname);
+      const matches = findAllRoutes(_mRouter, event.request.method, pathname);
+      if (matches.length > 0) {
+        _chain = _chain || Promise.resolve();
         for (const match of matches) {
-          const result = await match.data.handler(event);
-          if (result !== undefined && result !== kNotFound) {
-            return result;
-          }
+          _chain = _chain.then((_previous) => {
+            if (_previous !== undefined && _previous !== kNotFound) {
+              return _previous;
+            }
+            event.context.params = match.params;
+            event.context.matchedRoute = match.data;
+            return match.data.handler(event);
+          });
         }
-      });
+      }
     }
 
     // 4. Route handler
     if (this._router) {
-      const match = findRoute(
-        this._router,
-        event.request.method,
-        pathname,
-      )?.[0];
+      const match = findRoute(this._router, event.request.method, pathname);
       if (match) {
         if (_chain) {
           return _chain.then((_previous) => {
@@ -198,8 +200,8 @@ class _H3 implements H3 {
     path: string,
   ): Promise<ResolvedEventHandler | undefined> {
     const match =
-      (this._mRouter && findRoute(this._mRouter, method, path)?.pop()) ||
-      (this._router && findRoute(this._router, method, path)?.pop());
+      (this._mRouter && findRoute(this._mRouter, method, path)) ||
+      (this._router && findRoute(this._router, method, path));
 
     if (!match) {
       return undefined;

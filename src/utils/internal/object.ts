@@ -1,3 +1,5 @@
+import { EmptyObject } from "./obj";
+
 /**
  * Checks if a certain input has a given property.
  * @param obj - The input to check.
@@ -34,6 +36,11 @@ export function isJSONSerializable(value: any, _type: string): boolean {
   // Pipable streams are not JSON serializable (react pipe result is pure object :()
   if (typeof value.pipe === "function" || typeof value.pipeTo === "function") {
     return false;
+  }
+
+  // H3 empty object
+  if (value instanceof EmptyObject) {
+    return true;
   }
 
   // Pure object
