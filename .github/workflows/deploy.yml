@@ -1,0 +1,54 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Build project
+        env:
+          NUXT_UI_PRO_LICENSE: ${{ secrets.NUXT_UI_PRO_LICENSE }}
+        run: |
+          cd docs && bun install --no-frozen-lockfile
+          bun run build
+          cd .docs/.output/public && zip -rq ../../../../build.zip .
+
+      - name: Deploy to Zeabur
+        env:
+          PROJECT_ID: 66c211434b036528feae97f9
+          SERVICE_ID: 66c7f4a7d44bf8c9384276bc
+          ENVIRONMENT_ID: 66c21143812c32a5722b56ea
+          API_TOKEN: ${{ secrets.ZEABUR_TOKEN }}
+        run: |
+          curl --request POST \
+            --url https://gateway.zeabur.com/projects/${{ env.PROJECT_ID }}/services/${{ env.SERVICE_ID }}/deploy \
+            --header "Authorization: Bearer ${{ env.API_TOKEN }}" \
+            --form "code=@build.zip" \
+            --form "environment=${{ env.ENVIRONMENT_ID }}"
+
+      - name: Deploy to Server
+        uses: easingthemes/ssh-deploy@main
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.SERVER_KEY }}
+          REMOTE_USER: ${{ secrets.SERVER_USER }}
+          REMOTE_HOST: ${{ secrets.SERVER_HOST }}
+          REMOTE_PORT: ${{ secrets.SERVER_PORT }}
+          SOURCE: "docs/.docs/.output/public/"
+          ARGS: "-azr --delete"
+          TARGET: "/www/web/h3/"
