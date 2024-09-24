@@ -31,16 +31,16 @@ jobs:
 
       - name: Deploy to Zeabur
         env:
-          PROJECT_ID: 66c211434b036528feae97f9
-          SERVICE_ID: 66c7f4a7d44bf8c9384276bc
-          ENVIRONMENT_ID: 66c21143812c32a5722b56ea
+          PROJECT_ID: 66e2444d723926097b6fd1c7
+          SERVICE_ID: 66e2466d31bde736b00fd57f
+          ENVIRONMENT_ID: 66e2444dbc556e0e05b26a38
           API_TOKEN: ${{ secrets.ZEABUR_TOKEN }}
         run: |
           curl --request POST \
             --url https://gateway.zeabur.com/projects/${{ env.PROJECT_ID }}/services/${{ env.SERVICE_ID }}/deploy \
             --header "Authorization: Bearer ${{ env.API_TOKEN }}" \
             --form "code=@build.zip" \
-            --form "environment=${{ env.ENVIRONMENT_ID }}"
+            --form "environment=${{ env.ENVIRONMENT_ID }}" || true
 
       - name: Deploy to Server
         uses: easingthemes/ssh-deploy@main
@@ -51,4 +51,4 @@ jobs:
           REMOTE_PORT: ${{ secrets.SERVER_PORT }}
           SOURCE: "docs/.docs/.output/public/"
           ARGS: "-azr --delete"
-          TARGET: "/www/web/h3/"
+          TARGET: "${{ secrets.SERVER_PATH }}/h3/"
