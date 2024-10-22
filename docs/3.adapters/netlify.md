@@ -4,13 +4,13 @@ icon: teenyicons:netlify-outline
 
 # Netlify
 
-> Run your h3 apps in Netlify Edge
+> 在 Netlify Edge 运行你的 h3 应用
 
-You can directly host your h3 applications to [Netlify Edge](https://www.netlify.com/platform/core/edge/) using [Web Adapter](/adapters/web).
+你可以使用 [Web Adapter](/adapters/web) 将你的 h3 应用直接托管到 [Netlify Edge](https://www.netlify.com/platform/core/edge/) 上。
 
-## Usage
+## 用法
 
-Create app entry:
+创建应用入口：
 
 ```js [app.mjs]
 import { createApp } from "h3";
@@ -20,7 +20,7 @@ export const app = createApp();
 app.use(() => "Hello world!");
 ```
 
-Create entry for netlify-edge:
+为 netlify-edge 创建入口：
 
 ```js [netlify/index.mjs]
 import { toWebHandler } from "h3";
@@ -29,7 +29,7 @@ import { app } from "./app.mjs";
 export const handler = toWebHandler(app);
 ```
 
-Then, create `import_map.json`:
+然后，创建 `import_map.json`：
 
 ```json [import_map.json]
 {
@@ -39,7 +39,7 @@ Then, create `import_map.json`:
 }
 ```
 
-Create `netlify.toml`:
+创建 `netlify.toml`：
 
 ```ini [netlify.toml]
 [build]
@@ -49,13 +49,13 @@ Create `netlify.toml`:
   deno_import_map = "./import_map.json"
 ```
 
-Finally, use `netlify dev` to locally preview:
+最后，使用 `netlify dev` 进行本地预览：
 
 ```bash [terminal]
 npx netlify dev
 ```
 
-To deploy, use `netlify deploy`:
+要部署，请使用 `netlify deploy`：
 
 ```bash [terminal]
 npx netlify deploy --prod
@@ -64,5 +64,5 @@ npx netlify deploy --prod
 ---
 
 ::read-more
-See [pi0/h3-on-edge](https://github.com/pi0/h3-on-edge) demo for a fully working example.
+查看 [pi0/h3-on-edge](https://github.com/pi0/h3-on-edge) demo 以获取完整的工作示例。
 ::

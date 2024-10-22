@@ -1,75 +1,75 @@
 # yaml-language-server: $schema=https://unpkg.com/undocs/schema/config.json
-name: h3
-shortDescription: The Web Framework for Modern JavaScript Era
+name: H3 中文文档
+shortDescription: 现代 JavaScript 时代的 Web 框架
 description:
-  H(TTP) server framework built for high performance and portability running
-  in any JavaScript runtime.
-github: unjs/h3
+  H(TTP) 服务器框架，旨在高性能和可移植性，能够在任何 JavaScript 运行时中运行。
+
+github: zhcndoc/h3
 themeColor: amber
-url: https://h3.unjs.io
+url: https://h3.zhcndoc.com
 automd: true
 redirects: {}
 landing:
   heroLinks:
     playOnline:
-      label: "Play Online"
+      label: "在线体验"
       icon: "i-simple-icons-lightning"
       to: "https://stackblitz.com/github/unjs/h3/tree/main/playground"
   contributors: true
-  featuresTitle: "The Web Framework for Modern JavaScript Era"
+  featuresTitle: "现代 JavaScript 时代的 Web 框架"
   features:
-    # Runtime Agnostic
-    - title: "Runtime Agnostic"
-      description: "Your code will work on any JavaScript runtime including Node.js, Bun, Deno and Workers."
+    # 与运行时无关
+    - title: "与运行时无关"
+      description: "您的代码将在任何 JavaScript 运行时中工作，包括 Node.js、Bun、Deno 和 Workers。"
       icon: "i-material-symbols-lock-open-right-outline-rounded"
       to: ""
       target: "_blank"
 
-    # Tree-shakable
-    - title: "Small and Tree-shakable"
-      description: "h3 core is super lightweight and tree-shakable, only what you use will be included in the the final bundle."
+    # 可树摇
+    - title: "小巧且可树摇"
+      description: "h3 核心非常轻量且可树摇，只有您使用的部分会包含在最终包中。"
       icon: "i-material-symbols-potted-plant-outline"
       to: ""
       target: "_blank"
 
-    # Composable
-    - title: "Composable"
-      description: "Expand your server and add capabilities. Your codebase will scale with your project."
+    # 可组合
+    - title: "可组合"
+      description: "扩展您的服务器并添加功能。您的代码库将随着项目的扩展而增长。"
       icon: "i-fa-puzzle-piece"
       to: ""
       target: "_blank"
 
-    # Router
-    - title: "Fast Router"
-      description: "Super fast route matching using unjs/radix3"
+    # 路由器
+    - title: "快速路由器"
+      description: "使用 unjs/radix3 进行超快速路由匹配"
       icon: "i-fa-tree"
       to: "https://github.com/unjs/radix3"
       target: "_blank"
 
-    # Ecosystem
-    - title: "UnJS Ecosystem"
-      description: "Built on top of powerful UnJS ecosystem powering Nitro, Nuxt and more frameworks!"
+    # 生态系统
+    - title: "UnJS 生态系统"
+      description: "构建在强大的 UnJS 生态系统之上，支持 Nitro、Nuxt 和更多框架！"
       icon: "i-mdi-umbrella-outline"
       to: "https://unjs.io"
       target: "_blank"
 
-    # Made for Humans
-    - title: "Made for Humans"
-      description: "Elegant minimal API to implement HTTP handlers compatible with Web-Standards."
+    # 为人而造
+    - title: "为人而造"
+      description: "优雅的最小 API，用于实现与 Web 标准兼容的 HTTP 处理程序。"
       icon: "i-material-symbols-robot-2-sharp"
       to: ""
       target: "_blank"
 
-    # Compatibility
-    - title: "Compatible"
-      description: "Compatibility layer with node/connect/express middleware."
+    # 兼容性
+    - title: "兼容"
+      description: "与 node/connect/express 中间件的兼容层。"
       icon: "i-simple-icons-express"
       to: ""
       target: "_blank"
 
-    # Type Friendly
-    - title: "Type Friendly"
-      description: "Codebase fully written in TypeScript with strongly typed utils."
+    # 类型友好
+    - title: "类型友好"
+      description: "代码库完全用 TypeScript 编写，具有强类型的工具。"
       icon: "i-mdi-language-typescript"
       to: ""
       target: "_blank"

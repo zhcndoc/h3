@@ -4,16 +4,16 @@ icon: simple-icons:bun
 
 # Bun
 
-> Run your h3 apps with Bun
+> 使用 Bun 运行你的 h3 应用
 
-In order to run h3 apps in [Bun](https://bun.sh/), use the [Web Adapter](/adapters/web).
+为了在 [Bun](https://bun.sh/) 中运行 h3 应用，请使用 [Web Adapter](/adapters/web)。
 
 > [!NOTE]
-> Alternatively you can use [Node.js adapter](/adapters/node) as Bun is fully compatible with Node.js API!
+> 另外，你也可以使用 [Node.js adapter](/adapters/node)，因为 Bun 与 Node.js API 完全兼容！
 
-## Usage
+## 用法
 
-Create app entry:
+创建应用入口：
 
 ```js [app.mjs]
 import { createApp } from "h3";
@@ -23,7 +23,7 @@ export const app = createApp();
 app.use(() => "Hello world!");
 ```
 
-Create Bun server entry:
+创建 Bun 服务器入口：
 
 ```js [server.mjs]
 import { toWebHandler } from "h3";
@@ -35,13 +35,13 @@ const server = Bun.serve({
 });
 ```
 
-Now, your can run Bun server:
+现在，你可以运行 Bun 服务器：
 
 ```bash
 bun --bun ./server.mjs
 ```
 
-## WebSocket support
+## WebSocket 支持
 
 :read-more{to="https://crossws.unjs.io/adapters/bun"}
 

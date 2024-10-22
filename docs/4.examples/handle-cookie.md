@@ -1,16 +1,16 @@
-# Handle Cookie
+# 处理 Cookies
 
-> Use cookies to store data on the client.
+> 使用 cookies 在客户端存储数据。
 
-Handling cookies with h3 is straightforward. There is three utilities to handle cookies:
+使用 h3 处理 cookies 非常简单。有三个工具来处理 cookies：
 
-- `setCookie` to attach a cookie to the response.
-- `getCookie` to get a cookie from the request.
-- `deleteCookie` to clear a cookie from the response.
+- `setCookie` 用于将 cookies 附加到响应。
+- `getCookie` 用于从请求中获取 cookies。
+- `deleteCookie` 用于从响应中清除 cookies。
 
-## Set a Cookie
+## 设置 Cookies
 
-To set a cookie, you need to use `setCookie` in an event handler:
+要设置一个 cookie，您需要在事件处理程序中使用 `setCookie`：
 
 ```ts
 import { setCookie } from "h3";
@@ -21,21 +21,21 @@ app.use(async (event) => {
 });
 ```
 
-In the options, you can configure the [cookie flags](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie):
+在选项中，您可以配置 [cookie 标志](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie)：
 
-- `maxAge` to set the expiration date of the cookie in seconds.
-- `expires` to set the expiration date of the cookie in a `Date` object.
-- `path` to set the path of the cookie.
-- `domain` to set the domain of the cookie.
-- `secure` to set the `Secure` flag of the cookie.
-- `httpOnly` to set the `HttpOnly` flag of the cookie.
-- `sameSite` to set the `SameSite` flag of the cookie.
+- `maxAge` 用于设置 cookie 的过期时间（以秒为单位）。
+- `expires` 用于设置 cookie 的过期时间（以 `Date` 对象的形式）。
+- `path` 用于设置 cookie 的路径。
+- `domain` 用于设置 cookie 的域名。
+- `secure` 用于设置 cookie 的 `Secure` 标志。
+- `httpOnly` 用于设置 cookie 的 `HttpOnly` 标志。
+- `sameSite` 用于设置 cookie 的 `SameSite` 标志。
 
 :read-more{to="/utils"}
 
-## Get a Cookie
+## 获取 Cookies
 
-To get a cookie, you need to use `getCookie` in an event handler.
+要获取一个 cookie，您需要在事件处理程序中使用 `getCookie`。
 
 ```ts
 import { getCookie } from "h3";
@@ -43,17 +43,17 @@ import { getCookie } from "h3";
 app.use(async (event) => {
   const name = getCookie(event, "name");
 
-  // do something...
+  // 做一些事情...
 
   return "";
 });
 ```
 
-This will return the value of the cookie if it exists, or `undefined` otherwise.
+如果 cookie 存在，这将返回 cookie 的值，否则返回 `undefined`。
 
-## Delete a Cookie
+## 删除 Cookies
 
-To delete a cookie, you need to use `deleteCookie` in an event handler:
+要删除一个 cookie，您需要在事件处理程序中使用 `deleteCookie`：
 
 ```ts
 import { deleteCookie } from "h3";
@@ -64,6 +64,6 @@ app.use(async (event) => {
 });
 ```
 
-The utility `deleteCookie` is a wrapper around `setCookie` with the value set to `""` and the `maxAge` set to `0`.
+工具 `deleteCookie` 是在 `setCookie` 的封装，值设置为 `""`，并将 `maxAge` 设置为 `0`。
 
-This will erase the cookie from the client.
+这将从客户端删除该 cookie。

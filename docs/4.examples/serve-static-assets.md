@@ -1,15 +1,15 @@
-# Serve Static Assets
+# 提供静态资产
 
-> Serve static assets such as HTML, images, CSS, JavaScript, etc.
+> 提供静态资产，例如 HTML、图像、CSS、JavaScript 等等。
 
-h3 can serve static assets such as HTML, images, CSS, JavaScript, etc.
+h3 可以提供静态资产，例如 HTML、图像、CSS、JavaScript 等等。
 
 > [!NOTE]
-> If you use [`unjs/listhen`](https://listhen.unjs.io), you've just to create a `public` directory in your project root and put your static assets in it. They will be served automatically.
+> 如果你使用 [`unjs/listhen`](https://listhen.unjs.io)，你只需在项目根目录中创建一个 `public` 目录，并将你的静态资产放在其中。它们将会自动提供。
 
-## Usage
+## 使用方法
 
-To serve a static directory, you can use the `serveStatic` utility.
+要提供静态目录，你可以使用 `serveStatic` 工具。
 
 ```ts
 import { createApp, serveStatic } from "h3";
@@ -28,24 +28,24 @@ app.use((event) => {
 });
 ```
 
-This does not serve any files yet. You need to implement the `getContents` and `getMeta` methods.
+这段代码还未提供任何文件。你需要实现 `getContents` 和 `getMeta` 方法。
 
-- `getContents` is used to read the contents of a file. It should return a `Promise` that resolves to the contents of the file or `undefined` if the file does not exist.
-- `getMeta` is used to get the metadata of a file. It should return a `Promise` that resolves to the metadata of the file or `undefined` if the file does not exist.
+- `getContents` 用于读取文件内容。它应该返回一个 `Promise`，解析为文件的内容，如果文件不存在则返回 `undefined`。
+- `getMeta` 用于获取文件的元数据。它应该返回一个 `Promise`，解析为文件的元数据，如果文件不存在则返回 `undefined`。
 
-They are separated to allow h3 to respond to `HEAD` requests without reading the contents of the file and to use the `Last-Modified` header.
+这两个方法是分开的，以允许 h3 在不读取文件内容的情况下响应 `HEAD` 请求，并使用 `Last-Modified` 头。
 
-## Read files
+## 读取文件
 
-Now, create a `index.html` file in the `public` directory with a simple message and open your browser to http://localhost:3000. You should see the message.
-
-> [!NOTE]
-> Usage of `public` is a convention but you can use any directory name you want.
+现在，在 `public` 目录中创建一个简单消息的 `index.html` 文件，并在浏览器中打开 http://localhost:3000。你应该能看到该消息。
 
 > [!NOTE]
-> If you're are using [`unjs/listhen`](https://listhen.unjs.io) and want to try this example, create a directory with another name than `public` because it's the default directory used by `listhen`.
+> 使用 `public` 是一种约定，但你可以使用任何你想要的目录名称。
 
-Then, we can create the `getContents` and `getMeta` methods:
+> [!NOTE]
+> 如果你正在使用 [`unjs/listhen`](https://listhen.unjs.io) 并想尝试此示例，请创建一个与 `public` 不同名称的目录，因为它是 `listhen` 使用的默认目录。
+
+然后，我们可以创建 `getContents` 和 `getMeta` 方法：
 
 ```ts
 import { createApp, serveStatic } from "h3";
@@ -75,15 +75,15 @@ app.use((event) => {
 });
 ```
 
-The `getContents` read the file and returns its contents, pretty simple. The `getMeta` uses `fs.stat` to get the file metadata. If the file does not exist or is not a file, it returns `undefined`. Otherwise, it returns the file size and the last modification time.
+`getContents` 读取文件并返回其内容，非常简单。`getMeta` 使用 `fs.stat` 来获取文件元数据。如果文件不存在或不是一个文件，它会返回 `undefined`。否则，它将返回文件大小和最后修改时间。
 
-The file size and last modification time are used to create an etag to send a `304 Not Modified` response if the file has not been modified since the last request. This is useful to avoid sending the same file multiple times if it has not changed.
+文件大小和最后修改时间用于生成 etag，以便在文件自上次请求以来未被修改时发送 `304 Not Modified` 响应。这对于避免如果文件没有更改而多次发送相同的文件非常有用。
 
-## Resolving Assets
+## 解析资产
 
-If the path does not match a file, h3 will try to add `index.html` to the path and try again. If it still does not match, it will return a 404 error.
+如果路径不匹配文件，h3 将尝试在路径后添加 `index.html` 并再次尝试。如果仍然不匹配，它将返回 404 错误。
 
-You can change this behavior by passing a `indexNames` option to `serveStatic`:
+你可以通过将 `indexNames` 选项传递给 `serveStatic` 来改变这种行为：
 
 ```ts
 import { createApp, serveStatic } from "h3";
@@ -97,7 +97,7 @@ app.use(
 );
 ```
 
-With this option, h3 will try to match `<path>/app.html` first, then `<path>/index.html` and finally return a 404 error.
+使用此选项，h3 将首先尝试匹配 `<path>/app.html`，然后是 `<path>/index.html`，最后返回 404 错误。
 
 > [!IMPORTANT]
-> Do not forget `/` at the beginning of the h3 concatenates the path with the index name. For example, `/index.html` will be concatenated with `/hello` to form `hello/index.html`.
+> 不要忘记 `/` 在开头，h3 会将路径与索引名称连接起来。例如，`/index.html` 将与 `/hello` 连接，形成 `hello/index.html`。

@@ -4,13 +4,13 @@ icon: teenyicons:deno-solid
 
 # Deno
 
-> Run your h3 apps in Deno Deploy
+> 在 Deno Deploy 中运行你的 h3 应用
 
-You can directly host your h3 applications to [Deno Deploy](https://deno.com/deploy) using [Web Adapter](/adapters/web).
+你可以使用 [Web Adapter](/adapters/web) 将你的 h3 应用直接托管到 [Deno Deploy](https://deno.com/deploy)。
 
-## Usage
+## 使用方法
 
-Create app entry:
+创建应用入口：
 
 ```js [app.mjs]
 import { createApp } from "h3";
@@ -20,7 +20,7 @@ export const app = createApp();
 app.use(() => "Hello world!");
 ```
 
-Create entry for Deno Deploy:
+为 Deno Deploy 创建入口：
 
 ```js [deno.mjs]
 import { toWebHandler } from "h3";
@@ -29,7 +29,7 @@ import { app } from "./app.mjs";
 Deno.serve(toWebHandler(app));
 ```
 
-Create an `import_map.json`:
+创建一个 `import_map.json`：
 
 ```json [import_map.json]
 {
@@ -39,19 +39,19 @@ Create an `import_map.json`:
 }
 ```
 
-Finally, use `deno run` to locally preview:
+最后，使用 `deno run` 进行本地预览：
 
 ```bash [terminal]
 deno run --allow-net ./deno.mjs
 ```
 
-To deploy, use `deployctl deploy`:
+要部署，请使用 `deployctl deploy`：
 
 ```bash [terminal]
 deployctl deploy --prod --exclude=node_modules --import-map=./import_map.json ./deno.mjs
 ```
 
-## WebSocket support
+## WebSocket 支持
 
 :read-more{to="https://crossws.unjs.io/adapters/deno"}
 
@@ -73,5 +73,5 @@ Deno.serve((request) => {
 ---
 
 ::read-more
-See [pi0/h3-on-edge](https://github.com/pi0/h3-on-edge) demo for a fully working example ([deployment](https://h3-on-edge.deno.dev/)).
+查看 [pi0/h3-on-edge](https://github.com/pi0/h3-on-edge) 演示，以获取完整的工作示例（[部署](https://h3-on-edge.deno.dev/)）。
 ::

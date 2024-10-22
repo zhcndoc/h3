@@ -4,23 +4,23 @@ icon: devicon-plain:cloudflareworkers
 
 # Cloudflare
 
-> Run your h3 apps in Cloudflare Workers
+> 在 Cloudflare Workers 中运行你的 h3 应用
 
-You can directly host your h3 applications to [Cloudflare Workers](https://workers.cloudflare.com/) using [Web Adapter](/adapters/web).
+你可以直接将你的 h3 应用托管到 [Cloudflare Workers](https://workers.cloudflare.com/) 使用 [Web Adapter](/adapters/web)。
 
-## Usage
+## 使用方法
 
-Create app entry:
+创建应用入口：
 
 ```js [app.mjs]
 import { createApp } from "h3";
 
 export const app = createApp();
 
-app.use(() => "Hello world!");
+app.use(() => "你好，世界！");
 ```
 
-Create entry for a Cloudflare Worker:
+为 Cloudflare Worker 创建入口：
 
 ```js [cloudflare.mjs]
 import { toWebHandler } from "h3";
@@ -37,7 +37,7 @@ export default {
 };
 ```
 
-Then, create a simple `wrangler.toml`:
+然后，创建一个简单的 `wrangler.toml`：
 
 ```ini [wrangler.toml]
 name = "h3-app"
@@ -45,19 +45,19 @@ main = "cloudflare.mjs"
 compatibility_date = "2023-08-01"
 ```
 
-Finally, use `wrangler dev` to locally preview:
+最后，使用 `wrangler dev` 进行本地预览：
 
 ```bash
 npx wrangler dev
 ```
 
-To deploy, use `wrangler deploy`:
+要部署，请使用 `wrangler deploy`：
 
 ```bash
 npx wrangler deploy
 ```
 
-## WebSocket support
+## WebSocket 支持
 
 :read-more{to="https://crossws.unjs.io/adapters/cloudflare"}
 
@@ -81,5 +81,5 @@ export default {
 ---
 
 ::read-more
-👉 See [pi0/h3-on-edge](https://github.com/pi0/h3-on-edge) demo for a fully working example ([deployment](https://h3-on-edge.pi0.workers.dev/)).
+👉 查看 [pi0/h3-on-edge](https://github.com/pi0/h3-on-edge) 演示以获取完整的工作示例（[部署](https://h3-on-edge.pi0.workers.dev/)）。
 ::

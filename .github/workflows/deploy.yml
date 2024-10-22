@@ -31,9 +31,9 @@ jobs:
 
       - name: Deploy to Zeabur
         env:
-          PROJECT_ID: 66e2444d723926097b6fd1c7
-          SERVICE_ID: 66e2466d31bde736b00fd57f
-          ENVIRONMENT_ID: 66e2444dbc556e0e05b26a38
+          PROJECT_ID: 670fd965e34974ae6478ad49
+          SERVICE_ID: 6717257e1ca0b9319533a18f
+          ENVIRONMENT_ID: 670fd965d0408fcd3bee90a2
           API_TOKEN: ${{ secrets.ZEABUR_TOKEN }}
         run: |
           curl --request POST \
@@ -42,13 +42,13 @@ jobs:
             --form "code=@build.zip" \
             --form "environment=${{ env.ENVIRONMENT_ID }}" || true
 
-      - name: Deploy to Server
-        uses: easingthemes/ssh-deploy@main
-        with:
-          SSH_PRIVATE_KEY: ${{ secrets.SERVER_KEY }}
-          REMOTE_USER: ${{ secrets.SERVER_USER }}
-          REMOTE_HOST: ${{ secrets.SERVER_HOST }}
-          REMOTE_PORT: ${{ secrets.SERVER_PORT }}
-          SOURCE: "docs/.docs/.output/public/"
-          ARGS: "-azr --delete"
-          TARGET: "${{ secrets.SERVER_PATH }}/h3/"
+      # - name: Deploy to Server
+      #   uses: easingthemes/ssh-deploy@main
+      #   with:
+      #     SSH_PRIVATE_KEY: ${{ secrets.SERVER_KEY }}
+      #     REMOTE_USER: ${{ secrets.SERVER_USER }}
+      #     REMOTE_HOST: ${{ secrets.SERVER_HOST }}
+      #     REMOTE_PORT: ${{ secrets.SERVER_PORT }}
+      #     SOURCE: "docs/.docs/.output/public/"
+      #     ARGS: "-azr --delete"
+      #     TARGET: "${{ secrets.SERVER_PATH }}/h3/"

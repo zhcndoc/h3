@@ -1,28 +1,28 @@
-# Validate Data
+# 验证数据
 
-> Ensure that your data are valid and safe before processing them.
+> 在处理数据之前，确保数据是有效和安全的。
 
-When you receive data from user on your server, you must validate them. By validate, we mean that the shape of the received data must match the expected shape. It's important because you can't trust user input.
-
-> [!WARNING]
-> Do not use a generic as a validation. Providing an interface to a utility like `readJSONBody` is not a validation. You must validate the data before using them.
-
-## Utilities for Validation
-
-h3 provide some utilities to help you to handle data validation. You will be able to validate:
-
-- query with `getValidatedQuery`
-- params with `getValidatedRouterParams`.
-- body with `readValidatedJSONBody`
-
-To validate data, you can use any validation library you want. h3 doesn't provide any validation library like [Zod](https://zod.dev), [joi](https://joi.dev) or [myzod](https://github.com/davidmdm/myzod).
+当你从用户那里接收数据时，必须对其进行验证。验证意味着接收到的数据的形状必须与预期的形状匹配。这一点很重要，因为你不能信任用户的输入。
 
 > [!WARNING]
-> h3 is runtime agnostic. This means that you can use it in [any runtime](/adapters). But some validation libraries are not compatible with all runtimes.
+> 不要使用通用类型作为验证。提供像 `readJSONBody` 这样的工具接口并不是验证。你必须在使用数据之前先验证它。
 
-Let's see how to validate data with [Zod](https://zod.dev).
+## 验证的工具
 
-For the following examples, we will use the following schema:
+h3 提供了一些工具来帮助你处理数据验证。你将能够验证：
+
+- 查询字符串使用 `getValidatedQuery`
+- 路由参数使用 `getValidatedRouterParams`
+- 请求体使用 `readValidatedJSONBody`
+
+要验证数据，你可以使用任何你想要的验证库。h3 不提供任何验证库，如 [Zod](https://zod.dev)、[joi](https://joi.dev) 或 [myzod](https://github.com/davidmdm/myzod)。
+
+> [!WARNING]
+> h3 是与运行时无关的。这意味着你可以在 [任何运行时](/adapters) 中使用它。但某些验证库并不与所有运行时兼容。
+
+让我们看看如何使用 [Zod](https://zod.dev) 进行数据验证。
+
+在以下示例中，我们将使用以下模式：
 
 ```js
 import { z } from "zod";
@@ -33,9 +33,9 @@ const userSchema = z.object({
 });
 ```
 
-## Validate Query
+## 验证查询
 
-You can use `getValidatedQuery` to validate query and get the result, as a replacement of `getQuery`:
+你可以使用 `getValidatedQuery` 来验证查询并获取结果，从而替代 `getQuery`：
 
 ```js
 import { getValidatedQuery } from "h3";
@@ -47,25 +47,25 @@ app.use(async (event) => {
 ```
 
 > [!NOTE]
-> You could use `safeParse` instead of `parse` to get a partial query object and to not throw an error if the query is invalid.
+> 你可以使用 `safeParse` 替代 `parse` 来获取部分查询对象，并且如果查询无效则不会抛出错误。
 
-If you send a valid request like `/?name=John&age=42` to this event handler, you will get a response like this:
+如果你向这个事件处理程序发送一个有效的请求，如 `/?name=John&age=42`，你将得到如下响应：
 
 ```txt
 Hello John! You are 42 years old.
 ```
 
-If you send an invalid request and the validation fails, h3 will throw a `400 Validation Error` error. In the data of the error, you will find the validation errors you can use on your client to display a nice error message to your user.
+如果你发送了一个无效请求且验证失败，h3 将抛出一个 `400 Validation Error` 错误。在错误的数据中，你将找到验证错误，可以在客户端上使用这些错误来向用户显示友好的错误信息。
 
-## Validate Params
+## 验证参数
 
-You can use `getValidatedRouterParams` to validate params and get the result, as a replacement of `getRouterParams`:
+你可以使用 `getValidatedRouterParams` 来验证参数并获取结果，从而替代 `getRouterParams`：
 
 ```js
 import { getValidatedRouterParams } from "h3";
 
 router.use(
-  // You must use a router to use params
+  // 你必须使用路由器才能使用参数
   "/hello/:name/:age",
   async (event) => {
     const params = await getValidatedRouterParams(event, userSchema.parse);
@@ -75,19 +75,19 @@ router.use(
 ```
 
 > [!NOTE]
-> You could use `safeParse` instead of `parse` to get a partial params object and to not throw an error if the params is invalid.
+> 你可以使用 `safeParse` 替代 `parse` 来获取部分参数对象，并且如果参数无效则不会抛出错误。
 
-If you send a valid request like `/hello/John/42` to this event handler, you will get a response like this:
+如果你向这个事件处理程序发送一个有效请求，如 `/hello/John/42`，你将得到如下响应：
 
 ```txt
 Hello John! You are 42 years old.
 ```
 
-If you send an invalid request and the validation fails, h3 will throw a `400 Validation Error` error. In the data of the error, you will find the validation errors you can use on your client to display a nice error message to your user.
+如果你发送了一个无效请求且验证失败，h3 将抛出一个 `400 Validation Error` 错误。在错误的数据中，你将找到验证错误，可以在客户端上使用这些错误来向用户显示友好的错误信息。
 
-## Validate Body
+## 验证请求体
 
-You can use `readValidatedJSONBody` to validate body and get the result, as a replacement of `readJSONBody`:
+你可以使用 `readValidatedJSONBody` 来验证请求体并获取结果，从而替代 `readJSONBody`：
 
 ```js
 import { readValidatedJSONBody } from "h3";
@@ -99,12 +99,12 @@ app.use(async (event) => {
 ```
 
 > [!NOTE]
-> You could use `safeParse` instead of `parse` to get a partial body object and to not throw an error if the body is invalid.
+> 你可以使用 `safeParse` 替代 `parse` 来获取部分请求体对象，并且如果请求体无效则不会抛出错误。
 
-If you send a valid POST request to this event handler, you will get a response like this:
+如果你向这个事件处理程序发送一个有效的 POST 请求，你将得到如下响应：
 
 ```txt
 Hello John! You are 42 years old.
 ```
 
-If you send an invalid request and the validation fails, h3 will throw a `400 Validation Error` error. In the data of the error, you will find the validation errors you can use on your client to display a nice error message to your user.
+如果你发送了一个无效请求且验证失败，h3 将抛出一个 `400 Validation Error` 错误。在错误的数据中，你将找到验证错误，可以在客户端上使用这些错误来向用户显示友好的错误信息。

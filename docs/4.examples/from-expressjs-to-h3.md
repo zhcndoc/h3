@@ -1,31 +1,31 @@
-# From Express.js to h3
+# 从 Express.js 到 h3
 
-> Through various examples, let's see how easy it is to use h3 if you are familiar with Express.js.
+> 通过各种示例，让我们看看如果你熟悉 Express.js，使用 h3 是多么简单。
 
-During this guide, we will reproduce many examples from the [Express.js documentation](https://expressjs.com/en/starter/examples.html) to show you how to do the same thing with h3.
+在本指南中，我们将重现许多来自 [Express.js 文档](https://expressjs.com/en/starter/examples.html) 的示例，以向你展示如何使用 h3 做同样的事情。
 
 > [!NOTE]
-> If you are not familiar with Express.js, you can safely skip this guide.
+> 如果你不熟悉 Express.js，你可以安全地跳过本指南。
 
-The idea is to show you how similar h3 is to Express.js. Once you understand the similarities, you will be able to use h3 without any problem if you are familiar with Express.js.
+我们的目的是向你展示 h3 与 Express.js 是多么相似。一旦你理解了这些相似之处，如果你对 Express.js 有一定的了解，就可以毫无问题地使用 h3。
 
 > [!CAUTION]
-> Even if h3 seems to be similar to Express.js, it does not mean that Express.js is still viable. Express.js is an old framework that has not evolved for a long time. It's not a good choice for new projects since it can easily lead to security issues and memory leaks.
+> 即使 h3 看起来与 Express.js 相似，也并不意味着 Express.js 仍然可行。Express.js 是一个很老的框架，已经很长时间没有发展了。对于新项目来说，它不是一个好的选择，因为它容易导致安全问题和内存泄漏。
 
-With h3, you also have reloading out-of-the-box without any configuration using [unjs/listhen](https://listhen.unjs.io).
+使用 h3，你还可以开箱即用地进行热重载，无需任何配置，使用 [unjs/listhen](https://listhen.unjs.io)。
 
 > [!NOTE]
-> You can run every h3 examples using `npx --yes listhen -w ./app.ts`.
+> 你可以通过 `npx --yes listhen -w ./app.ts` 运行每个 h3 示例。
 
-## Hello World
+## 你好，世界
 
-The first example from the Express.js documentation is the [Hello World](https://github.com/expressjs/express/blob/master/examples/hello-world/index.js).
+来自 Express.js 文档的第一个示例是 [Hello World](https://github.com/expressjs/express/blob/master/examples/hello-world/index.js)。
 
-The code is pretty simple:
+代码相当简单：
 
 ```js [index.js]
 /**
- * Express.js example app.
+ * Express.js 示例应用程序。
  */
 var express = require("express");
 var app = express();
@@ -35,14 +35,14 @@ app.get("/", function (req, res) {
 });
 
 app.listen(3000);
-console.log("Express started on port 3000");
+console.log("Express 在 3000 端口启动");
 ```
 
-Let's see how to do the same thing with h3:
+让我们看看如何使用 h3 做同样的事情：
 
 ```ts [app.ts]
 /**
- * h3 example app.
+ * h3 示例应用程序。
  */
 import { createApp } from "h3";
 
@@ -51,17 +51,17 @@ export const app = createApp();
 app.use("/", () => "Hello World");
 ```
 
-Then, you can use `npx --yes listhen -w ./app.ts` to start the server and go to http://localhost:3000 to see the result.
+然后，你可以使用 `npx --yes listhen -w ./app.ts` 启动服务器，并访问 http://localhost:3000 查看结果。
 
 :read-more{to="/guide/app"}
 
-## Multi Router
+## 多路由
 
-The second example is the [Multi Router](https://github.com/expressjs/express/blob/master/examples/multi-router/index.js). In this example, we create many routers to split the logic.
+第二个示例是 [多路由](https://github.com/expressjs/express/blob/master/examples/multi-router/index.js)。在这个示例中，我们创建多个路由器来拆分逻辑。
 
 ```js [index.js]
 /**
- * Express.js example app.
+ * Express.js 示例应用程序。
  */
 var express = require("express");
 
@@ -95,17 +95,17 @@ app.get("/", function (req, res) {
 });
 
 app.listen(3000);
-console.log("Express started on port 3000");
+console.log("Express 在 3000 端口启动");
 ```
 
 > [!NOTE]
-> For some facilities, we group every files in the same one.
+> 为了某些功能，我们将每个文件归为同一类。
 
-Using h3, we can do the same thing:
+使用 h3，我们可以做同样的事情：
 
 ```ts [app.ts]
 /**
- * h3 example app.
+ * h3 示例应用程序。
  */
 import { createApp, createRouter, useBase } from "h3";
 
@@ -123,17 +123,17 @@ app.use("/api/v1/**", useBase("/api/v1", apiv1.handler));
 app.use("/api/v2/**", useBase("/api/v2", apiv2.handler));
 ```
 
-It's quite similar. The main difference is that we have to use `useBase` to define a base path for a router.
+这相当相似。主要的区别是我们需要使用 `useBase` 来定义路由器的基本路径。
 
 :read-more{to="/guide/router"}
 
-## Params
+## 参数
 
-The third example is the [Params](https://github.com/expressjs/express/tree/master/examples/params/index.js). In this example, we use parameters in the route.
+第三个示例是 [参数](https://github.com/expressjs/express/tree/master/examples/params/index.js)。在这个示例中，我们在路由中使用参数。
 
 ```js [index.js]
 /**
- * Express.js example app.
+ * Express.js 示例应用程序。
  */
 var createError = require("http-errors");
 var express = require("express");
@@ -150,7 +150,7 @@ var users = [
 app.param(["to", "from"], function (req, res, next, num, name) {
   req.params[name] = parseInt(num, 10);
   if (isNaN(req.params[name])) {
-    next(createError(400, "failed to parseInt " + num));
+    next(createError(400, "无法解析 " + num));
   } else {
     next();
   }
@@ -160,16 +160,16 @@ app.param("user", function (req, res, next, id) {
   if ((req.user = users[id])) {
     next();
   } else {
-    next(createError(404, "failed to find user"));
+    next(createError(404, "未找到用户"));
   }
 });
 
 app.get("/", function (req, res) {
-  res.send("Visit /user/0 or /users/0-2");
+  res.send("访问 /user/0 或 /users/0-2");
 });
 
 app.get("/user/:user", function (req, res) {
-  res.send("user " + req.user.name);
+  res.send("用户 " + req.user.name);
 });
 
 app.get("/users/:from-:to", function (req, res) {
@@ -178,18 +178,18 @@ app.get("/users/:from-:to", function (req, res) {
   var names = users.map(function (user) {
     return user.name;
   });
-  res.send("users " + names.slice(from, to + 1).join(", "));
+  res.send("用户 " + names.slice(from, to + 1).join(", "));
 });
 
 app.listen(3000);
-console.log("Express started on port 3000");
+console.log("Express 在 3000 端口启动");
 ```
 
-Using h3, we can do the same thing:
+使用 h3，我们可以做到同样的事情：
 
 ```ts [app.ts]
 /**
- * h3 example app.
+ * h3 示例应用程序。
  */
 import {
   createApp,
@@ -211,7 +211,7 @@ const users = [
 export const app = createApp();
 const router = createRouter();
 
-router.get("/", () => "Visit /users/0 or /users/0/2");
+router.get("/", () => "访问 /users/0 或 /users/0/2");
 
 router.get("/user/:user", async (event) => {
   const { user } = await getValidatedRouterParams(
@@ -224,10 +224,10 @@ router.get("/user/:user", async (event) => {
   if (!users[user])
     throw createError({
       status: 404,
-      statusMessage: "User Not Found",
+      statusMessage: "用户未找到",
     });
 
-  return `user ${user}`;
+  return `用户 ${user}`;
 });
 
 router.get("/users/:from/:to", async (event) => {
@@ -243,21 +243,21 @@ router.get("/users/:from/:to", async (event) => {
     return user.name;
   });
 
-  return `users ${names.slice(from, to).join(", ")}`;
+  return `用户 ${names.slice(from, to).join(", ")}`;
 });
 
 app.use(router);
 ```
 
-With h3, we do not have a `param` method. Instead, we use `getRouterParam` or `getValidatedRouterParams` to validate the params. It's more explicit and easier to use. In this example, we use `Zod` but you are free to use any other validation library.
+在 h3 中，我们没有 `param` 方法。相反，我们使用 `getRouterParam` 或 `getValidatedRouterParams` 来验证参数。这是更明确且更易于使用的。在这个示例中，我们使用了 `Zod`，但你可以自由使用任何其他验证库。
 
 ## Cookies
 
-The fourth example is the [Cookies](https://github.com/expressjs/express/blob/master/examples/cookies/index.js). In this example, we use cookies.
+第四个示例是 [Cookies](https://github.com/expressjs/express/blob/master/examples/cookies/index.js)。在这个示例中，我们使用 cookies。
 
 ```js [index.js]
 /**
- * Express.js example app.
+ * Express.js 示例应用程序。
  */
 var express = require("express");
 var app = express();
@@ -269,12 +269,12 @@ app.use(express.urlencoded({ extended: false }));
 
 app.get("/", function (req, res) {
   if (req.cookies.remember) {
-    res.send('Remembered :). Click to <a href="/forget">forget</a>!.');
+    res.send('记住我了 :). 点击 <a href="/forget">忘记</a>!.');
   } else {
     res.send(
-      '<form method="post"><p>Check to <label>' +
-        '<input type="checkbox" name="remember"/> remember me</label> ' +
-        '<input type="submit" value="Submit"/>.</p></form>',
+      '<form method="post"><p>勾选以 <label>' +
+        '<input type="checkbox" name="remember"/> 记住我</label> ' +
+        '<input type="submit" value="提交"/>.</p></form>',
     );
   }
 });
@@ -291,10 +291,10 @@ app.post("/", function (req, res) {
 });
 
 app.listen(3000);
-console.log("Express started on port 3000");
+console.log("Express 在 3000 端口启动");
 ```
 
-Using h3, we can do the same thing:
+使用 h3，我们可以做到同样的事情：
 
 ```ts [app.ts]
 import {
@@ -314,11 +314,11 @@ router.get("/", (event) => {
   const remember = getCookie(event, "remember");
 
   if (remember) {
-    return 'Remembered :). Click to <a href="/forget">forget</a>!.';
+    return '记住我了 :). 点击 <a href="/forget">忘记</a>!.';
   } else {
-    return `<form method="post"><p>Check to <label>
-    <input type="checkbox" name="remember"/> remember me</label>
-    <input type="submit" value="Submit"/>.</p></form>`;
+    return `<form method="post"><p>勾选以 <label>
+    <input type="checkbox" name="remember"/> 记住我</label>
+    <input type="submit" value="提交"/>.</p></form>`;
   }
 });
 
@@ -342,13 +342,13 @@ router.post("/", async (event) => {
 app.use(router);
 ```
 
-With h3, we do not have a `cookieParser` middleware. Instead, we use `getCookie` and `setCookie` to get and set cookies. It's more explicit and easier to use.
+在 h3 中，我们没有 `cookieParser` 中间件。相反，我们使用 `getCookie` 和 `setCookie` 来获取和设置 cookies。这是更明确且更易于使用的。
 
-## Middleware
+## 中间件
 
-When using `express`, we usually handle requests with `middleware`.
+在使用 `express` 时，我们通常使用 `middleware` 处理请求。
 
-For instance, here we use `morgan` to handle request logging.
+例如，这里我们使用 `morgan` 来处理请求日志。
 
 ```js [index.js]
 var express = require("express");
@@ -363,12 +363,12 @@ app.get("/", function (req, res) {
 });
 
 app.listen(3000);
-console.log("Express started on port 3000");
+console.log("Express 在 3000 端口启动");
 ```
 
-In `h3`, we can also directly use middleware from the `express` ecosystem.
+在 `h3` 中，我们也可以直接使用来自 `express` 生态系统的中间件。
 
-This can be easily achieved by wrapping with `fromNodeHandler`.
+这可以通过使用 `fromNodeHandler` 简单实现。
 
 ```ts [app.ts]
 import morgan from "morgan";

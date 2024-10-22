@@ -1,21 +1,21 @@
-# Handle Session
+# 处理会话
 
-> Remember your users using a session.
+> 使用会话来记住你的用户。
 
-A session is a way to remember users using cookies. It is a very common way to authenticate users or save data about them such as their language or their preferences on the web.
+会话是一种通过 cookies 来记住用户的方式。这是一种非常常见的用户身份验证或保存用户数据（如语言或网络偏好）的方式。
 
-h3 provide many utilities to handle sessions:
+h3 提供许多处理会话的实用工具：
 
-- `useSession` to initializes a session and returns a wrapper to control it.
-- `getSession` to initializes or gets the current user session.
-- `updateSession` to updates data of the current session.
-- `clearSession` to clears the current session.
+- `useSession` 用于初始化会话并返回一个控制它的包装器。
+- `getSession` 用于初始化或获取当前用户会话。
+- `updateSession` 用于更新当前会话的数据。
+- `clearSession` 用于清除当前会话。
 
-Most of the time, you will use `useSession` to manipulate the session.
+大多数情况下，你将使用 `useSession` 来操作会话。
 
-## Initialize a Session
+## 初始化会话
 
-To initialize a session, you need to use `useSession` in an [event handler](/guide/event-handler):
+要初始化会话，你需要在 [事件处理器](/guide/event-handler) 中使用 `useSession`：
 
 ```js
 import { useSession } from "h3";
@@ -25,23 +25,23 @@ app.use(async (event) => {
     password: "80d42cfb-1cd2-462c-8f17-e3237d9027e9",
   });
 
-  // do something...
+  // 做一些事情...
 });
 ```
 
 > [!WARNING]
-> You must provide a password to encrypt the session.
+> 你必须提供一个密码来加密会话。
 
-This will initialize a session and return an header `Set-Cookie` with a cookie named `h3` and an encrypted content.
+这将初始化一个会话并返回一个名为 `Set-Cookie` 的头信息，其中包含一个名为 `h3` 的 cookie 和加密内容。
 
-If the request contains a cookie named `h3` or a header named `x-h3-session`, the session will be initialized with the content of the cookie or the header.
+如果请求包含名为 `h3` 的 cookie 或名为 `x-h3-session` 的头信息，则会话将使用 cookie 或头信息的内容进行初始化。
 
 > [!NOTE]
-> The header take precedence over the cookie.
+> 头信息优先于 cookie。
 
-## Get Data from a Session
+## 从会话获取数据
 
-To get data from a session, we will still use `useSession`. Under the hood, it will use `getSession` to get the session.
+要从会话获取数据，我们仍然使用 `useSession`。在底层，它将使用 `getSession` 来获取会话。
 
 ```js
 import { useSession } from "h3";
@@ -55,11 +55,11 @@ app.use(async (event) => {
 });
 ```
 
-Data are stored in the `data` property of the session. If there is no data, it will be an empty object.
+数据存储在会话的 `data` 属性中。如果没有数据，将是一个空对象。
 
-## Add Data to a Session
+## 向会话添加数据
 
-To add data to a session, we will still use `useSession`. Under the hood, it will use `updateSession` to update the session.
+要向会话添加数据，我们仍然使用 `useSession`。在底层，它将使用 `updateSession` 来更新会话。
 
 ```js
 import { useSession } from "h3";
@@ -75,23 +75,23 @@ app.use(async (event) => {
   });
 
   return count === 0
-    ? "Hello world!"
-    : `Hello world! You have visited this page ${count} times.`;
+    ? "你好，世界！"
+    : `你好，世界！你已经访问了这个页面 ${count} 次。`;
 });
 ```
 
-What is happening here?
+这里发生了什么？
 
-We try to get a session from the request. If there is no session, a new one will be created. Then, we increment the `count` property of the session and we update the session with the new value. Finally, we return a message with the number of times the user visited the page.
+我们尝试从请求中获取会话。如果没有会话，将创建一个新的会话。然后，我们递增会话的 `count` 属性，并用新值更新会话。最后，我们返回一条消息，显示用户访问页面的次数。
 
-Try to visit the page multiple times and you will see the number of times you visited the page.
+尝试多次访问该页面，你将看到你访问该页面的次数。
 
 > [!NOTE]
-> If you use a CLI tool like `curl` to test this example, you will not see the number of times you visited the page because the CLI tool does not save cookies. You must get the cookie from the response and send it back to the server.
+> 如果你使用像 `curl` 这样的 CLI 工具来测试这个例子，你将看不到你访问该页面的次数，因为 CLI 工具不保存 cookies。你必须从响应中获取 cookie 并将其发送回服务器。
 
-## Clear a Session
+## 清除会话
 
-To clear a session, we will still use `useSession`. Under the hood, it will use `clearSession` to clear the session.
+要清除会话，我们仍然使用 `useSession`。在底层，它将使用 `clearSession` 来清除会话。
 
 ```js
 import { useSession } from "h3";
@@ -103,15 +103,15 @@ app.use("/clear", async (event) => {
 
   await session.clear();
 
-  return "Session cleared";
+  return "会话已清除";
 });
 ```
 
-h3 will send a header `Set-Cookie` with an empty cookie named `h3` to clear the session.
+h3 将发送一个名为 `Set-Cookie` 的头信息，包含一个空的名为 `h3` 的 cookie，以清除会话。
 
-## Options
+## 选项
 
-When to use `useSession`, you can pass an object with options as the second argument to configure the session:
+在使用 `useSession` 时，你可以将一个包含选项的对象作为第二个参数传递，以配置会话：
 
 ```js
 import { useSession } from "h3";
@@ -125,7 +125,7 @@ app.use(async (event) => {
       secure: true,
       sameSite: "strict",
     },
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: 60 * 60 * 24 * 7, // 7天
   });
 
   return session.data;
