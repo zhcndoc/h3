@@ -1,0 +1,6 @@
+{
+  "build_command": "cd docs && bun run build",
+  "cache_dependencies": false,
+  "install_command": "npm install -g bun && cd docs && bun install",
+  "output_dir": "docs/.docs/dist"
+}
