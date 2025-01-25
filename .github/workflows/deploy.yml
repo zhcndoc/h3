@@ -13,42 +13,42 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: 22
 
       - name: Build project
         env:
           NUXT_UI_PRO_LICENSE: ${{ secrets.NUXT_UI_PRO_LICENSE }}
         run: |
-          cd docs && bun install --no-frozen-lockfile
+          npm install -g bun
+          cd docs && bun install
           bun run build
-          cd .docs/.output/public && zip -rq ../../../../build.zip .
 
-      # - name: Deploy to Zeabur
-      #   env:
-      #     PROJECT_ID: 670fd965e34974ae6478ad49
-      #     SERVICE_ID: 6717257e1ca0b9319533a18f
-      #     ENVIRONMENT_ID: 670fd965d0408fcd3bee90a2
-      #     API_TOKEN: ${{ secrets.ZEABUR_TOKEN }}
-      #   run: |
-      #     curl --request POST \
-      #       --url https://gateway.zeabur.com/projects/${{ env.PROJECT_ID }}/services/${{ env.SERVICE_ID }}/deploy \
-      #       --header "Authorization: Bearer ${{ env.API_TOKEN }}" \
-      #       --form "code=@build.zip" \
-      #       --form "environment=${{ env.ENVIRONMENT_ID }}" || true
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact
+          path: docs/.docs/.output/public
 
-      # - name: Deploy to Server
-      #   uses: easingthemes/ssh-deploy@main
-      #   with:
-      #     SSH_PRIVATE_KEY: ${{ secrets.SERVER_KEY }}
-      #     REMOTE_USER: ${{ secrets.SERVER_USER }}
-      #     REMOTE_HOST: ${{ secrets.SERVER_HOST }}
-      #     REMOTE_PORT: ${{ secrets.SERVER_PORT }}
-      #     SOURCE: "docs/.docs/.output/public/"
-      #     ARGS: "-azr --delete"
-      #     TARGET: "${{ secrets.SERVER_PATH }}/h3/"
+  deploy-to-server:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifact
+
+      - name: Deploy to Server
+        uses: easingthemes/ssh-deploy@main
+        with:
+          REMOTE_HOST: ${{ secrets.SERVER_HOST }}
+          REMOTE_PORT: ${{ secrets.SERVER_PORT }}
+          REMOTE_USER: ${{ secrets.SERVER_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SERVER_KEY }}
+          SOURCE: "."
+          ARGS: "-azr --delete"
+          TARGET: "${{ secrets.SERVER_PATH }}/${{ github.event.repository.name }}/"
