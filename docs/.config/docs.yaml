@@ -41,9 +41,9 @@ landing:
 
     # 路由器
     - title: "快速路由器"
-      description: "使用 unjs/radix3 进行超快速路由匹配"
+      description: "使用 unjs/rou3 进行超快速路由匹配"
       icon: "i-fa-tree"
-      to: "https://github.com/unjs/radix3"
+      to: "https://github.com/unjs/rou3"
       target: "_blank"
 
     # 生态系统
