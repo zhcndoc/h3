@@ -10,11 +10,7 @@ import type {
   RequestHeaders,
 } from "./types";
 import { iterable, noContent, redirect } from "./utils/response";
-import {
-  defineNodeHandler,
-  fromNodeHandler,
-  toNodeHandler,
-} from "./adapters/node";
+import { defineNodeHandler, fromNodeHandler, toNodeHandler } from "./adapters";
 import { defineEventHandler, defineLazyEventHandler } from "./handler";
 import { proxy } from "./utils/proxy";
 import { createH3 } from "./h3";
@@ -60,7 +56,7 @@ export function readRawBody<E extends "utf8" | false = "utf8">(
   ? Promise<Uint8Array | undefined>
   : Promise<string | undefined> {
   return encoding
-    ? event.request.text()
+    ? (event.request.text() as any)
     : (event.request.arrayBuffer().then((r) => new Uint8Array(r)) as any);
 }
 
