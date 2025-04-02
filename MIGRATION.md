@@ -10,41 +10,47 @@ h3 v2 包括一些行为和 API 的变化，你需要在迁移时考虑应用这
 > 目前 v2 处于 beta 阶段，你可以通过 [`h3-nightly@2x`](https://www.npmjs.com/package/h3-nightly?activeTab=versions) 尝试使用。
 
 > [!NOTE]
-> 这是一个正在进行中的迁移指南，尚未完成。
+> 这是一个正在进行的迁移指南，尚未完成。
+
+## ESM 和最新的 Node.js
+
+H3 v2 需要 Node.js >= 2.11，并支持 ESM。
+
+你仍然可以通过 `require(esm)` 在较新的 Node.js 版本中使用 `require("h3")`。
 
 ## Web 标准
 
-H3 v2 是基于 Web 标准原语重新编写的（[`URL`](https://developer.mozilla.org/en-US/docs/Web/API/URL)、[`Headers`](https://developer.mozilla.org/en-US/docs/Web/API/Headers)、[`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Request) 和 [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response)）。
+H3 v2 基于 Web 标准原语重写（[`URL`](https://developer.mozilla.org/en-US/docs/Web/API/URL), [`Headers`](https://developer.mozilla.org/en-US/docs/Web/API/Headers), [`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Request)，以及 [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response)）。
 
-`event.node` 上下文仅在 Node.js 运行时可用，而 `event.web` 通过 `event.request` 获取。
+`event.node` 上下文仅在 Node.js 运行时中可用，而 `event.web` 可通过 `event.req` 访问。
 
-在 Node.js 运行时，h3 使用双向代理将 Node.js API 同步到 Web 标准 API，使其在 Node 上的体验更为流畅。
+在 Node.js 运行时，h3 使用双向代理来同步 Node.js API 与 Web 标准 API，使其在 Node.js 中提供无缝体验。
 
-为了迎合 Web 标准，旧的用于普通处理程序和 Web 处理程序的工具被移除。
+为了支持 Web 标准，旧的普通处理程序和 Web 处理程序工具被移除。
 
 ## 响应处理
 
-你应该始终明确地 `return` 响应体。
+你应该始终明确 `return` 响应体。
 
-如果你以前使用以下方法，可以将它们替换为返回文本、JSON、流或 Web `Response` 的 `return` 语句（h3 会智能地检测和处理每种情况）：
+如果你之前使用以下方法，可以将其替换为返回文本、JSON、流或 Web `Response` 的 `return` 语句（h3 会智能检测并处理每个）：
 
 - `send(event, value)`：迁移为 `return <value>`。
 - `sendError(event, <error>)`：迁移为 `throw createError(<error>)`。
 - `sendStream(event, <stream>)`：迁移为 `return <stream>`。
 - `sendWebResponse(event, <response>)`：迁移为 `return <response>`。
 
-其他被重命名的发送工具需要明确 `return`：
+其他重命名的发送工具需要明确 `return`：
 
-- `sendNoContent(event)` / `return null`：迁移为 `return noContent(event)`。
-- `sendIterable(event, <value>)`：迁移为 `return iterable(event, <value>)`。
-- `sendRedirect(event, location, code)`：迁移为 `return redirect(event, location, code)`。
-- `sendProxy(event, target)`：迁移为 `return proxy(event, target)`。
-- `handleCors(event)`：检查返回值（布尔值），如果处理，则提前 `return`。
-- `serveStatic(event, content)`：确保在前面添加 `return`。
+- `sendNoContent(event)` / `return null`: 迁移为 `return noContent(event)`。
+- `sendIterable(event, <value>)`: 迁移为 `return iterable(event, <value>)`。
+- `sendRedirect(event, location, code)`: 迁移为 `return redirect(event, location, code)`。
+- `sendProxy(event, target)`: 迁移为 `return proxy(event, target)`。
+- `handleCors(event)`: 检查返回值（布尔值），如果处理了便提前 `return`。
+- `serveStatic(event, content)`: 确保在前面添加 `return`。
 
 ## 应用接口和路由器
 
-路由功能现在集成在 h3 应用核心中。你可以使用 `createH3()` 代替 `createApp()` 和 `createRouter()`。
+路由器功能现已集成到 h3 应用核心中。可以使用 `createH3()` 来替代 `createApp()` 和 `createRouter()`。
 
 新方法：
 
@@ -54,35 +60,35 @@ H3 v2 是基于 Web 标准原语重新编写的（[`URL`](https://developer.mozi
 
 处理程序将按以下顺序运行：
 
-- 所有全局中间件按注册的顺序运行。
-- 所有路由中间件从最少特定到最具体的路径（自动排序）。
-- 匹配的路由处理程序。
+- 按相同顺序注册的所有全局中间件
+- 从最不具体到最具体路径的所有路由中间件（自动排序）
+- 匹配的路由处理程序
 
-任何处理程序都可以返回响应。如果中间件不返回响应，将尝试下一个处理程序，最终如果没有响应则返回 404。路由处理程序可以返回或不返回任何响应，在这种情况下，h3 将发送一个简单的 200 状态及空内容。
+任何处理程序都可以返回响应。如果中间件不返回响应，则会尝试下一个处理程序，最后如果都没有响应则返回 404。路由处理程序可以选择返回或不返回任何响应，在这种情况下，h3 将发送一个简单的 200 状态码和空内容。
 
-h3 已迁移到全新的路由匹配引擎 [unjs/rou3](https://rou3.unjs.io/)。你可能会体验到稍微（但更直观）的行为变化。
+h3 迁移到了全新的路由匹配引擎 [unjs/rou3](https://rou3.unjs.io/)。你可能会经历轻微（但更直观的）匹配模式行为变化。
 
 v1 的其他变化：
 
-- 使用 `app.use("/path", handler)` 注册的处理程序仅匹配 `/path`（不匹配 `/path/foo/bar`）。要匹配所有子路径，需更新为 `app.use("/path/**", handler)`。
-- 每个处理程序接收到的 `event.path` 将包含完整路径而没有省略前缀。使用 `withBase(base, handler)` 工具来创建带前缀的应用。（例如：`withBase("/api", app.handler)`）。
-- `app.use(() => handler, { lazy: true })` 不再受支持。相反你可以使用 `app.use(defineLazyEventHandler(() => handler), { lazy: true })`。
-- `app.use(["/path1", "/path2"], ...)` 和 `app.use("/path", [handler1, handler2])` 不再受支持。相反，使用多个 `app.use()` 调用。
-- 自定义 `match` 函数的 `app.use` 不再受支持（中间件可以跳过自己）。
-- `app.resolve(path) => { route, handler }` 更改为 `app.resolve(method, path) => { method, route, handler }`。
-- `router.use(path, handler)` 被弃用。请使用 `router.all(path, handler)` 代替。
-- `router.add(path, method: Method | Method[]` 签名更改为 `router.add(method: Method, path)`（**重要**）。
+- 使用 `app.use("/path", handler)` 注册的处理程序仅匹配 `/path`（而不是 `/path/foo/bar`）。为了像以前那样匹配所有子路径，它应该更新为 `app.use("/path/**", handler)`。
+- 每个处理程序中接收到的 `event.path` 将包含完整路径，而不是省略前缀。使用 `withBase(base, handler)` 工具来制作带前缀的应用。（示例：`withBase("/api", app.handler)`）。
+- `app.use(() => handler, { lazy: true })` 不再受支持。现在可以使用 `app.use(defineLazyEventHandler(() => handler), { lazy: true })`。
+- `app.use(["/path1", "/path2"], ...)` 和 `app.use("/path", [handler1, handler2])` 不再受支持。相反，请使用多个 `app.use()` 调用。
+- 自定义 `match` 函数不再支持 `app.use`（中间件可以跳过自己）。
+- `app.resolve(path) => { route, handler }` 改为 `app.resolve(method, path) => { method, route, handler }`。
+- `router.use(path, handler)` 已弃用。请改为使用 `router.all(path, handler)`。
+- `router.add(path, method: Method | Method[]` 的签名更改为 `router.add(method: Method, path)`（**重要**）。
 
-## 请求体实用工具
+## 请求体工具
 
-大多数请求体实用工具现在可以替换为基于标准 [`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Response) 接口的 `event.request` 工具。
+大多数请求体工具现在可以替代为基于标准 [`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Response) 接口 + 来自 [srvx](https://srvx.unjs.io/guide/handler#additional-properties) 的平台附加功能的 `event.req` 工具。
 
 `readBody(event)` 工具将使用 [`JSON.parse`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse) 或 [`URLSearchParams`](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams) 来解析具有 `application/x-www-form-urlencoded` 内容类型的请求。
 
-- 对于文本：使用 [event.request.text()](https://developer.mozilla.org/en-US/docs/Web/API/Request/text)。
-- 对于 JSON：使用 [event.request.json()](https://developer.mozilla.org/en-US/docs/Web/API/Request/json)。
-- 对于 FormData：使用 [event.request.formData()](https://developer.mozilla.org/en-US/docs/Web/API/Request/formData)。
-- 对于流：使用 [event.request.body](https://developer.mozilla.org/en-US/docs/Web/API/Request/body)。
+- 对于文本：使用 [event.req.text()](https://developer.mozilla.org/en-US/docs/Web/API/Request/text)。
+- 对于 JSON：使用 [event.req.json()](https://developer.mozilla.org/en-US/docs/Web/API/Request/json)。
+- 对于 formData：使用 [event.req.formData()](https://developer.mozilla.org/en-US/docs/Web/API/Request/formData)。
+- 对于流：使用 [event.req.body](https://developer.mozilla.org/en-US/docs/Web/API/Request/body)。
 
 **行为变化：**
 
@@ -114,20 +120,20 @@ h3 v2 弃用了一些过时和别名的工具。
 
 **请求：**
 
-- `getHeader` / `getRequestHeader`：迁移至 `event.request.headers.get(name)`。
-- `getHeaders` / `getRequestHeaders`：迁移至 `Object.fromEntries(event.request.headers.entries())`。
-- `getRequestPath`：迁移至 `event.path` 或 `event.url`。
-- `getMethod`：迁移至 `event.method`。
+- `getHeader` / `getRequestHeader`: 迁移至 `event.req.headers.get(name)`。
+- `getHeaders` / `getRequestHeaders`: 迁移至 `Object.fromEntries(event.req.headers.entries())`。
+- `getRequestPath`: 迁移至 `event.path` 或 `event.url`。
+- `getMethod`: 迁移至 `event.method`。
 
 **响应：**
 
-- `getResponseHeader` / `getResponseHeaders`：迁移至 `event.response.headers.get(name)`。
-- `setHeader` / `setResponseHeader` / `setHeaders` / `setResponseHeaders`：迁移至 `event.response.headers.set(name, value)`。
-- `appendHeader` / `appendResponseHeader` / `appendResponseHeaders`：迁移至 `event.response.headers.append(name, value)`。
-- `removeResponseHeader` / `clearResponseHeaders`：迁移至 `event.response.headers.delete(name)`。
-- `appendHeaders`：迁移至 `appendResponseHeaders`。
-- `defaultContentType`：迁移至 `event.response.headers.set("content-type", type)`。
-- `getResponseStatus` / `getResponseStatusText` / `setResponseStatus`：使用 `event.response.status` 和 `event.response.statusText`。
+- `getResponseHeader` / `getResponseHeaders`: 迁移至 `event.res.headers.get(name)`。
+- `setHeader` / `setResponseHeader` / `setHeaders` / `setResponseHeaders`: 迁移至 `event.res.headers.set(name, value)`。
+- `appendHeader` / `appendResponseHeader` / `appendResponseHeaders`: 迁移至 `event.res.headers.append(name, value)`。
+- `removeResponseHeader` / `clearResponseHeaders`: 迁移至 `event.res.headers.delete(name)`。
+- `appendHeaders`: 迁移至 `appendResponseHeaders`。
+- `defaultContentType`: 迁移至 `event.res.headers.set("content-type", type)`。
+- `getResponseStatus` / `getResponseStatusText` / `setResponseStatus`: 使用 `event.res.status` 和 `event.res.statusText`。
 
 **Node.js：**
 
@@ -150,9 +156,9 @@ h3 v2 弃用了一些过时和别名的工具。
 
 **主体：**
 
-- `readRawBody`：迁移至 `event.request.text()` 或 `event.request.arrayBuffer()`。
-- `getBodyStream` / `getRequestWebStream`：迁移至 `event.request.body`。
-- `readFormData` / `readMultipartFormData` / `readFormDataBody`：迁移至 `event.request.formData()`。
+- `readRawBody`: 迁移至 `event.req.text()` 或 `event.req.arrayBuffer()`。
+- `getBodyStream` / `getRequestWebStream`: 迁移至 `event.req.body`。
+- `readFormData` / `readMultipartFormData` / `readFormDataBody`: 迁移至 `event.req.formData()`。
 
 **工具：**
 

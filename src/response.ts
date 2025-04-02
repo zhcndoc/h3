@@ -1,6 +1,5 @@
 import type { H3Config, H3Event } from "./types";
 import type { H3Error, PreparedResponse } from "./types/h3";
-import type { H3WebEvent } from "./event";
 import { Response as SrvxResponse } from "srvx";
 import { createError } from "./error";
 import { isJSONSerializable } from "./utils/internal/object";
@@ -13,35 +12,41 @@ export function prepareResponse(
   event: H3Event,
   config: H3Config,
 ): Response {
-  const isHead = event.method === "HEAD";
-
   if (val === kHandled) {
     return new Response(null);
   }
 
   if (val instanceof Response) {
-    const we = event as H3WebEvent;
-    const status = we.response.status;
-    const statusText = we.response.statusText;
-    const headers = we.response._headers || we.response._headersInit;
-    if (!status && !statusText && !headers) {
+    // Note: preparted status and statusText are discarded in favor of response values
+    const preparedHeaders = (event.res as { _headers?: Headers })._headers;
+    if (!preparedHeaders) {
       return val;
     }
-    return new SrvxResponse(isHead || isNullStatus(status) ? null : val.body, {
-      status: status || val.status,
-      statusText: statusText || val.statusText,
-      headers: headers || val.headers,
+    // Slow path: merge headers
+    const noBody = event.req.method === "HEAD" || isNullStatus(val.status);
+    const mergedHeaders = new Headers(preparedHeaders);
+    for (const [name, value] of val.headers) {
+      if (name === "set-cookie") {
+        mergedHeaders.append(name, value);
+      } else {
+        mergedHeaders.set(name, value);
+      }
+    }
+    return new SrvxResponse(noBody ? null : val.body, {
+      status: val.status,
+      statusText: val.statusText,
+      headers: mergedHeaders,
     }) as Response;
   }
 
   // We always prepare response body to resolve status and headers
   const body = prepareResponseBody(val, event, config);
-  const status = event.response.status;
+  const status = event.res.status;
   const responseInit: PreparedResponse = {
-    body: isHead || isNullStatus(status) ? null : body,
+    body: event.req.method === "HEAD" || isNullStatus(status) ? null : body,
     status,
-    statusText: event.response.statusText,
-    headers: event.response._headers || event.response._headersInit,
+    statusText: event.res.statusText,
+    headers: (event.res as { _headers?: Headers })._headers,
   };
 
   return new SrvxResponse(responseInit.body, responseInit) as Response;
@@ -74,7 +79,7 @@ export function prepareResponseBody(
     return prepareErrorResponseBody(
       {
         statusCode: 404,
-        statusMessage: `Cannot find any route matching [${event.request.method}] ${event.path}`,
+        statusMessage: `Cannot find any route matching [${event.req.method}] ${event.url}`,
       },
       event,
       config,
@@ -90,7 +95,7 @@ export function prepareResponseBody(
 
   // Buffer (should be before JSON)
   if (val instanceof Uint8Array) {
-    event.response.setHeader("content-length", val.byteLength.toString());
+    event.res.headers.set("content-length", val.byteLength.toString());
     return val;
   }
 
@@ -101,30 +106,30 @@ export function prepareResponseBody(
 
   // JSON
   if (isJSONSerializable(val, valType)) {
-    event.response.setHeader("content-type", "application/json; charset=utf-8");
+    event.res.headers.set("content-type", "application/json; charset=utf-8");
     return JSON.stringify(val, undefined, config.debug ? 2 : undefined);
   }
 
   // BigInt
   if (valType === "bigint") {
-    event.response.setHeader("content-type", "application/json; charset=utf-8");
+    event.res.headers.set("content-type", "application/json; charset=utf-8");
     return val.toString();
   }
 
   // Web Response
   if (val instanceof Response) {
-    event.response.status = val.status;
-    event.response.statusText = val.statusText;
+    event.res.status = val.status;
+    event.res.statusText = val.statusText;
     for (const [name, value] of val.headers) {
-      event.response.setHeader(name, value);
+      event.res.headers.set(name, value);
     }
     return val.body;
   }
 
   // Blob
   if (val instanceof Blob) {
-    event.response.setHeader("content-type", val.type);
-    event.response.setHeader("content-length", val.size.toString());
+    event.res.headers.set("content-type", val.type);
+    event.res.headers.set("content-length", val.size.toString());
     return val.stream();
   }
 
@@ -149,9 +154,9 @@ export function prepareErrorResponseBody(
   config: H3Config,
 ): string {
   const error = createError(val as H3Error);
-  event.response.status = error.statusCode;
-  event.response.statusText = error.statusMessage;
-  event.response.setHeader("content-type", "application/json; charset=utf-8");
+  event.res.status = error.statusCode;
+  event.res.statusText = error.statusMessage;
+  event.res.headers.set("content-type", "application/json; charset=utf-8");
   return JSON.stringify({
     statusCode: error.statusCode,
     statusMessage: error.statusMessage,
