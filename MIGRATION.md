@@ -50,7 +50,7 @@ H3 v2 基于 Web 标准原语重写（[`URL`](https://developer.mozilla.org/en-U
 
 ## 应用接口和路由器
 
-路由器功能现已集成到 h3 应用核心中。可以使用 `createH3()` 来替代 `createApp()` 和 `createRouter()`。
+路由器功能现在已集成到 h3 应用核心中。您可以使用 `new H3()`，而不是 `createApp()` 和 `createRouter()`。
 
 新方法：
 
@@ -109,7 +109,7 @@ h3 v2 弃用了一些过时和别名的工具。
 
 **应用和路由器：**
 
-- `createApp` / `createRouter`：迁移至 `createH3()`。
+- `createApp` / `createRouter`：迁移至 `new H3()`。
 
 **处理程序：**
 

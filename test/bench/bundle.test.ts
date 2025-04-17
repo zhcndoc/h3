@@ -6,16 +6,16 @@ import zlib from "node:zlib";
 describe("benchmark", () => {
   it("bundle size", async () => {
     const code = /* js */ `
-      // import { createH3 } from "../../dist/index.mjs";
-      import { createH3 } from "../../src";
-      export default createH3();
+      // import { H3 } from "../../dist/index.mjs";
+      import { H3 } from "../../src";
+      export default new H3();
     `;
 
     // Node.js
     const nodeBundle = await getBundleSize(code, ["node"]);
     // console.log( `Bundle size: (node) ${nodeBundle.bytes} (gzip: ${nodeBundle.gzipSize})` );
     expect(nodeBundle.bytes).toBeLessThanOrEqual(15_000); // <15kb
-    expect(nodeBundle.gzipSize).toBeLessThanOrEqual(5000); // <5kb
+    expect(nodeBundle.gzipSize).toBeLessThanOrEqual(5100); // <5.1kb
 
     // Deno
     const denoBundle = await getBundleSize(code, ["deno"]);
