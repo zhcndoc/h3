@@ -1,11 +1,23 @@
+<<<<<<< HEAD
 # 流响应
+=======
+---
+icon: ph:arrow-right
+---
+
+# Stream Response
+>>>>>>> origin/upstream
 
 > 向客户端发送流响应。
 
+<<<<<<< HEAD
 流式传输是 h3 的一个强大功能。它允许您在获取数据的第一时间就将其发送给客户端。这对于大型文件或长时间运行的任务非常有用。
 
 > [!WARNING]
 > 流式传输是复杂的，如果您不需要它，可能会变成负担。
+=======
+Using stream responses It allows you to send data to the client as soon as you have it. This is useful for large files or long running responses.
+>>>>>>> origin/upstream
 
 ## 创建流
 
@@ -41,9 +53,9 @@ const stream = new ReadableStream({
 ## 发送流
 
 ```ts
-import { createApp, setResponseHeader } from "h3";
+import { H3, setResponseHeader } from "h3";
 
-export const app = createApp();
+export const app = new H3();
 
 app.use((event) => {
   // 设置响应头告知客户端我们正在发送一个流。

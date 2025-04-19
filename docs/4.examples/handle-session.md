@@ -1,4 +1,12 @@
+<<<<<<< HEAD
 # 处理会话
+=======
+---
+icon: ph:arrow-right
+---
+
+# Sessions
+>>>>>>> origin/upstream
 
 > 使用会话来记住你的用户。
 
@@ -15,7 +23,11 @@ h3 提供了许多处理会话的工具：
 
 ## 初始化会话
 
+<<<<<<< HEAD
 要初始化会话，你需要在 [事件处理器](/guide/event-handler) 中使用 `useSession`：
+=======
+To initialize a session, you need to use `useSession` in an [event handler](/guide/handler):
+>>>>>>> origin/upstream
 
 ```js
 import { useSession } from "h3";

@@ -8,7 +8,10 @@ github: zhcndoc/h3
 themeColor: amber
 url: https://h3.zhcndoc.com
 automd: true
-redirects: {}
+redirects:
+  "/guide/event-handler": "/guide/handler"
+  "/guide/router": "/guide/routing"
+  "/adapters/**": "/guide"
 landing:
   heroLinks:
     playOnline:

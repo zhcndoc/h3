@@ -1,28 +1,40 @@
+<<<<<<< HEAD
 # 提供静态资产
+=======
+---
+icon: ph:arrow-right
+---
+
+# Static Assets
+>>>>>>> origin/upstream
 
 > 提供静态资产，例如 HTML、图像、CSS、JavaScript 等等。
 
 h3 可以提供静态资产，例如 HTML、图像、CSS、JavaScript 等等。
 
+<<<<<<< HEAD
 > [!NOTE]
 > 如果你使用 [`unjs/listhen`](https://listhen.unjs.io)，你只需在项目根目录中创建一个 `public` 目录，并将你的静态资产放在其中。它们将会自动提供。
 
 ## 使用方法
 
 要提供静态目录，你可以使用 `serveStatic` 工具。
+=======
+To serve a static directory, you can use the `serveStatic` utility.
+>>>>>>> origin/upstream
 
 ```ts
-import { createApp, serveStatic } from "h3";
+import { H3, serveStatic } from "h3";
 
-export const app = createApp();
+const app = new H3();
 
-app.use((event) => {
+app.use("/public/**", (event) => {
   return serveStatic(event, {
     getContents: (id) => {
-      return undefined;
+      // TODO
     },
     getMeta: (id) => {
-      return undefined;
+      // TODO
     },
   });
 });
@@ -39,6 +51,7 @@ app.use((event) => {
 
 现在，在 `public` 目录中创建一个简单消息的 `index.html` 文件，并在浏览器中打开 http://localhost:3000。你应该能看到该消息。
 
+<<<<<<< HEAD
 > [!NOTE]
 > 使用 `public` 是一种约定，但你可以使用任何你想要的目录名称。
 
@@ -46,37 +59,41 @@ app.use((event) => {
 > 如果你正在使用 [`unjs/listhen`](https://listhen.unjs.io) 并想尝试此示例，请创建一个与 `public` 不同名称的目录，因为它是 `listhen` 使用的默认目录。
 
 然后，我们可以创建 `getContents` 和 `getMeta` 方法：
+=======
+Then, we can create the `getContents` and `getMeta` methods:
+>>>>>>> origin/upstream
 
 ```ts
-import { createApp, serveStatic } from "h3";
 import { stat, readFile } from "node:fs/promises";
-import { join } from "pathe";
+import { join } from "node:path";
+import { H3, serve, serveStatic } from "h3";
 
-export const app = createApp();
+const app = new H3();
 
-const publicDir = "assets";
-
-app.use((event) => {
+app.use("/public/**", (event) => {
   return serveStatic(event, {
-    getContents: (id) => readFile(join(publicDir, id)),
+    indexNames: ["/index.html"],
+    getContents: (id) => readFile(join("public", id)),
     getMeta: async (id) => {
-      const stats = await stat(join(publicDir, id)).catch(() => {});
-
-      if (!stats || !stats.isFile()) {
-        return;
+      const stats = await stat(join("public", id)).catch(() => {});
+      if (stats?.isFile()) {
+        return {
+          size: stats.size,
+          mtime: stats.mtimeMs,
+        };
       }
-
-      return {
-        size: stats.size,
-        mtime: stats.mtimeMs,
-      };
     },
   });
 });
+
+await serve(app)
+  .ready()
+  .then((s) => console.log(`Server running at ${s.url}`));
 ```
 
 `getContents` 读取文件并返回其内容，非常简单。`getMeta` 使用 `fs.stat` 来获取文件元数据。如果文件不存在或不是一个文件，它会返回 `undefined`。否则，它将返回文件大小和最后修改时间。
 
+<<<<<<< HEAD
 文件大小和最后修改时间用于生成 etag，以便在文件自上次请求以来未被修改时发送 `304 Not Modified` 响应。这对于避免如果文件没有更改而多次发送相同的文件非常有用。
 
 ## 解析资产
@@ -101,3 +118,6 @@ app.use(
 
 > [!IMPORTANT]
 > 不要忘记 `/` 在开头，h3 会将路径与索引名称连接起来。例如，`/index.html` 将与 `/hello` 连接，形成 `hello/index.html`。
+=======
+The file size and last modification time are used to create an etag to send a `304 Not Modified` response if the file has not been modified since the last request. This is useful to avoid sending the same file multiple times if it has not changed.
+>>>>>>> origin/upstream

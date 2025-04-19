@@ -1,4 +1,12 @@
+<<<<<<< HEAD
 # 验证数据
+=======
+---
+icon: ph:arrow-right
+---
+
+# Validate Data
+>>>>>>> origin/upstream
 
 > 在处理数据之前，确保数据是有效和安全的。
 

@@ -115,7 +115,8 @@ h3 v2 弃用了一些过时和别名的工具。
 
 - `eventHandler`：迁移至 `defineEventHandler`（或移除它！）。
 - `lazyEventHandler`：迁移至 `defineLazyEventHandler`。
-- `toEventHandler` / `isEventHandler`：（移除）任何函数都可以成为事件处理程序。
+- `toEventHandler`: 移除包装。
+- `isEventHandler`：（移除）任何函数都可以成为事件处理程序。
 - `useBase`：迁移至 `withbase`。
 
 **请求：**

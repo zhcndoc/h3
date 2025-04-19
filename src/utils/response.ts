@@ -11,7 +11,7 @@ import {
  * Respond with an empty payload.<br>
  *
  * @example
- * app.use("/", () => noContent());
+ * app.get("/", () => noContent());
  *
  * @param event H3 event
  * @param code status code to be send. By default, it is `204 No Content`.
@@ -42,12 +42,12 @@ export function noContent(event: H3Event, code?: StatusCode): "" {
  * In the body, it sends a simple HTML page with a meta refresh tag to redirect the client in case the headers are ignored.
  *
  * @example
- * app.use("/", (event) => {
+ * app.get("/", (event) => {
  *   return redirect(event, "https://example.com");
  * });
  *
  * @example
- * app.use("/", (event) => {
+ * app.get("/", (event) => {
  *   return redirect(event, "https://example.com", 301); // Permanent redirect
  * });
  */
@@ -73,11 +73,11 @@ export function writeEarlyHints(
   event: H3Event,
   hints: Record<string, string>,
 ): void | Promise<void> {
-  if (!event.node?.res?.writeEarlyHints) {
+  if (!event.runtime?.node?.res?.writeEarlyHints) {
     return;
   }
   return new Promise((resolve) => {
-    event.node?.res.writeEarlyHints(hints, () => resolve());
+    event.runtime?.node?.res?.writeEarlyHints(hints, () => resolve());
   });
 }
 
