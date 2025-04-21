@@ -1,33 +1,25 @@
-<<<<<<< HEAD
-# 处理会话
-=======
 ---
 icon: ph:arrow-right
 ---
 
-# Sessions
->>>>>>> origin/upstream
+# 会话
 
-> 使用会话来记住你的用户。
+> 使用会话来记住您的用户。
 
-会话是一种使用 cookies 记住用户的方法。这是一种非常常见的用户身份验证或保存用户数据的方法，例如他们的语言或网络偏好。
+会话是一种通过 cookie 记住用户的方式。这是认证用户或保存关于用户的数据（例如他们在网页上的语言或偏好设置）的非常常见的方法。
 
 h3 提供了许多处理会话的工具：
 
-- `useSession` 初始化会话并返回一个控制它的包装器。
+- `useSession` 初始化会话并返回控制它的封装对象。
 - `getSession` 初始化或检索当前用户会话。
 - `updateSession` 更新当前会话的数据。
 - `clearSession` 清除当前会话。
 
-大多数情况下，你将使用 `useSession` 来操作会话。
+大多数情况下，您将使用 `useSession` 来操作会话。
 
 ## 初始化会话
 
-<<<<<<< HEAD
-要初始化会话，你需要在 [事件处理器](/guide/event-handler) 中使用 `useSession`：
-=======
-To initialize a session, you need to use `useSession` in an [event handler](/guide/handler):
->>>>>>> origin/upstream
+要初始化会话，您需要在 [事件处理器](/guide/handler) 中使用 `useSession`：
 
 ```js
 import { useSession } from "h3";
@@ -42,18 +34,18 @@ app.use(async (event) => {
 ```
 
 > [!WARNING]
-> 你必须提供一个密码来加密会话。
+> 您必须提供一个密码来加密会话。
 
-这将初始化一个会话并返回一个名为 `Set-Cookie` 的头信息，其中包含一个名为 `h3` 的 cookie 和加密内容。
+这将初始化一个会话并返回一个头部 `Set-Cookie`，其中包含名为 `h3` 的 cookie 和加密内容。
 
-如果请求包含名为 `h3` 的 cookie 或名为 `x-h3-session` 的头信息，则会话将使用 cookie 或头信息的内容进行初始化。
+如果请求中包含名为 `h3` 的 cookie 或名为 `x-h3-session` 的头部，会话将使用该 cookie 或头部的内容初始化。
 
 > [!NOTE]
-> 头信息优先于 cookie。
+> 头部优先于 cookie。
 
-## 从会话获取数据
+## 从会话中获取数据
 
-要从会话获取数据，我们仍然使用 `useSession`。在底层，它将使用 `getSession` 来获取会话。
+要从会话中获取数据，我们仍然使用 `useSession`。在内部，它会使用 `getSession` 来获取会话。
 
 ```js
 import { useSession } from "h3";
@@ -67,11 +59,11 @@ app.use(async (event) => {
 });
 ```
 
-数据存储在会话的 `data` 属性中。如果没有数据，将是一个空对象。
+数据存储在会话的 `data` 属性中。如果没有数据，它将是一个空对象。
 
 ## 向会话添加数据
 
-要向会话添加数据，我们仍然使用 `useSession`。在底层，它将使用 `updateSession` 来更新会话。
+要向会话添加数据，我们仍然使用 `useSession`。在内部，它会使用 `updateSession` 来更新会话。
 
 ```js
 import { useSession } from "h3";
@@ -87,23 +79,23 @@ app.use(async (event) => {
   });
 
   return count === 0
-    ? "你好，世界！"
-    : `你好，世界！你已经访问了这个页面 ${count} 次。`;
+    ? "Hello world!"
+    : `Hello world! 您已经访问此页面 ${count} 次。`;
 });
 ```
 
 这里发生了什么？
 
-我们尝试从请求中获取会话。如果没有会话，将创建一个新的会话。然后，我们递增会话的 `count` 属性，并用新值更新会话。最后，我们返回一条消息，显示用户访问页面的次数。
+我们尝试从请求中获取一个会话。如果没有会话，将创建一个新的。然后，我们递增会话的 `count` 属性，并用新值更新会话。最后，我们返回一条显示用户访问页面次数的消息。
 
-尝试多次访问该页面，你将看到你访问该页面的次数。
+尝试多次访问该页面，您将看到您访问的次数。
 
 > [!NOTE]
-> 如果你使用像 `curl` 这样的 CLI 工具来测试这个例子，你将看不到你访问该页面的次数，因为 CLI 工具不保存 cookies。你必须从响应中获取 cookie 并将其发送回服务器。
+> 如果您使用类似 `curl` 的命令行工具测试此示例，您将看不到访问次数，因为命令行工具不会保存 cookie。您必须从响应中获取 cookie 并回传给服务器。
 
 ## 清除会话
 
-要清除会话，我们仍然使用 `useSession`。在底层，它将使用 `clearSession` 来清除会话。
+要清除会话，我们仍然使用 `useSession`。在内部，它会使用 `clearSession` 来清除会话。
 
 ```js
 import { useSession } from "h3";
@@ -119,11 +111,11 @@ app.use("/clear", async (event) => {
 });
 ```
 
-h3 将发送一个名为 `Set-Cookie` 的头信息，包含一个空的名为 `h3` 的 cookie，以清除会话。
+h3 会发送一个带有空的名为 `h3` 的 cookie 的 `Set-Cookie` 头部来清除会话。
 
 ## 选项
 
-在使用 `useSession` 时，你可以将一个包含选项的对象作为第二个参数传递，以配置会话：
+调用 `useSession` 时，您可以传递一个带有选项的对象作为第二个参数来配置会话：
 
 ```js
 import { useSession } from "h3";
@@ -137,7 +129,7 @@ app.use(async (event) => {
       secure: true,
       sameSite: "strict",
     },
-    maxAge: 60 * 60 * 24 * 7, // 7天
+    maxAge: 60 * 60 * 24 * 7, // 7 天
   });
 
   return session.data;
