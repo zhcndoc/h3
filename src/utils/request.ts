@@ -1,12 +1,10 @@
-import { createError } from "../error";
-import type {
-  HTTPMethod,
-  InferEventInput,
-  ValidateFunction,
-  H3Event,
-} from "../types";
-import { parseQuery } from "./internal/query";
-import { validateData } from "./internal/validate";
+import { createError } from "../error.ts";
+import { parseQuery } from "./internal/query.ts";
+import { validateData, type ValidateFunction } from "./internal/validate.ts";
+
+import type { H3Event } from "../types/event.ts";
+import type { InferEventInput } from "../types/handler.ts";
+import type { HTTPMethod } from "../types/h3.ts";
 
 /**
  * Get parsed query string object from the request URL.
@@ -157,7 +155,7 @@ export function isMethod(
   event: H3Event,
   expected: HTTPMethod | HTTPMethod[],
   allowHead?: boolean,
-) {
+): boolean {
   if (allowHead && event.req.method === "HEAD") {
     return true;
   }
@@ -190,7 +188,7 @@ export function assertMethod(
   event: H3Event,
   expected: HTTPMethod | HTTPMethod[],
   allowHead?: boolean,
-) {
+): void {
   if (!isMethod(event, expected, allowHead)) {
     throw createError({
       statusCode: 405,
@@ -214,7 +212,7 @@ export function assertMethod(
 export function getRequestHost(
   event: H3Event,
   opts: { xForwardedHost?: boolean } = {},
-) {
+): string {
   if (opts.xForwardedHost) {
     const _header = event.req.headers.get("x-forwarded-host");
     const xForwardedHost = (_header || "").split(",").shift()?.trim();
@@ -240,7 +238,7 @@ export function getRequestHost(
 export function getRequestProtocol(
   event: H3Event,
   opts: { xForwardedProto?: boolean } = {},
-) {
+): "http" | "https" | (string & {}) {
   if (opts.xForwardedProto !== false) {
     const forwardedProto = event.req.headers.get("x-forwarded-proto");
     if (forwardedProto === "https") {
@@ -268,7 +266,7 @@ export function getRequestProtocol(
 export function getRequestURL(
   event: H3Event,
   opts: { xForwardedHost?: boolean; xForwardedProto?: boolean } = {},
-) {
+): URL {
   const url = new URL(event.url);
   url.protocol = getRequestProtocol(event, opts);
   if (opts.xForwardedHost) {

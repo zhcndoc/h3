@@ -1,18 +1,29 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { NodeHandler, NodeMiddleware } from "./types/node";
-import type {
-  H3,
-  EventHandler,
-  H3EventContext,
-  EventHandlerResponse,
-} from "./types";
 import { toNodeHandler as _toNodeHandler } from "srvx/node";
-import { createError } from "./error";
-import { kHandled } from "./response";
+import { createError } from "./error.ts";
+import { kHandled } from "./response.ts";
 
+import type { H3 } from "./h3.ts";
+import type { H3Event, H3EventContext } from "./types/event.ts";
+import type { EventHandler, EventHandlerResponse } from "./types/handler.ts";
+
+export type NodeHandler = (
+  req: IncomingMessage,
+  res: ServerResponse,
+) => unknown | Promise<unknown>;
+
+export type NodeMiddleware = (
+  req: IncomingMessage,
+  res: ServerResponse,
+  next: (error?: Error) => void,
+) => unknown | Promise<unknown>;
+
+/**
+ * @deprecated Since h3 v2 you can directly use `app.fetch(request, init?, context?)`
+ */
 export function toWebHandler(
   app: H3,
-): (request: Request, context?: H3EventContext) => Promise<Response> {
+): (request: Request, context?: H3Event) => Promise<Response> {
   return (request, context) => {
     return Promise.resolve(app.fetch(request, undefined, context));
   };
@@ -51,11 +62,11 @@ export function fromNodeHandler(
   };
 }
 
-export function defineNodeHandler(handler: NodeHandler) {
+export function defineNodeHandler(handler: NodeHandler): NodeHandler {
   return handler;
 }
 
-export function defineNodeMiddleware(handler: NodeMiddleware) {
+export function defineNodeMiddleware(handler: NodeMiddleware): NodeMiddleware {
   return handler;
 }
 
