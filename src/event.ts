@@ -2,7 +2,7 @@ import type { ServerRequest, ServerRuntimeContext } from "srvx";
 import type { H3Event, H3EventContext } from "./types/event.ts";
 
 import { EmptyObject } from "./utils/internal/obj.ts";
-import { FastURL } from "./url.ts";
+import { URL as FastURL } from "srvx";
 
 export class _H3Event implements H3Event {
   static __is_event__ = true;
