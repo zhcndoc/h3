@@ -3,18 +3,23 @@ import { build } from "esbuild";
 import { fileURLToPath } from "node:url";
 import zlib from "node:zlib";
 
+const inspect = !!process.env.BUNDLE_INSPECT;
+
 describe("benchmark", () => {
   it("bundle size", async () => {
     const code = /* js */ `
-      // import { H3 } from "../../dist/index.mjs.ts";
       import { H3 } from "../../src/index.ts";
-      export default new H3();
+      const app = new H3();
     `;
-
     const bundle = await getBundleSize(code);
-    console.log(`Bundle size:${bundle.bytes} (gzip: ${bundle.gzipSize})`);
-    expect(bundle.bytes).toBeLessThanOrEqual(12_000); // <12kb
-    expect(bundle.gzipSize).toBeLessThanOrEqual(4100); // <4.1kb
+    if (inspect) {
+      return;
+    }
+    if (process.env.DEBUG) {
+      console.log(`Bundle size:${bundle.bytes} (gzip: ${bundle.gzipSize})`);
+    }
+    expect(bundle.bytes).toBeLessThanOrEqual(11_000); // <11kb
+    expect(bundle.gzipSize).toBeLessThanOrEqual(4000); // <4kb
   });
 });
 
@@ -23,12 +28,12 @@ async function getBundleSize(code: string) {
     bundle: true,
     metafile: true,
     write: false,
-    minify: true,
+    minify: inspect ? false : true,
     format: "esm",
     platform: "node",
     outfile: "index.mjs",
     treeShaking: true,
-    conditions: ["deno"],
+    conditions: ["browser"],
     stdin: {
       contents: code,
       resolveDir: fileURLToPath(new URL(".", import.meta.url)),
@@ -37,9 +42,11 @@ async function getBundleSize(code: string) {
     },
   });
 
-  // await process
-  //   .getBuiltinModule("node:fs/promises")
-  //   .writeFile("out.mjs", res.outputFiles[0].contents);
+  if (inspect) {
+    await process
+      .getBuiltinModule("node:fs/promises")
+      .writeFile("bundle.tmp.mjs", res.outputFiles[0].contents);
+  }
 
   const { bytes } = res.metafile.outputs["index.mjs"];
   const gzipSize = zlib.gzipSync(res.outputFiles[0].text).byteLength;
