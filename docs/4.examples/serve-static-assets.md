@@ -63,9 +63,7 @@ app.use("/public/**", (event) => {
   });
 });
 
-await serve(app)
-  .ready()
-  .then((s) => console.log(`Server running at ${s.url}`));
+serve(app);
 ```
 
 The `getContents` read the file and returns its contents, pretty simple. The `getMeta` uses `fs.stat` to get the file metadata. If the file does not exist or is not a file, it returns `undefined`. Otherwise, it returns the file size and the last modification time.

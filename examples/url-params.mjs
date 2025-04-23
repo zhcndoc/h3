@@ -13,6 +13,4 @@ app
     return `Hello ${params.name}, you are ${params.age} years old`;
   });
 
-await serve(app)
-  .ready()
-  .then((s) => console.log(`Server running at ${s.url}`));
+serve(app);
