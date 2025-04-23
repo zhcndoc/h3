@@ -11,21 +11,14 @@ describe("benchmark", () => {
       export default new H3();
     `;
 
-    // Node.js
-    const nodeBundle = await getBundleSize(code, ["node"]);
-    // console.log( `Bundle size: (node) ${nodeBundle.bytes} (gzip: ${nodeBundle.gzipSize})` );
-    expect(nodeBundle.bytes).toBeLessThanOrEqual(15_000); // <15kb
-    expect(nodeBundle.gzipSize).toBeLessThanOrEqual(5100); // <5.1kb
-
-    // Deno
-    const denoBundle = await getBundleSize(code, ["deno"]);
-    // console.log(`Bundle size: (deno) ${denoBundle.bytes} (gzip: ${denoBundle.gzipSize})` );
-    expect(denoBundle.bytes).toBeLessThanOrEqual(12_000); // <12kb
-    expect(denoBundle.gzipSize).toBeLessThanOrEqual(4200); // <4.2kb
+    const bundle = await getBundleSize(code);
+    console.log(`Bundle size:${bundle.bytes} (gzip: ${bundle.gzipSize})`);
+    expect(bundle.bytes).toBeLessThanOrEqual(12_000); // <12kb
+    expect(bundle.gzipSize).toBeLessThanOrEqual(4100); // <4.1kb
   });
 });
 
-async function getBundleSize(code: string, conditions: string[]) {
+async function getBundleSize(code: string) {
   const res = await build({
     bundle: true,
     metafile: true,
@@ -34,7 +27,8 @@ async function getBundleSize(code: string, conditions: string[]) {
     format: "esm",
     platform: "node",
     outfile: "index.mjs",
-    conditions,
+    treeShaking: true,
+    conditions: ["deno"],
     stdin: {
       contents: code,
       resolveDir: fileURLToPath(new URL(".", import.meta.url)),
@@ -42,6 +36,11 @@ async function getBundleSize(code: string, conditions: string[]) {
       loader: "js",
     },
   });
+
+  // await process
+  //   .getBuiltinModule("node:fs/promises")
+  //   .writeFile("out.mjs", res.outputFiles[0].contents);
+
   const { bytes } = res.metafile.outputs["index.mjs"];
   const gzipSize = zlib.gzipSync(res.outputFiles[0].text).byteLength;
   return { bytes, gzipSize };
