@@ -24,6 +24,4 @@ app
     return noContent(event);
   });
 
-await serve(app)
-  .ready()
-  .then((s) => console.log(`Server running at ${s.url}`));
+serve(app);

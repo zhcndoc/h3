@@ -25,3 +25,5 @@ app
       data: { foo: "bar" },
     });
   });
+
+serve(app);

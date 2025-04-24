@@ -2,15 +2,14 @@
   "name": "h3",
   "version": "2.0.0-beta.0",
   "description": "Minimal H(TTP) framework built for high performance and portability.",
-  "repository": "unjs/h3",
+  "homepage": "https://h3.dev",
+  "repository": "h3js/h3",
   "license": "MIT",
   "sideEffects": false,
+  "type": "module",
   "exports": {
     "./package.json": "./package.json",
-    ".": {
-      "types": "./dist/index.d.mts",
-      "default": "./dist/index.mjs"
-    }
+    ".": "./dist/index.mjs"
   },
   "types": "./dist/index.d.mts",
   "files": [
@@ -19,16 +18,15 @@
   "scripts": {
     "bench:bun": "bun run ./test/bench/h3.mjs",
     "bench:node": "node --expose-gc --allow-natives-syntax ./test/bench/h3.mjs",
-    "bench:url:bun": "bun run ./test/bench/url.ts",
-    "bench:url:node": "node --expose-gc --allow-natives-syntax --import jiti/register ./test/bench/url.ts",
     "build": "unbuild",
     "dev": "vitest",
     "lint": "eslint --cache . && prettier -c src test examples docs",
     "lint:fix": "automd && eslint --cache . --fix && prettier -c src test examples docs -w",
+    "node-ts": "node --disable-warning=ExperimentalWarning --experimental-strip-types",
     "play:bun": "bun ./test/fixture/bun.ts",
-    "play:node": "node --import jiti/register test/fixture/node.ts",
-    "play:plain": "node --import jiti/register test/fixture/plain.ts",
-    "play:web": "node --import jiti/register test/fixture/web.ts",
+    "play:node": "pnpm node-ts test/fixture/node.ts",
+    "play:plain": "pnpm node-ts test/fixture/plain.ts",
+    "play:web": "pnpm node-ts test/fixture/web.ts",
     "release": "pnpm test && pnpm build && changelogen --publish --publishTag 2x --prerelease && git push --follow-tags",
     "test": "pnpm lint && pnpm test:types && vitest --run --coverage",
     "test:types": "tsc --noEmit --skipLibCheck"
@@ -38,8 +36,8 @@
   },
   "dependencies": {
     "cookie-es": "^2.0.0",
-    "rou3": "^0.6.0",
-    "srvx": "^0.4.0"
+    "rou3": "^0.6.1",
+    "srvx": "^0.5.1"
   },
   "devDependencies": {
     "@mitata/counters": "^0.0.8",
@@ -48,26 +46,25 @@
     "@types/node": "^22.14.1",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
-    "@vitest/coverage-v8": "^3.1.1",
+    "@vitest/coverage-v8": "^3.1.2",
     "automd": "^0.4.0",
     "changelogen": "^0.6.1",
     "connect": "^3.7.0",
-    "esbuild": "^0.25.2",
-    "eslint": "^9.24.0",
+    "esbuild": "^0.25.3",
+    "eslint": "^9.25.1",
     "eslint-config-unjs": "^0.4.2",
     "express": "^5.1.0",
     "get-port-please": "^3.1.2",
     "h3-nightly": "npm:h3-nightly@2.0.0-20250401-195422-5407a55",
     "h3-v1": "npm:h3@^1.15.1",
-    "jiti": "^2.4.2",
     "mitata": "^1.0.34",
     "prettier": "^3.5.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "typescript": "^5.8.3",
     "unbuild": "^3.5.0",
-    "vitest": "^3.1.1",
-    "zod": "^3.24.2"
+    "vitest": "^3.1.2",
+    "zod": "^3.24.3"
   },
   "peerDependencies": {
     "crossws": "^0.2.4"

@@ -6,6 +6,4 @@ app.get("/", (event) => {
   return `Hello ${event.url.searchParams.get("name") || "anonymous"}!`;
 });
 
-await serve(app)
-  .ready()
-  .then((s) => console.log(`Server running at ${s.url}`));
+serve(app);

@@ -14,6 +14,4 @@ app.get("/user-agent", (event) => {
   };
 });
 
-await serve(app)
-  .ready()
-  .then((s) => console.log(`Server running at ${s.url}`));
+serve(app);

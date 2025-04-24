@@ -14,6 +14,4 @@ app
     return "TestCookie is set. Go back to / to see it!";
   });
 
-await serve(app)
-  .ready()
-  .then((s) => console.log(`Server running at ${s.url}`));
+serve(app);

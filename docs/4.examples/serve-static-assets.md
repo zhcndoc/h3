@@ -63,9 +63,7 @@ app.use("/public/**", (event) => {
   });
 });
 
-await serve(app)
-  .ready()
-  .then((s) => console.log(`服务器运行于 ${s.url}`));
+serve(app);
 ```
 
 `getContents` 读取文件并返回其内容，非常简单。`getMeta` 使用 `fs.stat` 获取文件元数据。如果文件不存在或不是文件，返回 `undefined`。否则返回文件大小和最后修改时间。
