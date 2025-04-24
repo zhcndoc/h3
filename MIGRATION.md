@@ -14,7 +14,7 @@ h3 v2 includes some behavior and API changes that you need to consider applying 
 
 ## ESM and latest Node.js
 
-H3 v2 requires Node.js >= 2.11 with ESM support.
+H3 v2 requires Node.js >= 20.11 with ESM support.
 
 You can still `require("h3")` thanks to `require(esm)` supported in newer Node.js versions.
 
