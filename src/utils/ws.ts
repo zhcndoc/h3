@@ -7,7 +7,7 @@ import type { EventHandler } from "../types/handler.ts";
 /**
  * Define WebSocket hooks.
  *
- * @see https://h3.unjs.io/guide/websocket
+ * @see https://h3.dev/guide/websocket
  */
 export function defineWebSocket(hooks: Partial<WSHooks>): Partial<WSHooks> {
   return hooks;
@@ -16,7 +16,7 @@ export function defineWebSocket(hooks: Partial<WSHooks>): Partial<WSHooks> {
 /**
  * Define WebSocket event handler.
  *
- * @see https://h3.unjs.io/guide/websocket
+ * @see https://h3.dev/guide/websocket
  */
 export function defineWebSocketHandler(hooks: Partial<WSHooks>): EventHandler {
   return defineEventHandler({

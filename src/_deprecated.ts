@@ -215,7 +215,7 @@ export function setResponseStatus(
 export function defaultContentType(event: H3Event, type?: string): void {
   if (
     type &&
-    event.res.status !== 304 /* unjs/h3#603 */ &&
+    event.res.status !== 304 /* #603 */ &&
     !event.res.headers.has("content-type")
   ) {
     event.res.headers.set("content-type", type);

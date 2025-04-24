@@ -4,9 +4,9 @@ shortDescription: The Web Framework for Modern JavaScript Era
 description:
   H(TTP) server framework built for high performance and portability running
   in any JavaScript runtime.
-github: unjs/h3
+github: h3js/h3
 themeColor: amber
-url: https://h3.unjs.io
+url: https://h3.dev
 automd: true
 redirects:
   "/guide/event-handler": "/guide/handler"
@@ -17,7 +17,7 @@ landing:
     playOnline:
       label: "Play Online"
       icon: "i-simple-icons-lightning"
-      to: "https://stackblitz.com/github/unjs/h3/tree/main/playground"
+      to: "https://stackblitz.com/github/h3js/h3/tree/main/playground"
   contributors: true
   featuresTitle: "The Web Framework for Modern JavaScript Era"
   features:
@@ -44,9 +44,9 @@ landing:
 
     # Router
     - title: "Fast Router"
-      description: "Super fast route matching using unjs/rou3"
+      description: "Super fast route matching using rou3"
       icon: "i-fa-tree"
-      to: "https://github.com/unjs/rou3"
+      to: "https://github.com/h3js/rou3"
       target: "_blank"
 
     # Ecosystem

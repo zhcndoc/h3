@@ -66,7 +66,7 @@ Handlers will run in this order:
 
 Any handler can return a response. If middleware don't return a response, next handlers will be tried and finally make a 404 if neither responses. Router handlers can return or not return any response, in this case, h3 will send a simple 200 with empty content.
 
-h3 migrated to a brand new route-matching engine [unjs/rou3](https://rou3.unjs.io/). You might experience slight (but more intuitive) behavior changes for matching patterns.
+h3 migrated to a brand new route-matching engine [rou3](https://rou3.h3.dev/). You might experience slight (but more intuitive) behavior changes for matching patterns.
 
 Other changes from v1:
 
@@ -81,7 +81,7 @@ Other changes from v1:
 
 ## Body utils
 
-Most of request body utilities can now be replaced with `event.req` utils which is based on standard [`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Response) interface + platform addons from [srvx](https://srvx.unjs.io/guide/handler#additional-properties).
+Most of request body utilities can now be replaced with `event.req` utils which is based on standard [`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Response) interface + platform addons from [srvx](https://srvx.h3.dev/guide/handler#additional-properties).
 
 `readBody(event)` utility will use [`JSON.parse`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse) or [`URLSearchParams`](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams) for parsing requests with `application/x-www-form-urlencoded` content-type.
 
