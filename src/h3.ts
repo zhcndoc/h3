@@ -53,7 +53,7 @@ export class H3 {
   }
 
   /**
-   * Websocket hooks compatible with [🔌 crossws](https://crossws.unjs.io/).
+   * Websocket hooks compatible with [🔌 crossws](https://crossws.h3.dev/).
    */
   get websocket(): WebSocketOptions {
     return {

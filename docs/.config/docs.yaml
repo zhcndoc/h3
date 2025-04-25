@@ -17,7 +17,7 @@ landing:
     playOnline:
       label: "在线体验"
       icon: "i-simple-icons-lightning"
-      to: "https://stackblitz.com/github/unjs/h3/tree/main/playground"
+      to: "https://stackblitz.com/github/h3js/h3/tree/main/playground"
   contributors: true
   featuresTitle: "现代 JavaScript 时代的 Web 框架"
   features:
@@ -44,9 +44,9 @@ landing:
 
     # 路由器
     - title: "快速路由器"
-      description: "使用 unjs/rou3 进行超快速路由匹配"
+      description: "使用 rou3 进行超快速路由匹配"
       icon: "i-fa-tree"
-      to: "https://github.com/unjs/rou3"
+      to: "https://github.com/h3js/rou3"
       target: "_blank"
 
     # 生态系统

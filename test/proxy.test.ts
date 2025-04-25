@@ -36,9 +36,9 @@ describeMatrix("proxy", (t, { it, expect, describe }) => {
         t.app.all("/", (event) => {
           return proxyRequest(event, t.url + "/debug", {
             fetch,
-            headers: { "x-custom1": "overridden" },
+            headers: [["x-custom1", "overridden"]],
             fetchOptions: {
-              headers: { "x-custom2": "overridden" },
+              headers: new Headers({ "x-custom2": "overridden" }),
             },
           });
         });

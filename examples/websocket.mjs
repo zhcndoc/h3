@@ -3,7 +3,7 @@ import { H3, serve, proxy, defineWebSocketHandler } from "h3";
 export const app = new H3();
 
 const websocketDemoURL =
-  "https://raw.githubusercontent.com/unjs/crossws/main/examples/h3/public/index.html";
+  "https://raw.githubusercontent.com/h3js/crossws/main/examples/h3/public/index.html";
 
 app.get("/", (event) =>
   proxy(event, websocketDemoURL, { headers: { "Content-Type": "text/html" } }),

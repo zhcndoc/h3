@@ -59,7 +59,12 @@ export function mergeHeaders(
   }
   const merged = new Headers(defaults);
   for (const input of _inputs) {
-    for (const [key, value] of Object.entries(input!)) {
+    const entries = Array.isArray(input)
+      ? input
+      : typeof input.entries === "function"
+        ? input.entries()
+        : Object.entries(input);
+    for (const [key, value] of entries) {
       if (value !== undefined) {
         merged.set(key, value);
       }

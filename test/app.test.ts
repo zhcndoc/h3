@@ -77,6 +77,22 @@ describeMatrix("app", (t, { it, expect }) => {
     expect(await res.text()).toBe("<h1>Hello World</h1>");
   });
 
+  it("can return File directly", async () => {
+    t.app.use(
+      () =>
+        new File(["<h1>Hello World</h1>"], "hello ❤️.html", {
+          type: "text/html",
+        }),
+    );
+    const res = await t.fetch("/");
+
+    expect(res.headers.get("content-type")).toBe("text/html");
+    expect(res.headers.get("Content-Disposition")).toBe(
+      "filename=\"hello%20%E2%9D%A4%EF%B8%8F.html\"; filename*=UTF-8''hello%20%E2%9D%A4%EF%B8%8F.html",
+    );
+    expect(await res.text()).toBe("<h1>Hello World</h1>");
+  });
+
   it("can return Buffer directly", async () => {
     t.app.use(() => Buffer.from("<h1>Hello world!</h1>", "utf8"));
     const res = await t.fetch("/");

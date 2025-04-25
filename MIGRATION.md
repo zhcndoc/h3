@@ -14,7 +14,7 @@ h3 v2 包含了一些行为和 API 的变更，迁移时需要考虑应用这些
 
 ## ESM 和最新的 Node.js
 
-H3 v2 需要 Node.js >= 2.11 并支持 ESM。
+H3 v2 需要 Node.js >= 20.11 并支持 ESM。
 
 感谢较新版本 Node.js 中对 `require(esm)` 的支持，您依然可以使用 `require("h3")`。
 
@@ -66,7 +66,7 @@ H3 v2 基于 Web 标准原语重写（[`URL`](https://developer.mozilla.org/en-U
 
 任何处理器都可以返回响应。如果中间件未返回响应，则尝试下一个处理器，最终如果无响应返回会导致 404。路由处理器可有可无返回响应，若无返回，h3 会发送一个简单的状态码 200 空内容响应。
 
-h3 迁移到了全新的路由匹配引擎 [unjs/rou3](https://rou3.unjs.io/)，匹配模式可能有细微（但更直观）的行为变更。
+h3 迁移到了全新的路由匹配引擎 [rou3](https://rou3.h3.dev/)，匹配模式可能有细微（但更直观）的行为变更。
 
 从 v1 的其他变化：
 
@@ -81,7 +81,7 @@ h3 迁移到了全新的路由匹配引擎 [unjs/rou3](https://rou3.unjs.io/)，
 
 ## Body 工具
 
-大多数请求体工具现在可以替换为基于标准 [`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Response) 接口和 [srvx](https://srvx.unjs.io/guide/handler#additional-properties) 平台扩展的 `event.req` 工具。
+大多数请求体工具现在可以替换为基于标准 [`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Response) 接口和 [srvx](https://srvx.h3.dev/guide/handler#additional-properties) 平台扩展的 `event.req` 工具。
 
 `readBody(event)` 工具会根据请求 `content-type` 使用 [`JSON.parse`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse) 或 [`URLSearchParams`](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams) 解析 `application/x-www-form-urlencoded` 内容。
 
