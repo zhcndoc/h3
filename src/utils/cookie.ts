@@ -96,13 +96,11 @@ export function deleteCookie(
   });
 }
 
+/**
+ * Cookies are unique by "cookie-name, domain-value, and path-value".
+ *
+ * @see https://httpwg.org/specs/rfc6265.html#rfc.section.4.1.2
+ */
 function _getDistinctCookieKey(name: string, options: Partial<SetCookie>) {
-  return [
-    name,
-    options.domain || "",
-    options.path || "/",
-    Boolean(options.secure),
-    Boolean(options.httpOnly),
-    Boolean(options.sameSite),
-  ].join(";");
+  return [name, options.domain || "", options.path || "/"].join(";");
 }
