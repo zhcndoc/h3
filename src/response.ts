@@ -102,9 +102,9 @@ function mergeHeaders(base: HeadersInit, merge: Headers): Headers {
   return mergedHeaders;
 }
 
-const emptyHeaders = new Headers({ "content-length": "0" });
+const emptyHeaders = /* @__PURE__ */ new Headers({ "content-length": "0" });
 
-const jsonHeaders = new Headers({
+const jsonHeaders = /* @__PURE__ */ new Headers({
   "content-type": "application/json;charset=UTF-8",
 });
 
