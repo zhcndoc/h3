@@ -8,6 +8,7 @@ import {
   withBase,
   fromNodeHandler,
   defineNodeHandler,
+  type NodeMiddleware,
 } from "../src/index.ts";
 import { describeMatrix } from "./_setup.ts";
 
@@ -39,7 +40,7 @@ describeMatrix("integrations", (t, { it, expect, describe }) => {
       expressApp.use("/", (_req, res) => {
         res.json({ express: "works" });
       });
-      t.app.use("/api/express", fromNodeHandler(expressApp));
+      t.app.use("/api/express", fromNodeHandler(expressApp as NodeMiddleware));
       const res = await t.fetch("/api/express");
 
       expect(await res.json()).toEqual({ express: "works" });
@@ -80,7 +81,7 @@ describeMatrix("integrations", (t, { it, expect, describe }) => {
         res.setHeader("content-type", "application/json");
         res.end(JSON.stringify({ connect: "works" }));
       });
-      t.app.use("/**", fromNodeHandler(connectApp));
+      t.app.use("/**", fromNodeHandler(connectApp as NodeMiddleware));
       const res = await t.fetch("/api/connect");
 
       expect(await res.json()).toEqual({ connect: "works" });
