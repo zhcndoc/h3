@@ -193,11 +193,7 @@ export function setEventStreamHeaders(event: H3Event): void {
   // prevent nginx from buffering the response
   event.res.headers.set("x-accel-buffering", "no");
 
-  if (!isHttp2Request(event)) {
+  if (event.req.headers.get("connection") === "keep-alive") {
     event.res.headers.set("connection", "keep-alive");
   }
-}
-
-export function isHttp2Request(event: H3Event): boolean {
-  return event.req.headers.has(":path") || event.req.headers.has(":method");
 }

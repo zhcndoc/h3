@@ -1,4 +1,4 @@
-import { Response as SrvxResponse } from "srvx";
+import { FastResponse } from "srvx";
 import { createError, type H3Error } from "./error.ts";
 import { isJSONSerializable } from "./utils/internal/object.ts";
 
@@ -37,7 +37,7 @@ function prepareResponse(
   nested?: boolean,
 ): Response | Promise<Response> {
   if (val === kHandled) {
-    return new SrvxResponse(null);
+    return new FastResponse(null);
   }
 
   if (val === kNotFound) {
@@ -63,7 +63,7 @@ function prepareResponse(
   if (!(val instanceof Response)) {
     const res = prepareResponseBody(val, event, config);
     const status = event.res.status;
-    return new SrvxResponse(
+    return new FastResponse(
       nullBody(event.req.method, status) ? null : res.body,
       {
         status,
@@ -80,7 +80,7 @@ function prepareResponse(
   if (!eventHeaders) {
     return val; // Fast path: no headers to merge
   }
-  return new SrvxResponse(
+  return new FastResponse(
     nullBody(event.req.method, val.status) ? null : val.body,
     {
       status: val.status,
@@ -102,9 +102,9 @@ function mergeHeaders(base: HeadersInit, merge: Headers): Headers {
   return mergedHeaders;
 }
 
-const emptyHeaders = new Headers({ "content-length": "0" });
+const emptyHeaders = /* @__PURE__ */ new Headers({ "content-length": "0" });
 
-const jsonHeaders = new Headers({
+const jsonHeaders = /* @__PURE__ */ new Headers({
   "content-type": "application/json;charset=UTF-8",
 });
 
@@ -187,7 +187,7 @@ function nullBody(
 }
 
 function errorResponse(error: H3Error, debug?: boolean): Response {
-  return new SrvxResponse(
+  return new FastResponse(
     JSON.stringify(
       {
         statusCode: error.statusCode,

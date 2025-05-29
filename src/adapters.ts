@@ -1,20 +1,20 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
 import { toNodeHandler as _toNodeHandler } from "srvx/node";
 import { createError } from "./error.ts";
 import { kHandled } from "./response.ts";
 
+import type { NodeServerRequest, NodeServerResponse } from "srvx/types";
 import type { H3 } from "./h3.ts";
 import type { H3Event, H3EventContext } from "./types/event.ts";
 import type { EventHandler, EventHandlerResponse } from "./types/handler.ts";
 
 export type NodeHandler = (
-  req: IncomingMessage,
-  res: ServerResponse,
+  req: NodeServerRequest,
+  res: NodeServerResponse,
 ) => unknown | Promise<unknown>;
 
 export type NodeMiddleware = (
-  req: IncomingMessage,
-  res: ServerResponse,
+  req: NodeServerRequest,
+  res: NodeServerResponse,
   next: (error?: Error) => void,
 ) => unknown | Promise<unknown>;
 
@@ -79,8 +79,8 @@ export function toNodeHandler(app: H3): NodeHandler {
 
 function callNodeHandler(
   handler: NodeHandler | NodeMiddleware,
-  req: IncomingMessage,
-  res: ServerResponse,
+  req: NodeServerRequest,
+  res: NodeServerResponse,
 ) {
   const isMiddleware = handler.length > 2;
   return new Promise((resolve, reject) => {
