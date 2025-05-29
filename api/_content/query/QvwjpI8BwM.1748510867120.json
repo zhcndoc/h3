@@ -1,0 +1,1 @@
+[{"_path":"/guide/event","title":"事件对象","description":"事件对象携带传入请求、准备好的响应和上下文。"},{"_path":"/guide/websocket","title":"WebSockets","description":"H3 内置支持跨平台的 WebSocket 和服务器发送事件。"}]
