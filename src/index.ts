@@ -2,7 +2,6 @@
 
 export type {
   H3Config,
-  WebSocketOptions,
   H3Route,
   HTTPMethod,
   PreparedResponse,
@@ -23,7 +22,6 @@ export type {
   DynamicEventHandler,
   EventHandlerObject,
   EventHandlerRequest,
-  EventHandlerResolver,
   EventHandlerResponse,
   InferEventInput,
   LazyEventHandler,
