@@ -15,7 +15,7 @@ export type { H3Event, H3EventContext } from "./types/event.ts";
 
 export { isEvent, mockEvent } from "./utils/event.ts";
 
-// Handler
+// Handler and Middleware
 
 export type {
   EventHandler,
@@ -33,6 +33,8 @@ export {
   defineLazyEventHandler,
   dynamicEventHandler,
 } from "./handler.ts";
+
+export { defineMiddleware } from "./middleware.ts";
 
 // Error
 
