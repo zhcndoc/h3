@@ -1,8 +1,14 @@
+import type { MaybePromise } from "./_utils.ts";
 import type { H3Event } from "./event.ts";
-import type { Hooks as WSHooks } from "crossws";
-import type { H3 } from "../h3.ts";
 
-export type EventHandlerResponse<T = unknown> = T | Promise<T>;
+//  --- event handler ---
+
+export interface EventHandler<
+  Request extends EventHandlerRequest = EventHandlerRequest,
+  Response extends EventHandlerResponse = EventHandlerResponse,
+> {
+  (event: H3Event<Request>): Response;
+}
 
 export interface EventHandlerRequest {
   body?: unknown;
@@ -10,26 +16,9 @@ export interface EventHandlerRequest {
   routerParams?: Record<string, string>;
 }
 
-export type InferEventInput<
-  Key extends keyof EventHandlerRequest,
-  Event extends H3Event,
-  T,
-> = void extends T ? (Event extends H3Event<infer E> ? E[Key] : never) : T;
+export type EventHandlerResponse<T = unknown> = T | Promise<T>;
 
-type MaybePromise<T> = T | Promise<T>;
-
-export interface EventHandler<
-  Request extends EventHandlerRequest = EventHandlerRequest,
-  Response extends EventHandlerResponse = EventHandlerResponse,
-> extends Partial<Pick<H3, "handler" | "config">> {
-  (event: H3Event<Request>): Response;
-}
-
-export interface MiddlewareOptions {
-  route?: string;
-  method?: string;
-  match?: (event: H3Event) => boolean;
-}
+//  --- middleware ---
 
 export interface Middleware {
   (
@@ -39,33 +28,24 @@ export interface Middleware {
   match?: (event: H3Event) => boolean;
 }
 
-export type RequestMiddleware<
-  Request extends EventHandlerRequest = EventHandlerRequest,
-> = (event: H3Event<Request>) => void | Promise<void>;
+export interface MiddlewareOptions {
+  route?: string;
+  method?: string;
+  match?: (event: H3Event) => boolean;
+}
 
-export type ResponseMiddleware<
-  Request extends EventHandlerRequest = EventHandlerRequest,
-  Response extends EventHandlerResponse = EventHandlerResponse,
-> = (
-  event: H3Event<Request>,
-  response: { body?: Awaited<Response> },
-) => void | Promise<void>;
-
-export type EventHandlerObject<
-  Request extends EventHandlerRequest = EventHandlerRequest,
-  Response extends EventHandlerResponse = EventHandlerResponse,
-> = {
-  onRequest?: RequestMiddleware<Request> | RequestMiddleware<Request>[];
-  onBeforeResponse?:
-    | ResponseMiddleware<Request, Response>
-    | ResponseMiddleware<Request, Response>[];
-  /** @experimental */
-  websocket?: Partial<WSHooks>;
-  handler: EventHandler<Request, Response>;
-};
+// --- lazy event handler ---
 
 export type LazyEventHandler = () => EventHandler | Promise<EventHandler>;
 
 export interface DynamicEventHandler extends EventHandler {
   set: (handler: EventHandler) => void;
 }
+
+// --- utils ---
+
+export type InferEventInput<
+  Key extends keyof EventHandlerRequest,
+  Event extends H3Event,
+  T,
+> = void extends T ? (Event extends H3Event<infer E> ? E[Key] : never) : T;
