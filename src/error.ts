@@ -20,7 +20,7 @@ export class H3Error<DataT = unknown> extends Error {
   statusMessage?: string;
   data?: DataT;
   cause?: unknown;
-  headers?: HeadersInit;
+  headers?: Headers;
 
   constructor(message: string, opts: { cause?: unknown } = {}) {
     // @ts-ignore https://v8.dev/features/error-cause
@@ -85,7 +85,7 @@ export class H3Error<DataT = unknown> extends Error {
 export function createError<DataT = unknown>(
   input:
     | string
-    | (Partial<H3Error<DataT>> & {
+    | (Omit<Partial<H3Error<DataT>>, "headers"> & {
         status?: number;
         statusText?: string;
         headers?: HeadersInit;
