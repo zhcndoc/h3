@@ -7,7 +7,6 @@ description:
   in any JavaScript runtime.
 
 themeColor: amber
-
 automd: true
 
 redirects:
@@ -16,9 +15,8 @@ redirects:
   "/adapters/**": "/guide"
 
 github: h3js/h3
+
 socials:
-  twitter: "https://twitter.com/unjsio"
-  bluesky: "https://bsky.app/profile/unjs.io"
   discord: "https://discord.h3.dev"
 
 sponsors:
