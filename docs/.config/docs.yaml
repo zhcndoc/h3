@@ -1,17 +1,29 @@
 # yaml-language-server: $schema=https://unpkg.com/undocs/schema/config.json
 name: h3
+url: https://h3.dev
 shortDescription: The Web Framework for Modern JavaScript Era
 description:
   H(TTP) server framework built for high performance and portability running
   in any JavaScript runtime.
-github: h3js/h3
+
 themeColor: amber
-url: https://h3.dev
+
 automd: true
+
 redirects:
   "/guide/event-handler": "/guide/handler"
   "/guide/router": "/guide/routing"
   "/adapters/**": "/guide"
+
+github: h3js/h3
+socials:
+  twitter: "https://twitter.com/unjsio"
+  bluesky: "https://bsky.app/profile/unjs.io"
+  discord: "#"
+
+sponsors:
+  api: https://sponsors.pi0.io/sponsors.json
+
 landing:
   heroLinks:
     playOnline:
