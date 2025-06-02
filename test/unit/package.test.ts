@@ -63,6 +63,7 @@ describe("h3 package", () => {
         "getValidatedRouterParams",
         "handleCacheHeaders",
         "handleCors",
+        "html",
         "isCorsOriginAllowed",
         "isError",
         "isEvent",

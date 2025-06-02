@@ -76,6 +76,7 @@ export {
   redirect,
   iterable,
   noContent,
+  html,
 } from "./utils/response.ts";
 
 // Proxy
