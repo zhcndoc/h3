@@ -88,4 +88,11 @@ export interface H3EventContext extends Record<string, any> {
 
   /* Trusted IP Address of client */
   clientAddress?: string;
+
+  /* Basic authentication data */
+  basicAuth?: {
+    username?: string;
+    password?: string;
+    realm?: string;
+  };
 }

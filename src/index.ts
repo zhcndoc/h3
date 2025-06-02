@@ -144,6 +144,13 @@ export {
   isPreflightRequest,
 } from "./utils/cors.ts";
 
+// Auth
+export {
+  type BasicAuthOptions,
+  requireBasicAuth,
+  basicAuth,
+} from "./utils/auth.ts";
+
 // Fingerprint
 export {
   type RequestFingerprintOptions,
