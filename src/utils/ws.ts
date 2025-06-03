@@ -1,4 +1,3 @@
-import { createError } from "../error.ts";
 import { defineEventHandler } from "../handler.ts";
 
 import type { Hooks as WSHooks } from "crossws";
@@ -19,13 +18,14 @@ export function defineWebSocket(hooks: Partial<WSHooks>): Partial<WSHooks> {
  * @see https://h3.dev/guide/websocket
  */
 export function defineWebSocketHandler(hooks: Partial<WSHooks>): EventHandler {
-  return defineEventHandler({
-    handler() {
-      throw createError({
-        statusCode: 426,
-        statusMessage: "Upgrade Required",
-      });
-    },
-    websocket: hooks,
+  return defineEventHandler(() => {
+    return Object.assign(
+      new Response("WebSocket upgrade is required.", {
+        status: 426,
+      }),
+      {
+        crossws: hooks,
+      },
+    );
   });
 }

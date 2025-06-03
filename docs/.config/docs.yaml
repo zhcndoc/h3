@@ -1,17 +1,26 @@
 # yaml-language-server: $schema=https://unpkg.com/undocs/schema/config.json
 name: H3 中文文档
+url: https://h3.dev
 shortDescription: 现代 JavaScript 时代的 Web 框架
 description:
-  H(TTP) 服务器框架，旨在高性能和可移植性，能够在任何 JavaScript 运行时中运行。
+  为高性能和可移植性而构建的 H(TTP) 服务器框架，可以在任何 JavaScript 运行时中运行。
 
-github: zhcndoc/h3
 themeColor: amber
-url: https://h3.zhcndoc.com
 automd: true
+
 redirects:
   "/guide/event-handler": "/guide/handler"
   "/guide/router": "/guide/routing"
   "/adapters/**": "/guide"
+
+github: zhcndoc/h3
+
+socials:
+  discord: "https://discord.h3.dev"
+
+sponsors:
+  api: https://sponsors.pi0.io/sponsors.json
+
 landing:
   heroLinks:
     playOnline:
@@ -21,54 +30,25 @@ landing:
   contributors: true
   featuresTitle: "现代 JavaScript 时代的 Web 框架"
   features:
-    # 与运行时无关
-    - title: "与运行时无关"
-      description: "您的代码将在任何 JavaScript 运行时中工作，包括 Node.js、Bun、Deno 和 Workers。"
+    # Runtime Agnostic
+    - title: "运行时无关"
+      description: "您的代码将在包括 Node.js、Bun 和 Deno 在内的任何 JavaScript 运行时上无缝运行，支持 [srvx](https://srvx.h3.dev)。"
       icon: "i-material-symbols-lock-open-right-outline-rounded"
-      to: ""
-      target: "_blank"
 
-    # 可树摇
+    # Router
+    - title: "快速路由"
+      description: "由 [rou3](https://github.com/h3js/rou3) 提供支持的高效路由匹配。"
+      icon: "i-fa-tree"
+
+    # Tree-shakable
     - title: "小巧且可树摇"
-      description: "h3 核心非常轻量且可树摇，只有您使用的部分会包含在最终包中。"
+      description: "h3 核心极其轻量且支持摇树优化，只有实际使用的部分才会被打入最终包。"
       icon: "i-material-symbols-potted-plant-outline"
-      to: ""
-      target: "_blank"
 
     # 可组合
     - title: "可组合"
       description: "扩展您的服务器并添加功能。您的代码库将随着项目的扩展而增长。"
       icon: "i-fa-puzzle-piece"
-      to: ""
-      target: "_blank"
-
-    # 路由器
-    - title: "快速路由器"
-      description: "使用 rou3 进行超快速路由匹配"
-      icon: "i-fa-tree"
-      to: "https://github.com/h3js/rou3"
-      target: "_blank"
-
-    # 生态系统
-    - title: "UnJS 生态系统"
-      description: "构建在强大的 UnJS 生态系统之上，支持 Nitro、Nuxt 和更多框架！"
-      icon: "i-mdi-umbrella-outline"
-      to: "https://unjs.io"
-      target: "_blank"
-
-    # 为人而造
-    - title: "为人而造"
-      description: "优雅的最小 API，用于实现与 Web 标准兼容的 HTTP 处理程序。"
-      icon: "i-material-symbols-robot-2-sharp"
-      to: ""
-      target: "_blank"
-
-    # 兼容性
-    - title: "兼容"
-      description: "与 node/connect/express 中间件的兼容层。"
-      icon: "i-simple-icons-express"
-      to: ""
-      target: "_blank"
 
     # 类型友好
     - title: "类型友好"

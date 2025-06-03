@@ -2,7 +2,6 @@
 
 export type {
   H3Config,
-  WebSocketOptions,
   H3Route,
   HTTPMethod,
   PreparedResponse,
@@ -16,28 +15,26 @@ export type { H3Event, H3EventContext } from "./types/event.ts";
 
 export { isEvent, mockEvent } from "./utils/event.ts";
 
-// Handler
+// Handler and Middleware
 
 export type {
   EventHandler,
   DynamicEventHandler,
-  EventHandlerObject,
   EventHandlerRequest,
-  EventHandlerResolver,
   EventHandlerResponse,
   InferEventInput,
   LazyEventHandler,
-  RequestMiddleware,
-  ResponseMiddleware,
+  Middleware,
+  MiddlewareOptions,
 } from "./types/handler.ts";
 
 export {
   defineEventHandler,
   defineLazyEventHandler,
   dynamicEventHandler,
-  defineRequestMiddleware,
-  defineResponseMiddleware,
 } from "./handler.ts";
+
+export { defineMiddleware } from "./middleware.ts";
 
 // Error
 
@@ -79,6 +76,7 @@ export {
   redirect,
   iterable,
   noContent,
+  html,
 } from "./utils/response.ts";
 
 // Proxy
@@ -146,6 +144,13 @@ export {
   isCorsOriginAllowed,
   isPreflightRequest,
 } from "./utils/cors.ts";
+
+// Auth
+export {
+  type BasicAuthOptions,
+  requireBasicAuth,
+  basicAuth,
+} from "./utils/auth.ts";
 
 // Fingerprint
 export {

@@ -17,25 +17,21 @@ describeMatrix("utils", (t, { it, describe, expect }) => {
       t.app.use((event) => redirect(event, "https://google.com"));
       const result = await t.fetch("/");
       expect(result.headers.get("location")).toBe("https://google.com");
-      expect(result.headers.get("content-type")).toBe("text/html");
+      expect(result.headers.get("content-type")).toBe(
+        "text/html; charset=utf-8",
+      );
     });
   });
 
   describe("withBase", () => {
     it("can prefix routes", async () => {
-      t.app.use(
-        "/**",
-        withBase("/api", (event) => Promise.resolve(event.path)),
-      );
+      t.app.use(withBase("/api", (event) => Promise.resolve(event.path)));
       const result = await t.fetch("/api/test");
 
       expect(await result.text()).toBe("/test");
     });
     it("does nothing when not provided a base", async () => {
-      t.app.use(
-        "/**",
-        withBase("", (event) => Promise.resolve(event.path)),
-      );
+      t.app.use(withBase("", (event) => Promise.resolve(event.path)));
       const result = await t.fetch("/api/test");
 
       expect(await result.text()).toBe("/api/test");
@@ -269,15 +265,15 @@ describeMatrix("utils", (t, { it, describe, expect }) => {
     });
 
     it("uses the request ip when no x-forwarded-for header set", async () => {
-      t.app.use((event) => getRequestFingerprint(event, { hash: false }));
-
-      t.app.config.onRequest = (event) => {
+      t.app.use((event) => {
         Object.defineProperty(event.node?.req.socket || {}, "remoteAddress", {
           get(): any {
             return "0.0.0.0";
           },
         });
-      };
+      });
+
+      t.app.use((event) => getRequestFingerprint(event, { hash: false }));
 
       const res = await t.fetch("/");
 

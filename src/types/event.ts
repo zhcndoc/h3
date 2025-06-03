@@ -3,7 +3,7 @@ import type { Session } from "../utils/session.ts";
 import type { H3Route } from "./h3.ts";
 import type { EventHandlerRequest } from "./handler.ts";
 
-export interface H3Event<
+export declare class H3Event<
   _RequestT extends EventHandlerRequest = EventHandlerRequest,
 > {
   /**
@@ -88,4 +88,11 @@ export interface H3EventContext extends Record<string, any> {
 
   /* Trusted IP Address of client */
   clientAddress?: string;
+
+  /* Basic authentication data */
+  basicAuth?: {
+    username?: string;
+    password?: string;
+    realm?: string;
+  };
 }
