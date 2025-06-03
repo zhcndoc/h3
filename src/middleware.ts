@@ -64,7 +64,20 @@ function createMatcher(opts: MiddlewareOptions & { route?: string }) {
     if (opts.match && !opts.match(event)) {
       return false;
     }
-    return routeMatcher ? routeMatcher.test(event.url.pathname) : true;
+    if (!routeMatcher) {
+      return true;
+    }
+    const match = event.url.pathname.match(routeMatcher);
+    if (!match) {
+      return false;
+    }
+    if (match.groups) {
+      event.context.middlewareParams = {
+        ...event.context.middlewareParams,
+        ...match.groups,
+      };
+    }
+    return true;
   };
 }
 

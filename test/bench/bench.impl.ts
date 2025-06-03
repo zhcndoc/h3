@@ -34,7 +34,7 @@ export function h3Middleware(lib: typeof _h3src): AppFetch {
     .use("/id/:id", (event) => {
       event.res.headers.set("x-powered-by", "benchmark");
       const name = event.url.searchParams.get("name");
-      return `${event.context.params?.id} ${name}`;
+      return `${event.context.middlewareParams!.id} ${name}`;
     })
     .use("/json", (event) => event.req.json());
   return app.fetch;

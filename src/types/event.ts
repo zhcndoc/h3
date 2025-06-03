@@ -79,6 +79,9 @@ export interface H3EventContext extends Record<string, any> {
   /* Matched router parameters */
   params?: Record<string, string>;
 
+  /* Matched middleware parameters */
+  middlewareParams?: Record<string, string>;
+
   /**
    * Matched router Node
    *
