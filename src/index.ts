@@ -10,9 +10,8 @@ export type {
 export { H3, serve } from "./h3.ts";
 
 // Event
-
-export type { H3Event, H3EventContext } from "./types/event.ts";
-
+export type { H3EventContext } from "./types/event.ts";
+export { H3Event } from "./event.ts";
 export { isEvent, mockEvent } from "./utils/event.ts";
 
 // Handler and Middleware

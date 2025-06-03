@@ -45,7 +45,7 @@ export declare class H3Event<
    *
    * @deprecated Use `event.runtime.{node|deno|bun|...}.` instead.
    */
-  node?: NonNullable<ServerRequest["runtime"]>["node"];
+  node: NonNullable<ServerRequest["runtime"]>["node"] | undefined;
 
   /**
    * Access to the incoming request url (pathname+search).
@@ -70,6 +70,9 @@ export declare class H3Event<
    *
    * */
   readonly headers: Headers;
+
+  toJSON(): string;
+  toString(): string;
 }
 
 export interface H3EventContext extends Record<string, any> {
