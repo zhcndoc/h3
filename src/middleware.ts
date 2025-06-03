@@ -10,29 +10,7 @@ export function defineMiddleware(input: Middleware): Middleware {
   return input;
 }
 
-export function prepareMiddleware(
-  input: Middleware | H3,
-  opts: MiddlewareOptions & { route?: string } = {},
-): Middleware {
-  const fn: Middleware = normalizeMiddleware(input);
-  if (!opts?.method && !opts?.route) {
-    return fn;
-  }
-  const routeMatcher = opts?.route ? routeToRegExp(opts.route) : undefined;
-  const method = opts?.method?.toUpperCase();
-  const match: (event: H3Event) => boolean = (event) => {
-    if (method && event.req.method !== method) {
-      return false;
-    }
-    if (opts?.match && !opts.match(event)) {
-      return false;
-    }
-    return routeMatcher ? routeMatcher.test(event.url.pathname) : true;
-  };
-  return Object.assign(fn, { match });
-}
-
-function normalizeMiddleware(
+export function normalizeMiddleware(
   input: Middleware | H3,
   opts: MiddlewareOptions & { route?: string } = {},
 ): Middleware {

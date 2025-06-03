@@ -2,7 +2,7 @@ import { createRouter, addRoute, findRoute } from "rou3";
 import { serve as srvxServe } from "srvx";
 import { H3Event } from "./event.ts";
 import { handleResponse, kNotFound } from "./response.ts";
-import { callMiddleware, prepareMiddleware } from "./middleware.ts";
+import { callMiddleware, normalizeMiddleware } from "./middleware.ts";
 
 import type { ServerOptions, Server } from "srvx";
 import type { RouterContext } from "rou3";
@@ -174,7 +174,7 @@ export const H3 = /* @__PURE__ */ (() => {
         opts = arg2 as MiddlewareOptions;
       }
       this.#middleware.push(
-        prepareMiddleware(fn, route ? { ...opts, route } : opts),
+        normalizeMiddleware(fn, route ? { ...opts, route } : opts),
       );
       return this as unknown as H3Type;
     }
