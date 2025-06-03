@@ -19,8 +19,9 @@ describe("handler.ts", () => {
       const handler = vi.fn();
       const middleware = [vi.fn()];
       const eventHandler = defineEventHandler({ handler, middleware });
-      expect(eventHandler).toBe(handler);
-      expect(eventHandler.middleware).toBe(middleware);
+      eventHandler({} as H3Event);
+      expect(middleware[0]).toHaveBeenCalled();
+      expect(handler).toHaveBeenCalled();
     });
   });
 

@@ -3,13 +3,10 @@ import type { H3Event } from "./event.ts";
 
 //  --- event handler ---
 
-export interface EventHandler<
+export type EventHandler<
   Request extends EventHandlerRequest = EventHandlerRequest,
   Response extends EventHandlerResponse = EventHandlerResponse,
-> {
-  (event: H3Event<Request>): Response;
-  middleware?: Middleware[];
-}
+> = (event: H3Event<Request>) => Response;
 
 export interface EventHandlerObject<
   Request extends EventHandlerRequest = EventHandlerRequest,

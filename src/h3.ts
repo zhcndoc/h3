@@ -144,20 +144,12 @@ export const H3 = /* @__PURE__ */ (() => {
       }
       const _method = (method || "").toUpperCase();
       const _handler = (handler as H3Type)?.handler || handler;
-      const _handleMiddleware = _handler as EventHandler;
-      const routeMiddleware =
-        opts?.middleware?.length || _handleMiddleware.middleware?.length
-          ? [
-              ...(opts?.middleware || []),
-              ...(_handleMiddleware.middleware || []),
-            ].filter(Boolean)
-          : undefined;
       route = new URL(route, "h://_").pathname;
       addRoute(this.#router, _method, route, {
         method: _method as HTTPMethod,
         route,
         handler: _handler,
-        middleware: routeMiddleware,
+        middleware: opts?.middleware,
       } satisfies H3Route);
       return this as unknown as H3Type;
     }
