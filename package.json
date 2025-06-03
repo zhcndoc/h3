@@ -16,8 +16,8 @@
     "dist"
   ],
   "scripts": {
-    "bench:bun": "bun run ./test/bench/h3.mjs",
-    "bench:node": "node --expose-gc --allow-natives-syntax ./test/bench/h3.mjs",
+    "bench:bun": "bun run ./test/bench/bench.ts",
+    "bench:node": "pnpm node-ts --expose-gc --allow-natives-syntax ./test/bench/bench.ts",
     "build": "obuild",
     "dev": "vitest",
     "lint": "eslint --cache . && prettier -c src test examples docs",
