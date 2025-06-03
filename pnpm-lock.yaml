@@ -18,8 +18,8 @@ importers:
         specifier: ^0.6.3
         version: 0.6.3
       srvx:
-        specifier: ^0.7.4
-        version: 0.7.4
+        specifier: ^0.7.5
+        version: 0.7.5
     devDependencies:
       '@mitata/counters':
         specifier: ^0.0.8
@@ -53,7 +53,7 @@ importers:
         version: 3.7.0
       crossws:
         specifier: ^0.4.1
-        version: 0.4.1(srvx@0.7.4)
+        version: 0.4.1(srvx@0.7.5)
       elysia:
         specifier: ^1.3.4
         version: 1.3.4(exact-mirror@0.1.2(@sinclair/typebox@0.34.33))(file-type@21.0.0)(typescript@5.8.3)
@@ -2447,8 +2447,8 @@ packages:
   spdx-license-ids@3.0.21:
     resolution: {integrity: sha512-Bvg/8F5XephndSK3JffaRqdT+gyhfqIPwDHpX80tJrF8QQRYMo8sNMeaZ2Dp5+jhwKnUmIOyFFQfHRkjJm5nXg==}
 
-  srvx@0.7.4:
-    resolution: {integrity: sha512-PgOh+UDiNfKJTEMwT484hib62nVlSgNfyT2EgJi5E7qgXt/LotISGPyUl7fTL0gmSpSb9mr8ttM2tdcG7oIOlg==}
+  srvx@0.7.5:
+    resolution: {integrity: sha512-wAQo9uaiOpxX20V7OSNFgKjKHHIQqhsK0sxBGoxID3aIiaiQFRIlGm0bACKvit/iyhEqdWQfEy55R/j/jrqlZg==}
     engines: {node: '>=20.16.0'}
 
   stackback@0.0.2:
@@ -3784,9 +3784,9 @@ snapshots:
     dependencies:
       uncrypto: 0.1.3
 
-  crossws@0.4.1(srvx@0.7.4):
+  crossws@0.4.1(srvx@0.7.5):
     optionalDependencies:
-      srvx: 0.7.4
+      srvx: 0.7.5
 
   csstype@3.1.3: {}
 
@@ -5049,7 +5049,7 @@ snapshots:
 
   spdx-license-ids@3.0.21: {}
 
-  srvx@0.7.4:
+  srvx@0.7.5:
     dependencies:
       cookie-es: 2.0.0
 
