@@ -78,9 +78,6 @@ export function callMiddleware(
     return handler(event);
   }
   const fn = middleware[index];
-  if (fn.match && !fn.match(event)) {
-    return callMiddleware(event, middleware, handler, index + 1);
-  }
   const next = () => callMiddleware(event, middleware, handler, index + 1);
   const ret = fn(event, next);
   return ret === undefined

@@ -29,13 +29,10 @@ export type EventHandlerResponse<T = unknown> = T | Promise<T>;
 
 //  --- middleware ---
 
-export interface Middleware {
-  (
-    event: H3Event,
-    next: () => MaybePromise<unknown | undefined>,
-  ): MaybePromise<unknown | undefined>;
-  match?: (event: H3Event) => boolean;
-}
+export type Middleware = (
+  event: H3Event,
+  next: () => MaybePromise<unknown | undefined>,
+) => MaybePromise<unknown | undefined>;
 
 // --- lazy event handler ---
 
