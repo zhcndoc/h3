@@ -73,8 +73,8 @@ importers:
         specifier: ^3.1.2
         version: 3.1.2
       h3-nightly:
-        specifier: ^1.15.2-20250418-133010-0c9b276
-        version: 1.15.2-20250418-133010-0c9b276
+        specifier: ^2.0.0-20250603-182540-bbd54d6
+        version: 2.0.0-20250603-182540-bbd54d6(crossws@0.4.1(srvx@0.7.5))
       h3-v1:
         specifier: npm:h3@^1.15.3
         version: h3@1.15.3
@@ -1719,8 +1719,14 @@ packages:
   graphemer@1.4.0:
     resolution: {integrity: sha512-EtKwoO6kxCL9WO5xipiHTZlSzBm7WLT627TqC/uVRd0HKmq8NXyebnNYxDoBi7wt8eTWrUrKXCOVaFq9x1kgag==}
 
-  h3-nightly@1.15.2-20250418-133010-0c9b276:
-    resolution: {integrity: sha512-s7CE2w7A7EqAdC/0WIAbNDAuvZB3afNCLXyv3Yvflcih3uKki4mRXMuw1Mq4bvykh0uJfAPZTF1GpOeca4xQ6A==}
+  h3-nightly@2.0.0-20250603-182540-bbd54d6:
+    resolution: {integrity: sha512-9LrqS5ibKGl8HiSsQs4u4cycF44iA1fhP0vq6pWIJQIM0qz5cvTxkhQnZhdgGxsfm/CgwU0a/yoG/C7643J+xQ==}
+    engines: {node: '>=20.11.1'}
+    peerDependencies:
+      crossws: ^0.2.4
+    peerDependenciesMeta:
+      crossws:
+        optional: true
 
   h3@1.15.3:
     resolution: {integrity: sha512-z6GknHqyX0h9aQaTx22VZDf6QyZn+0Nh+Ym8O/u0SGSkyF5cuTJYKlc8MkzW3Nzf9LE1ivcpmYC3FUGpywhuUQ==}
@@ -4239,17 +4245,13 @@ snapshots:
 
   graphemer@1.4.0: {}
 
-  h3-nightly@1.15.2-20250418-133010-0c9b276:
+  h3-nightly@2.0.0-20250603-182540-bbd54d6(crossws@0.4.1(srvx@0.7.5)):
     dependencies:
-      cookie-es: 1.2.2
-      crossws: 0.3.5
-      defu: 6.1.4
-      destr: 2.0.5
-      iron-webcrypto: 1.2.1
-      node-mock-http: 1.0.0
-      radix3: 1.1.2
-      ufo: 1.6.1
-      uncrypto: 0.1.3
+      cookie-es: 2.0.0
+      rou3: 0.6.3
+      srvx: 0.7.5
+    optionalDependencies:
+      crossws: 0.4.1(srvx@0.7.5)
 
   h3@1.15.3:
     dependencies:
