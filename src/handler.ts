@@ -1,9 +1,9 @@
 import type {
   EventHandler,
+  EventHandlerObject,
   EventHandlerRequest,
   EventHandlerResponse,
   DynamicEventHandler,
-  Middleware,
 } from "./types/handler.ts";
 
 // --- event handler ---
@@ -11,11 +11,21 @@ import type {
 export function defineEventHandler<
   Request extends EventHandlerRequest = EventHandlerRequest,
   Response = EventHandlerResponse,
->(
-  handler: EventHandler<Request, Response>,
-  middleware?: Middleware[],
-): EventHandler<Request, Response> {
-  return middleware?.length ? Object.assign(handler, { middleware }) : handler;
+>(handler: EventHandler<Request, Response>): EventHandler<Request, Response>;
+
+export function defineEventHandler<
+  Request extends EventHandlerRequest = EventHandlerRequest,
+  Response = EventHandlerResponse,
+>(def: EventHandlerObject): EventHandler<Request, Response>;
+
+export function defineEventHandler(arg1: unknown): EventHandler {
+  if (typeof arg1 === "function") {
+    return arg1 as EventHandler<Request, Response>;
+  }
+  return Object.assign(
+    (arg1 as EventHandlerObject).handler,
+    arg1 as EventHandlerObject,
+  );
 }
 
 //  --- dynamic event handler ---

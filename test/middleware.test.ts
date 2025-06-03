@@ -44,18 +44,18 @@ describeMatrix("middleware", (t, { it, expect }) => {
 
     t.app.get(
       "/**",
-      defineEventHandler(
-        (event) => {
-          return {
-            log: event.context._middleware.join(" > "),
-          };
-        },
-        [
+      defineEventHandler({
+        middleware: [
           (event) => {
             event.context._middleware.push(`route (define)`);
           },
         ],
-      ),
+        handler: (event) => {
+          return {
+            log: event.context._middleware.join(" > "),
+          };
+        },
+      }),
       [
         (event) => {
           event.context._middleware.push(`route (register)`);
