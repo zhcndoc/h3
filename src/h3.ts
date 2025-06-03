@@ -24,7 +24,7 @@ export type H3 = H3Type;
  * Serve the h3 app, automatically handles current runtime behavior.
  */
 export function serve(app: H3, options?: Omit<ServerOptions, "fetch">): Server {
-  return srvxServe({ fetch: app.fetch, ...options });
+  return srvxServe({ fetch: app._fetch, ...options });
 }
 
 export const H3 = /* @__PURE__ */ (() => {
@@ -44,6 +44,17 @@ export const H3 = /* @__PURE__ */ (() => {
     }
 
     fetch(
+      request: Request | URL | string,
+      options?: RequestInit,
+    ): Promise<Response> {
+      try {
+        return Promise.resolve(this._fetch(request, options));
+      } catch (error: any) {
+        return Promise.reject(error);
+      }
+    }
+
+    _fetch(
       _request: Request | URL | string,
       options?: RequestInit,
       context?: H3EventContext,
