@@ -65,11 +65,12 @@ export const H3 = /* @__PURE__ */ (() => {
       if (typeof _request === "string") {
         let url = _request;
         if (url[0] === "/") {
-          const host = getHeader("Host", options?.headers) || "localhost";
+          const headers = options?.headers
+            ? new Headers(options.headers)
+            : undefined;
+          const host = headers?.get("host") || "localhost";
           const proto =
-            getHeader("X-Forwarded-Proto", options?.headers) === "https"
-              ? "https"
-              : "http";
+            headers?.get("x-forwarded-proto") === "https" ? "https" : "http";
           url = `${proto}://${host}${url}`;
         }
         request = new Request(url, options);
@@ -193,22 +194,3 @@ export const H3 = /* @__PURE__ */ (() => {
 
   return H3;
 })() as unknown as typeof H3Type;
-
-function getHeader(name: string, headers: HeadersInit | undefined) {
-  if (!headers) {
-    return;
-  }
-  if (headers instanceof Headers) {
-    return headers.get(name);
-  }
-  const lName = name.toLowerCase();
-  if (Array.isArray(headers)) {
-    return headers.find(
-      (h) => h[0] === name || lName === h[0].toLowerCase(),
-    )?.[1];
-  }
-  return (
-    (headers as Record<string, string>)[name] ||
-    (headers as Record<string, string>)[lName]
-  );
-}
