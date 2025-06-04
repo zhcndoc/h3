@@ -23,6 +23,24 @@ describeMatrix("errors", (t, { it, expect }) => {
     expect(result.status).toBe(422);
   });
 
+  it("returns error data", async () => {
+    t.app.get("/", () => {
+      throw createError({
+        status: 400,
+        data: { validationMessage: "Invalid Input" },
+      });
+    });
+    const result = await t.fetch("/");
+
+    expect(result.status).toBe(400);
+    expect(JSON.parse(await result.text())).toMatchObject({
+      statusCode: 400,
+      data: {
+        validationMessage: "Invalid Input",
+      },
+    });
+  });
+
   it("can send internal error", async () => {
     t.app.get("/api/test", () => {
       throw new Error("Booo");
