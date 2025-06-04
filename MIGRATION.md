@@ -4,7 +4,7 @@ icon: icons8:up-round
 
 # Migration guide for v1 to v2
 
-h3 v2 includes some behavior and API changes that you need to consider applying when migrating.
+H3 v2 includes some behavior and API changes that you need to consider applying when migrating.
 
 > [!NOTE]
 > Currently v2 is in beta stage You can try with [`h3-nightly@2x`](https://www.npmjs.com/package/h3-nightly?activeTab=versions)
@@ -24,7 +24,7 @@ H3 v2 is rewritten based on Web standard primitives ([`URL`](https://developer.m
 
 `event.node` context is only available when running in Node.js runtime and `event.web` is available via `event.req`.
 
-On Node.js runtime, h3 uses a two way proxy to sync Node.js API with Web standard API making it a seamless experience on Node.
+On Node.js runtime, H3 uses a two way proxy to sync Node.js API with Web standard API making it a seamless experience on Node.
 
 Old utils for plain handler and web handler are removed to embrace web standards.
 
@@ -50,7 +50,7 @@ Other send utils that are renamed and need explicit `return`:
 
 ## App interface and router
 
-Router functionality is now integrated into the h3 app core. Instead of `createApp()` and `createRouter()` you can use `new H3()`.
+Router functionality is now integrated into the H3 pp core. Instead of `createApp()` and `createRouter()` you can use `new H3()`.
 
 New methods:
 
@@ -62,9 +62,9 @@ Handlers will run in this order:
 - Global middleware in the same order were registered
 - Matched route handler
 
-Any handler can return a response. If middleware don't return a response, next handlers will be tried and finally make a 404 if neither responses. Router handlers can return or not return any response, in this case, h3 will send a simple 200 with empty content.
+Any handler can return a response. If middleware don't return a response, next handlers will be tried and finally make a 404 if neither responses. Router handlers can return or not return any response, in this case, H3 ill send a simple 200 with empty content.
 
-h3 migrated to a brand new route-matching engine [rou3](https://rou3.h3.dev/). You might experience slight (but more intuitive) behavior changes for matching patterns.
+H3 migrated to a brand new route-matching engine [rou3](https://rou3.h3.dev/). You might experience slight (but more intuitive) behavior changes for matching patterns.
 
 **Other changes from v1:**
 
@@ -94,7 +94,7 @@ Most of request body utilities can now be replaced with `event.req` utils which 
 
 ## Cookie and headers
 
-h3 migrated to leverage standard web [`Headers`](https://developer.mozilla.org/en-US/docs/Web/API/Headers) for all utils.
+H3 migrated to leverage standard web [`Headers`](https://developer.mozilla.org/en-US/docs/Web/API/Headers) for all utils.
 
 Header values are always a plain `string` now (no `null` or `undefined` or `number` or `string[]`).
 
@@ -102,7 +102,7 @@ For the [`Set-Cookie`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers
 
 ### Other deprecations
 
-h3 v2 deprecated some legacy and aliased utilities.
+H3 v2 deprecated some legacy and aliased utilities.
 
 **App and router:**
 
