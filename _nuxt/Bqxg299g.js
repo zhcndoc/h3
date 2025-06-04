@@ -1,0 +1,1 @@
+import{at as o,b as s,o as c,q as a,z as _,s as r,aN as l,ax as f}from"./DsvwrSfJ.js";const d={};function u(e,i){const t=l,n=f;return c(),s(n,null,{default:a(()=>[_(t,null,{default:a(()=>[r(e.$slots,"default")]),_:3})]),_:3})}const p=o(d,[["render",u]]);export{p as default};

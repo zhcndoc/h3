@@ -1,0 +1,1 @@
+import r from"./SdXhYOsC.js";import{r as n}from"./J41d6w6k.js";import{at as a,b as e,o as c,q as s}from"./DsvwrSfJ.js";import"./C2bHYaEW.js";const m={};function i(o,p){const t=r;return c(),e(t,{title:"Important",icon:"i-ph-warning-diamond-duotone",color:"important"},{default:s(()=>[n(o.$slots,"default",{mdcUnwrap:"p"})]),_:3})}const u=a(m,[["render",i]]);export{u as default};
