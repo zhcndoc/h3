@@ -14,6 +14,15 @@ describe("handler.ts", () => {
       const eventHandler = defineEventHandler(handler);
       expect(eventHandler).toBe(handler);
     });
+
+    it("object syntax", () => {
+      const handler = vi.fn();
+      const middleware = [vi.fn()];
+      const eventHandler = defineEventHandler({ handler, middleware });
+      eventHandler({} as H3Event);
+      expect(middleware[0]).toHaveBeenCalled();
+      expect(handler).toHaveBeenCalled();
+    });
   });
 
   describe("dynamicEventHandler", () => {

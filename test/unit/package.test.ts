@@ -6,6 +6,7 @@ describe("h3 package", () => {
     expect(exportNames).toMatchInlineSnapshot(`
       [
         "H3",
+        "H3Event",
         "appendCorsHeaders",
         "appendCorsPreflightHeaders",
         "appendHeader",
@@ -73,6 +74,9 @@ describe("h3 package", () => {
         "lazyEventHandler",
         "mockEvent",
         "noContent",
+        "onError",
+        "onRequest",
+        "onResponse",
         "parseCookies",
         "proxy",
         "proxyRequest",

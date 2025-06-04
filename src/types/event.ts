@@ -41,11 +41,16 @@ export declare class H3Event<
   runtime: ServerRequest["runtime"];
 
   /**
+   * Tell the runtime about an ongoing operation that shouldn't close until the promise resolves.
+   */
+  waitUntil: (promise: Promise<any>) => void;
+
+  /**
    * Access to the raw Node.js req/res objects.
    *
    * @deprecated Use `event.runtime.{node|deno|bun|...}.` instead.
    */
-  node?: NonNullable<ServerRequest["runtime"]>["node"];
+  node: NonNullable<ServerRequest["runtime"]>["node"] | undefined;
 
   /**
    * Access to the incoming request url (pathname+search).
@@ -70,11 +75,17 @@ export declare class H3Event<
    *
    * */
   readonly headers: Headers;
+
+  toJSON(): string;
+  toString(): string;
 }
 
 export interface H3EventContext extends Record<string, any> {
   /* Matched router parameters */
   params?: Record<string, string>;
+
+  /* Matched middleware parameters */
+  middlewareParams?: Record<string, string>;
 
   /**
    * Matched router Node
