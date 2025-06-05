@@ -53,6 +53,9 @@ function prepareResponse(
     if (!isHTTPError) {
       // @ts-expect-error unhandled is readonly for public interface
       error.unhandled = true;
+      if (val?.stack) {
+        error.stack = val.stack;
+      }
     }
     const { onError } = config;
     return onError && !nested
