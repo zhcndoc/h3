@@ -9,6 +9,11 @@ export default defineBuildConfig({
       input: [...inferExports(exports)],
     },
   ],
+  hooks: {
+    rolldownOutput(outConcig) {
+      outConcig.chunkFileNames = "h3.mjs";
+    },
+  },
 });
 
 function inferExports(exports) {
