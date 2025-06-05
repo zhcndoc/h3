@@ -6,7 +6,9 @@ describe("h3 package", () => {
     expect(exportNames).toMatchInlineSnapshot(`
       [
         "H3",
+        "H3Error",
         "H3Event",
+        "HTTPError",
         "appendCorsHeaders",
         "appendCorsPreflightHeaders",
         "appendHeader",
