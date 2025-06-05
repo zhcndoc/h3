@@ -1,10 +1,8 @@
 import { createRouter, addRoute, findRoute } from "rou3";
-import { serve as srvxServe } from "srvx";
 import { H3Event } from "./event.ts";
 import { handleResponse, kNotFound } from "./response.ts";
 import { callMiddleware, normalizeMiddleware } from "./middleware.ts";
 
-import type { ServerOptions, Server } from "srvx";
 import type { RouterContext } from "rou3";
 import type { FetchHandler, H3Config } from "./types/h3.ts";
 import type { H3EventContext } from "./types/event.ts";
@@ -19,13 +17,6 @@ import type {
 } from "./types/h3.ts";
 
 export type H3 = H3Type;
-
-/**
- * Serve the h3 app, automatically handles current runtime behavior.
- */
-export function serve(app: H3, options?: Omit<ServerOptions, "fetch">): Server {
-  return srvxServe({ fetch: app._fetch, ...options });
-}
 
 export const H3 = /* @__PURE__ */ (() => {
   // prettier-ignore

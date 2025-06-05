@@ -11,7 +11,7 @@ export type {
   FetchHandler,
 } from "./types/h3.ts";
 
-export { H3, serve } from "./h3.ts";
+export { H3 } from "./h3.ts";
 
 // Event
 export type { H3EventContext } from "./types/event.ts";
