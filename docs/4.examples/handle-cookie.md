@@ -2,15 +2,15 @@
 icon: ph:arrow-right
 ---
 
-# Cookies（Cookies）
+# Cookies
 
 > 使用 Cookies 在客户端存储数据。
 
-使用 h3 处理 Cookies 非常简单。处理 Cookies 有三个工具：
+使用 H3 处理 Cookies 非常简单。有三个工具来处理 Cookies：
 
-- `setCookie` 用于在响应中设置 Cookie。
+- `setCookie` 用于将 Cookie 附加到响应中。
 - `getCookie` 用于从请求中获取 Cookie。
-- `deleteCookie` 用于从响应中删除 Cookie。
+- `deleteCookie` 用于从响应中清除 Cookie。
 
 ## 设置 Cookie
 

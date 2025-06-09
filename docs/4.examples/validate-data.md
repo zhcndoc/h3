@@ -13,16 +13,16 @@ icon: ph:arrow-right
 
 ## 验证辅助工具
 
-h3 提供了一些辅助工具，帮助您处理数据验证。您可以验证：
+H3 提供了一些辅助工具来帮助您处理数据验证。您将能够验证：
 
 - 使用 `getValidatedQuery` 验证查询参数
 - 使用 `getValidatedRouterParams` 验证路由参数
 - 使用 `readValidatedBody` 验证请求体
 
-h3 本身不提供任何验证库，但支持来自 **Standard-Schema** 兼容库的 schema，比如：[Zod](https://zod.dev)、[Valibot](https://valibot.dev)、[ArkType](https://arktype.io/) 等等……（所有兼容库请参考 [它们的官方仓库](https://github.com/standard-schema/standard-schema)）。如果您想使用不兼容 Standard-Schema 的验证库，仍然可以使用，但您需要调用该库自身提供的解析函数（详情请参阅下方的 [安全解析](#safe-parsing) 部分）。
+H3 不提供任何验证库，但它支持来自**Standard-Schema** 兼容库的 schema，比如：[Zod](https://zod.dev)、[Valibot](https://valibot.dev)、[ArkType](https://arktype.io/) 等……（所有兼容库请查看[它们的官方仓库](https://github.com/standard-schema/standard-schema)）。如果您想使用一个不兼容 Standard-Schema 的验证库，您仍然可以使用，但必须使用该库自身提供的解析函数（请参阅下面的[安全解析](#安全解析)部分）。
 
 > [!WARNING]
-> h3 与运行时无关。这意味着您可以在 [任何运行时](/adapters) 中使用它。但某些验证库并不兼容所有运行时。
+> H3 是运行时无关的。这意味着您可以在[任何运行时](/adapters)中使用它。但某些验证库并不兼容所有运行时。
 
 下面让我们看看如何使用 [Zod](https://zod.dev) 和 [Valibot](https://valibot.dev) 进行数据验证。
 
@@ -62,7 +62,7 @@ router.use(
 您正在查找 topic 为 "posts" 且 uuid 为 "123e4567-e89b-12d3-a456-426614174000" 的内容。
 ```
 
-如果您发送了无效请求且验证失败，h3 会抛出 `400 Validation Error` 错误。在错误数据中，您会找到验证错误信息，您可以在客户端使用它们向用户展示友好的错误提示。
+如果您发送了无效请求且验证失败，H3 将抛出 `400 Validation Error` 错误。在错误数据中，您会找到验证错误信息，可以在客户端使用它来向用户展示友好的错误提示。
 
 ### 验证查询参数
 
@@ -100,15 +100,15 @@ app.use(async (event) => {
 });
 ```
 
-如您所见，与 `getValidatedRouterParams` 示例相比，我们可以利用验证库对传入数据进行转换。例如这里，将数字的字符串形式转换为真正的数字，对于像内容分页这样的场景非常有用。
+如您所见，相较于 `getValidatedRouterParams` 示例，我们可以利用验证库对传入数据进行转换，例如这里把数字的字符串形式转换为真正的数字，这在内容分页等场景中非常有用。
 
-如果您向该事件处理程序发送一个有效请求，如 `/?page=2&size=20`，您将得到如下响应：
+如果您向该事件处理程序发送一个有效请求，比如 `/?page=2&size=20`，您将得到如下响应：
 
 ```txt
 您当前在第 2 页，每页显示 20 条内容。
 ```
 
-如果您发送无效请求且验证失败，h3 会抛出 `400 Validation Error` 错误。在错误数据中，您会找到验证错误信息，您可以在客户端使用它们向用户展示友好的错误提示。
+如果您发送了无效请求且验证失败，H3 将抛出 `400 Validation Error` 错误。在错误数据中，您会找到验证错误信息，可以在客户端使用它来向用户展示友好的错误提示。
 
 ### 验证请求体
 
@@ -152,13 +152,13 @@ app.use(async (event) => {
 你好 John！你今年 42 岁。
 ```
 
-如果您发送无效请求且验证失败，h3 会抛出 `400 Validation Error` 错误。在错误数据中，您会找到验证错误信息，您可以在客户端使用它们向用户展示友好的错误提示。
+如果您发送了无效请求且验证失败，H3 将抛出 `400 Validation Error` 错误。在错误数据中，您会找到验证错误信息，可以在客户端使用它来向用户展示友好的错误提示。
 
 ## 安全解析
 
 默认情况下，如果直接将 schema 作为第二个参数传给任何验证辅助工具（`getValidatedRouterParams`、`getValidatedQuery` 和 `readValidatedBody`），当验证失败时会抛出 `400 Validation Error` 错误。但在某些情况下，您可能想自己处理验证错误。这时，您应该根据所使用的验证库，传入其提供的实际安全验证函数作为第二个参数。
 
-回到第一示例中 `getValidatedRouterParams`，对于 Zod 会是这样：
+回到第一个示例中 `getValidatedRouterParams`，对于 Zod 会是这样：
 
 ```ts
 import { getValidatedRouterParams } from "h3";

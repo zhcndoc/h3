@@ -1,3 +1,3 @@
-# Blog
+# 博客
 
-H3 release highlights.
+H3 版本亮点。

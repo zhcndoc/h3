@@ -4,14 +4,14 @@ icon: ph:arrow-right
 
 # 会话
 
-> 使用会话来记住您的用户。
+> 通过会话记住您的用户。
 
-会话是一种通过 cookie 记住用户的方式。这是认证用户或保存关于用户的数据（例如他们在网页上的语言或偏好设置）的非常常见的方法。
+会话是一种通过 cookie 记住用户的方法。这是在网络上认证用户或保存关于他们的数据（例如其语言或偏好设置）的非常常见的方法。
 
-h3 提供了许多处理会话的工具：
+H3 提供了许多用于处理会话的工具：
 
-- `useSession` 初始化会话并返回控制它的封装对象。
-- `getSession` 初始化或检索当前用户会话。
+- `useSession` 初始化一个会话并返回一个用于控制会话的包装器。
+- `getSession` 初始化或获取当前用户会话。
 - `updateSession` 更新当前会话的数据。
 - `clearSession` 清除当前会话。
 
@@ -19,7 +19,7 @@ h3 提供了许多处理会话的工具：
 
 ## 初始化会话
 
-要初始化会话，您需要在 [事件处理器](/guide/handler) 中使用 `useSession`：
+要初始化会话，您需要在[事件处理器](/guide/handler)中使用 `useSession`：
 
 ```js
 import { useSession } from "h3";
@@ -36,9 +36,9 @@ app.use(async (event) => {
 > [!WARNING]
 > 您必须提供一个密码来加密会话。
 
-这将初始化一个会话并返回一个头部 `Set-Cookie`，其中包含名为 `h3` 的 cookie 和加密内容。
+这将初始化一个会话并返回一个包含名为 `h3` 的 cookie 和加密内容的 `Set-Cookie` 头。
 
-如果请求中包含名为 `h3` 的 cookie 或名为 `x-h3-session` 的头部，会话将使用该 cookie 或头部的内容初始化。
+如果请求中包含名为 `h3` 的 cookie 或名为 `x-h3-session` 的头部，会话将使用该 cookie 或头部的内容进行初始化。
 
 > [!NOTE]
 > 头部优先于 cookie。
@@ -111,7 +111,7 @@ app.use("/clear", async (event) => {
 });
 ```
 
-h3 会发送一个带有空的名为 `h3` 的 cookie 的 `Set-Cookie` 头部来清除会话。
+H3 将发送一个带有空的名为 `h3` 的 cookie 的 `Set-Cookie` 头，以清除会话。
 
 ## 选项
 

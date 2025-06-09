@@ -1,9 +1,8 @@
 # yaml-language-server: $schema=https://unpkg.com/undocs/schema/config.json
 name: H3 中文文档
-url: https://h3.dev
-shortDescription: 现代 JavaScript 时代的 Web 框架
-description:
-  为高性能和可移植性而构建的 H(TTP) 服务器框架，可以在任何 JavaScript 运行时中运行。
+url: https://h3.zhcndoc.com
+shortDescription: 通用、小巧且快速的服务器
+description: 基于 Web 标准构建的H(TTP)服务器框架，旨在实现高性能与模块化组合。
 
 themeColor: amber
 automd: true
@@ -27,32 +26,25 @@ landing:
       label: "在线体验"
       icon: "i-simple-icons-lightning"
       to: "https://stackblitz.com/github/h3js/h3/tree/main/playground"
+  heroCode:
+    lang: "js"
+    title: "server.mjs"
+    content: |
+      import { H3, serve } from "h3"
+
+      const app = new H3().get("/", () => "⚡️ Tadaa!")
+
+      serve(app)
   contributors: true
-  featuresTitle: "现代 JavaScript 时代的 Web 框架"
   features:
-    # Runtime Agnostic
     - title: "运行时无关"
-      description: "您的代码将在包括 Node.js、Bun 和 Deno 在内的任何 JavaScript 运行时上无缝运行，支持 [srvx](https://srvx.h3.dev)。"
-      icon: "i-material-symbols-lock-open-right-outline-rounded"
+      description: "无缝兼容任何 JavaScript 运行时，包括 [Deno](https://deno.zhcndoc.com)、[Bun](https://bun.sh)、[Node.js](https://node.zhcndoc.com)、Workers 等。基于 Web 标准，并由 [Srvx](https://srvx.h3.dev) 提供支持。"
+      icon: "clarity:success-standard-line"
 
-    # Router
-    - title: "快速路由"
-      description: "由 [rou3](https://github.com/h3js/rou3) 提供支持的高效路由匹配。"
-      icon: "i-fa-tree"
+    - title: "微小、可组合且快速"
+      description: "具有低延迟和最小的捆绑影响，设计时考虑了可组合性和最大兼容性。"
+      icon: "devicon-plain:fastapi"
 
-    # Tree-shakable
-    - title: "小巧且可树摇"
-      description: "h3 核心极其轻量且支持摇树优化，只有实际使用的部分才会被打入最终包。"
-      icon: "i-material-symbols-potted-plant-outline"
-
-    # 可组合
-    - title: "可组合"
-      description: "扩展您的服务器并添加功能。您的代码库将随着项目的扩展而增长。"
-      icon: "i-fa-puzzle-piece"
-
-    # 类型友好
-    - title: "类型友好"
-      description: "代码库完全用 TypeScript 编写，具有强类型的工具。"
-      icon: "i-mdi-language-typescript"
-      to: ""
-      target: "_blank"
+    - title: "人体工学与安全的 API"
+      description: "精心设计、符合人体工学且强类型的 API，内置数十种可摇树优化的实用工具。"
+      icon: "hugeicons:happy"

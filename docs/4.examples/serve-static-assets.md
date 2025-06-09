@@ -6,7 +6,7 @@ icon: ph:arrow-right
 
 > 提供静态资源服务，例如 HTML、图片、CSS、JavaScript 等。
 
-h3 可以提供静态资源服务，如 HTML、图片、CSS、JavaScript 等。
+H3 可以提供静态资源，例如 HTML、图片、CSS、JavaScript 等。
 
 要提供一个静态目录，你可以使用 `serveStatic` 工具。
 
@@ -32,7 +32,7 @@ app.use("/public/**", (event) => {
 - `getContents` 用于读取文件内容。它应该返回一个 `Promise`，解析为文件内容，如果文件不存在则为 `undefined`。
 - `getMeta` 用于获取文件元信息。它应该返回一个 `Promise`，解析为文件的元数据，如果文件不存在则为 `undefined`。
 
-这两个方法分开设计是为了让 h3 可以响应 `HEAD` 请求而无需读取文件内容，同时支持使用 `Last-Modified` 头。
+它们被分开是为了让 H3 可以在不读取文件内容的情况下响应 `HEAD` 请求，并使用 `Last-Modified` 头部。
 
 ## 读取文件
 
