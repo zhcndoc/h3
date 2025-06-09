@@ -15,7 +15,7 @@ import type {
   RouteHandler,
   MiddlewareOptions,
 } from "./types/h3.ts";
-import type { ServerRequest } from "srvx/types";
+import type { ServerRequest } from "srvx";
 
 export type H3 = H3Type;
 

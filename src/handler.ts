@@ -1,4 +1,4 @@
-import type { ServerRequest } from "srvx/types";
+import type { ServerRequest } from "srvx";
 import { H3Event } from "./event.ts";
 import { toRequest } from "./h3.ts";
 import { callMiddleware } from "./middleware.ts";
