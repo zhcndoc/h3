@@ -3,6 +3,7 @@ import type { EventHandler, Middleware } from "./handler.ts";
 import type { HTTPError } from "../error.ts";
 import type { MaybePromise } from "./_utils.ts";
 import type { ServerRequest } from "srvx";
+import type { RouterContext } from "rou3";
 
 // --- Misc ---
 
@@ -55,6 +56,16 @@ export type MiddlewareOptions = {
 };
 
 export declare class H3 {
+  /**
+   * @internal
+   */
+  _middleware: Middleware[];
+
+  /**
+   * @internal
+   */
+  _routes?: RouterContext<H3Route>;
+
   /**
    * H3 instance config.
    */
