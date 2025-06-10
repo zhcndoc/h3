@@ -1,4 +1,4 @@
-import type { ServerRequest } from "srvx/types";
+import type { ServerRequest } from "srvx";
 import type { MaybePromise } from "./_utils.ts";
 import type { H3Event } from "./event.ts";
 import type { TypedRequest, TypedResponse, ResponseHeaderMap } from "fetchdts";

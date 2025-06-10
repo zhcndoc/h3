@@ -2,7 +2,7 @@ import type { H3Event, H3EventContext } from "./event.ts";
 import type { EventHandler, Middleware } from "./handler.ts";
 import type { HTTPError } from "../error.ts";
 import type { MaybePromise } from "./_utils.ts";
-import type { ServerRequest } from "srvx/types";
+import type { ServerRequest } from "srvx";
 
 // --- Misc ---
 
