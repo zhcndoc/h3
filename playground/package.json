@@ -1,12 +1,11 @@
 {
   "name": "h3-playground",
   "private": true,
+  "type": "module",
   "scripts": {
-    "start": "listhen ./app.ts",
-    "dev": "listhen -w ./app.ts"
+    "start": "node --disable-warning=ExperimentalWarning --experimental-strip-types --watch ./server.ts"
   },
   "dependencies": {
-    "h3": "latest",
-    "listhen": "latest"
+    "h3": "v2.0.0-beta.0"
   }
 }
