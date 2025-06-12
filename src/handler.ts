@@ -95,7 +95,7 @@ function handlerWithFetch<
       _init?: RequestInit,
     ): Promise<Response> => {
       const req = toRequest(_req, _init);
-      const event = new H3Event(req);
+      const event = new H3Event(req) as H3Event<Req>;
       try {
         return Promise.resolve(handleResponse(handler(event), event));
       } catch (error: any) {

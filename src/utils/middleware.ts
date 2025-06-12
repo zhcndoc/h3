@@ -2,7 +2,7 @@ import { HTTPError } from "../error.ts";
 import { handleResponse } from "../response.ts";
 import type { MaybePromise } from "../types/_utils.ts";
 
-import type { H3Event } from "../types/event.ts";
+import type { H3Event } from "../event.ts";
 import type { Middleware } from "../types/handler.ts";
 
 /**

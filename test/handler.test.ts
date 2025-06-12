@@ -6,7 +6,7 @@ import {
   defineValidatedHandler,
 } from "../src/index.ts";
 
-import type { H3Event } from "../src/types/event.ts";
+import type { H3Event } from "../src/event.ts";
 import { z } from "zod";
 import type { EventHandlerWithFetch } from "../src/types/handler.ts";
 

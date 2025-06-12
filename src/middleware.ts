@@ -2,7 +2,7 @@ import { routeToRegExp } from "rou3";
 import { kNotFound } from "./response.ts";
 
 import type { H3 } from "./h3.ts";
-import type { H3Event } from "./types/event.ts";
+import type { H3Event } from "./event.ts";
 import type { MiddlewareOptions } from "./types/h3.ts";
 import type { EventHandler, Middleware } from "./types/handler.ts";
 

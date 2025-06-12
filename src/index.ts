@@ -17,7 +17,7 @@ export { definePlugin } from "./types/h3.ts";
 export { H3 } from "./h3.ts";
 
 // Event
-export type { H3EventContext } from "./types/event.ts";
+export type { H3EventContext } from "./types/context.ts";
 export { H3Event } from "./event.ts";
 export { isEvent, mockEvent } from "./utils/event.ts";
 

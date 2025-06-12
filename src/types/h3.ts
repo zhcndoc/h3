@@ -1,9 +1,10 @@
-import type { H3Event, H3EventContext } from "./event.ts";
+import type { H3EventContext } from "./context.ts";
 import type { EventHandler, Middleware } from "./handler.ts";
 import type { HTTPError } from "../error.ts";
 import type { MaybePromise } from "./_utils.ts";
 import type { ServerRequest } from "srvx";
 import type { RouterContext } from "rou3";
+import type { H3Event } from "../event.ts";
 
 // --- Misc ---
 
