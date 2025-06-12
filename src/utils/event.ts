@@ -8,11 +8,7 @@ import type { H3EventContext } from "../types/context.ts";
  * @see H3Event
  */
 export function isEvent(input: any): input is H3Event {
-  const ctor = input?.constructor;
-  return (
-    ctor.__is_event__ ||
-    input.__is_event__ /* Backward compatibility with h3 v1 */
-  );
+  return input instanceof H3Event || input?.constructor?.__is_event__;
 }
 
 export function mockEvent(
