@@ -1,6 +1,6 @@
 import { createRouter, addRoute, findRoute } from "rou3";
 import { H3Event } from "./event.ts";
-import { handleResponse, kNotFound } from "./response.ts";
+import { toResponse, kNotFound } from "./response.ts";
 import { callMiddleware, normalizeMiddleware } from "./middleware.ts";
 
 import type { RouterContext } from "rou3";
@@ -77,7 +77,7 @@ export const H3 = /* @__PURE__ */ (() => {
       }
 
       // Prepare response
-      return handleResponse(handlerRes, event, this.config);
+      return toResponse(handlerRes, event, this.config);
     }
 
     register(plugin: H3Plugin): H3Type {

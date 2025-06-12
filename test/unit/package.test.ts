@@ -115,6 +115,7 @@ describe("h3 package", () => {
         "toEventHandler",
         "toNodeHandler",
         "toNodeListener",
+        "toResponse",
         "toWebHandler",
         "unsealSession",
         "updateSession",
