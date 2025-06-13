@@ -1,4 +1,6 @@
-import type { H3EventContext, H3Event } from "../types/event.ts";
+import type { H3EventContext } from "../types/context.ts";
+import type { H3Event } from "../event.ts";
+
 import { splitSetCookieString } from "cookie-es";
 import { sanitizeStatusMessage, sanitizeStatusCode } from "./sanitize.ts";
 import { HTTPError } from "../error.ts";

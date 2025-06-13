@@ -11,7 +11,7 @@ import { withBase } from "./utils/base.ts";
 import { sanitizeStatusCode, sanitizeStatusMessage } from "./utils/sanitize.ts";
 
 import type { NodeHandler, NodeMiddleware } from "./adapters.ts";
-import type { H3Event } from "./types/event.ts";
+import type { H3Event } from "./event.ts";
 import type { EventHandler } from "./types/handler.ts";
 import type { H3Config } from "./types/h3.ts";
 import type {

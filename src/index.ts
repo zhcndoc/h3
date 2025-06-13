@@ -2,6 +2,7 @@
 
 export type {
   H3Config,
+  H3Plugin,
   H3Route,
   HTTPMethod,
   PreparedResponse,
@@ -11,10 +12,13 @@ export type {
   FetchHandler,
 } from "./types/h3.ts";
 
+export { definePlugin } from "./types/h3.ts";
+
 export { H3 } from "./h3.ts";
 
 // Event
-export type { H3EventContext } from "./types/event.ts";
+
+export type { H3EventContext } from "./types/context.ts";
 export { H3Event } from "./event.ts";
 export { isEvent, mockEvent } from "./utils/event.ts";
 
@@ -35,9 +39,14 @@ export {
   defineHandler,
   defineLazyEventHandler,
   dynamicEventHandler,
+  defineValidatedHandler,
 } from "./handler.ts";
 
 export { defineMiddleware } from "./middleware.ts";
+
+// Response
+
+export { toResponse } from "./response.ts";
 
 // Error
 

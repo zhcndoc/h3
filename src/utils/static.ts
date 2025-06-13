@@ -1,4 +1,4 @@
-import type { H3Event } from "../types/event.ts";
+import type { H3Event } from "../event.ts";
 import { HTTPError } from "../error.ts";
 import { withLeadingSlash, withoutTrailingSlash } from "./internal/path.ts";
 

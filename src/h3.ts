@@ -1,11 +1,11 @@
 import { createRouter, addRoute, findRoute } from "rou3";
 import { H3Event } from "./event.ts";
-import { handleResponse, kNotFound } from "./response.ts";
+import { toResponse, kNotFound } from "./response.ts";
 import { callMiddleware, normalizeMiddleware } from "./middleware.ts";
 
 import type { RouterContext } from "rou3";
-import type { FetchHandler, H3Config } from "./types/h3.ts";
-import type { H3EventContext } from "./types/event.ts";
+import type { FetchHandler, H3Config, H3Plugin } from "./types/h3.ts";
+import type { H3EventContext } from "./types/context.ts";
 import type { EventHandler, Middleware } from "./types/handler.ts";
 import type {
   H3Route,
@@ -15,7 +15,7 @@ import type {
   RouteHandler,
   MiddlewareOptions,
 } from "./types/h3.ts";
-import type { ServerRequest } from "srvx/types";
+import type { ServerRequest } from "srvx";
 
 export type H3 = H3Type;
 
@@ -24,16 +24,18 @@ export const H3 = /* @__PURE__ */ (() => {
   const HTTPMethods = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "CONNECT", "TRACE" ] as const;
 
   class H3 implements Omit<H3Type, Lowercase<(typeof HTTPMethods)[number]>> {
-    #middleware: Middleware[];
-    #router?: RouterContext<H3Route>;
+    _middleware: Middleware[];
+    _routes?: RouterContext<H3Route>;
+
     readonly config: H3Config;
 
     constructor(config: H3Config = {}) {
-      this.#middleware = [];
+      this._middleware = [];
       this.config = config;
       this.fetch = this.fetch.bind(this);
       this._fetch = this._fetch.bind(this);
       this.handler = this.handler.bind(this);
+      config.plugins?.forEach((plugin) => plugin(this as unknown as H3Type));
     }
 
     fetch(
@@ -75,20 +77,25 @@ export const H3 = /* @__PURE__ */ (() => {
       }
 
       // Prepare response
-      return handleResponse(handlerRes, event, this.config);
+      return toResponse(handlerRes, event, this.config);
+    }
+
+    register(plugin: H3Plugin): H3Type {
+      plugin(this as unknown as H3Type);
+      return this as unknown as H3Type;
     }
 
     handler(event: H3Event): unknown | Promise<unknown> {
-      const route = this.#router
-        ? findRoute(this.#router, event.req.method, event.url.pathname)
+      const route = this._routes
+        ? findRoute(this._routes, event.req.method, event.url.pathname)
         : undefined;
       if (route) {
         event.context.params = route.params;
         event.context.matchedRoute = route.data;
       }
       const middleware = route?.data.middleware
-        ? [...this.#middleware, ...route.data.middleware]
-        : this.#middleware;
+        ? [...this._middleware, ...route.data.middleware]
+        : this._middleware;
       return callMiddleware(event, middleware, () => {
         return route ? route.data.handler(event) : kNotFound;
       });
@@ -114,13 +121,13 @@ export const H3 = /* @__PURE__ */ (() => {
       handler: RouteHandler,
       opts?: RouteOptions,
     ): H3Type {
-      if (!this.#router) {
-        this.#router = createRouter();
+      if (!this._routes) {
+        this._routes = createRouter();
       }
       const _method = (method || "").toUpperCase();
       const _handler = (handler as H3Type)?.handler || handler;
       route = new URL(route, "h://_").pathname;
-      addRoute(this.#router, _method, route, {
+      addRoute(this._routes, _method, route, {
         method: _method as HTTPMethod,
         route,
         handler: _handler,
@@ -141,7 +148,7 @@ export const H3 = /* @__PURE__ */ (() => {
         fn = arg1 as Middleware | H3Type;
         opts = arg2 as MiddlewareOptions;
       }
-      this.#middleware.push(
+      this._middleware.push(
         normalizeMiddleware(fn, route ? { ...opts, route } : opts),
       );
       return this as unknown as H3Type;
