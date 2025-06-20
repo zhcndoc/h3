@@ -50,7 +50,7 @@
   "dependencies": {
     "cookie-es": "^2.0.0",
     "fetchdts": "^0.1.4",
-    "rou3": "^0.6.3",
+    "rou3": "^0.7.2",
     "srvx": "^0.8.0"
   },
   "devDependencies": {
