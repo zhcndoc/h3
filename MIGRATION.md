@@ -33,7 +33,7 @@ H3 版本 2 包含一些行为和 API 变更，您在迁移时需要考虑应用
 
 仅在 Node.js 运行时服务器中才能访问原生的 `event.node.{req,res}`。
 
-`event.web` 被重命名为 `event.req`（Web[Response](https://developer.mozilla.org/en-US/docs/Web/API/Response)的实例）。
+`event.web` 更名为 `event.req`（web [Request](https://developer.mozilla.org/en-US/docs/Web/API/Request) 的实例）。
 
 ## 响应处理
 
