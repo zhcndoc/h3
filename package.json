@@ -51,7 +51,7 @@
     "cookie-es": "^2.0.0",
     "fetchdts": "^0.1.4",
     "rou3": "^0.7.3",
-    "srvx": "^0.8.0"
+    "srvx": "^0.8.1"
   },
   "devDependencies": {
     "@mitata/counters": "^0.0.8",
@@ -76,7 +76,7 @@
     "hono": "^4.8.3",
     "mitata": "^1.0.34",
     "obuild": "^0.2.1",
-    "prettier": "^3.6.1",
+    "prettier": "^3.6.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "typescript": "^5.8.3",
