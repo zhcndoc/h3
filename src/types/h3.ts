@@ -48,8 +48,6 @@ export function definePlugin<T = unknown>(
 
 // --- H3 App ---
 
-export type RouteHandler = EventHandler | { handler: EventHandler };
-
 export type FetchHandler = (req: ServerRequest) => Response | Promise<Response>;
 
 export type RouteOptions = {
@@ -71,7 +69,7 @@ export declare class H3 {
   /**
    * @internal
    */
-  _routes?: H3Route[];
+  _routes: H3Route[];
 
   /**
    * H3 instance config.
@@ -123,15 +121,19 @@ export declare class H3 {
   handler(event: H3Event): unknown | Promise<unknown>;
 
   /**
-   * Mount a `.fetch` compatible server (like Hono or Elysia) to the H3 app.
+   * Mount an H3 app or a `.fetch` compatible server (like Hono or Elysia) with a base prefix.
+   *
+   * When mounting a sub-app, all routes will be added with base prefix and global middleware will be added as one prefixed middleware.
+   *
+   * **Note:** Sub-app options and global hooks are not inherited by the mounted app please consider setting them in the main app directly.
    */
-  mount(base: string, input: FetchHandler | { fetch: FetchHandler }): this;
+  mount(base: string, input: FetchHandler | { fetch: FetchHandler } | H3): this;
 
   /**
    * Register a global middleware.
    */
-  use(route: string, handler: Middleware | H3, opts?: MiddlewareOptions): this;
-  use(handler: Middleware | H3, opts?: MiddlewareOptions): this;
+  use(route: string, handler: Middleware, opts?: MiddlewareOptions): this;
+  use(handler: Middleware, opts?: MiddlewareOptions): this;
 
   /**
    * Register a route handler for the specified HTTP method and route.
@@ -139,22 +141,22 @@ export declare class H3 {
   on(
     method: HTTPMethod | Lowercase<HTTPMethod> | "",
     route: string,
-    handler: RouteHandler,
+    handler: EventHandler,
     opts?: RouteOptions,
   ): this;
 
   /**
    * Register a route handler for all HTTP methods.
    */
-  all(route: string, handler: RouteHandler, opts?: RouteOptions): this;
+  all(route: string, handler: EventHandler, opts?: RouteOptions): this;
 
-  get(route: string, handler: RouteHandler, opts?: RouteOptions): this;
-  post(route: string, handler: RouteHandler, opts?: RouteOptions): this;
-  put(route: string, handler: RouteHandler, opts?: RouteOptions): this;
-  delete(route: string, handler: RouteHandler, opts?: RouteOptions): this;
-  patch(route: string, handler: RouteHandler, opts?: RouteOptions): this;
-  head(route: string, handler: RouteHandler, opts?: RouteOptions): this;
-  options(route: string, handler: RouteHandler, opts?: RouteOptions): this;
-  connect(route: string, handler: RouteHandler, opts?: RouteOptions): this;
-  trace(route: string, handler: RouteHandler, opts?: RouteOptions): this;
+  get(route: string, handler: EventHandler, opts?: RouteOptions): this;
+  post(route: string, handler: EventHandler, opts?: RouteOptions): this;
+  put(route: string, handler: EventHandler, opts?: RouteOptions): this;
+  delete(route: string, handler: EventHandler, opts?: RouteOptions): this;
+  patch(route: string, handler: EventHandler, opts?: RouteOptions): this;
+  head(route: string, handler: EventHandler, opts?: RouteOptions): this;
+  options(route: string, handler: EventHandler, opts?: RouteOptions): this;
+  connect(route: string, handler: EventHandler, opts?: RouteOptions): this;
+  trace(route: string, handler: EventHandler, opts?: RouteOptions): this;
 }
