@@ -71,7 +71,7 @@
     "eslint-config-unjs": "^0.5.0",
     "express": "^5.1.0",
     "get-port-please": "^3.1.2",
-    "h3-nightly": "^1.15.2-20250418-133010-0c9b276",
+    "h3-nightly": "npm:h3-nightly@beta",
     "h3-v1": "npm:h3@^1.15.3",
     "hono": "^4.8.3",
     "mitata": "^1.0.34",
