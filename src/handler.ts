@@ -70,7 +70,7 @@ export function defineValidatedHandler<
     },
     Res
   >;
-}): EventHandler<
+}): EventHandlerWithFetch<
   TypedRequest<InferOutput<RequestBody>, InferOutput<RequestHeaders>>,
   Res
 > {
