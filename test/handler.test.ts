@@ -8,7 +8,6 @@ import {
 
 import type { H3Event } from "../src/event.ts";
 import { z } from "zod";
-import type { EventHandlerWithFetch } from "../src/types/handler.ts";
 
 describe("handler.ts", () => {
   describe("defineHandler", () => {
@@ -99,7 +98,7 @@ describe("handler.ts", () => {
           headers: event.req.headers,
         };
       },
-    }) as unknown as EventHandlerWithFetch; // TODO: fix type incompatibility
+    });
 
     it("valid request", async () => {
       const res = await handler.fetch("/?id=123", {
