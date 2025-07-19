@@ -81,6 +81,9 @@ export const H3Core = /* @__PURE__ */ (() => {
       return toResponse(handlerRes, event, this.config);
     }
 
+    /**
+     * Immediately register an H3 plugin.
+     */
     register(plugin: H3Plugin): H3Type {
       plugin(this as unknown as H3Type);
       return this as unknown as H3Type;
@@ -146,7 +149,7 @@ export const H3Core = /* @__PURE__ */ (() => {
       opts?: RouteOptions,
     ): H3Type {
       const _method = (method || "").toUpperCase();
-      route = new URL(route, "h://_").pathname;
+      route = new URL(route, "http://_").pathname;
       this._addRoute({
         method: _method as HTTPMethod,
         route,
