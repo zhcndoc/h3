@@ -39,12 +39,9 @@ export const H3Core = /* @__PURE__ */ (() => {
       config.plugins?.forEach((plugin) => plugin(this as unknown as H3Type));
     }
 
-    fetch(
-      request: ServerRequest | URL | string,
-      options?: RequestInit,
-    ): Promise<Response> {
+    fetch(request: ServerRequest | URL | string): Promise<Response> {
       try {
-        return Promise.resolve(this._fetch(request, options));
+        return Promise.resolve(this._fetch(request));
       } catch (error: any) {
         return Promise.reject(error);
       }
