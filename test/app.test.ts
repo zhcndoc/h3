@@ -253,11 +253,14 @@ describeMatrix("app", (t, { it, expect }) => {
     expect(await res.text()).toBe("valid");
   });
 
-  it("can add arabic routes", async () => {
-    t.app.get("/عربي", () => "valid");
+  it("can add and match unicode routes", async () => {
+    t.app.get("/سلام", () => "valid");
 
-    const res = await t.fetch("/عربي");
+    const res = await t.fetch("/سلام");
     expect(res.status).toBe(200);
+
+    const res2 = await t.app.request("/سلام");
+    expect(res2.status).toBe(200);
   });
 
   it.skipIf(t.target !== "node")(
