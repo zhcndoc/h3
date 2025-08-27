@@ -1,6 +1,7 @@
 import { HTTPError } from "../error.ts";
 import { parseQuery } from "./internal/query.ts";
 import { validateData } from "./internal/validate.ts";
+import { getEventContext } from "./event.ts";
 
 import type {
   StandardSchemaV1,
@@ -10,8 +11,37 @@ import type { ValidateResult } from "./internal/validate.ts";
 import type { H3Event, HTTPEvent } from "../event.ts";
 import type { InferEventInput } from "../types/handler.ts";
 import type { HTTPMethod } from "../types/h3.ts";
-import { getEventContext } from "./event.ts";
 import type { H3EventContext } from "../types/context.ts";
+import type { ServerRequest } from "srvx";
+
+/**
+ * Convert input into a web [Request](https://developer.mozilla.org/en-US/docs/Web/API/Request).
+ *
+ * If input is a relative URL, it will be normalized into a full path based on headers.
+ *
+ * If input is already a Request and no options are provided, it will be returned as-is.
+ */
+export function toRequest(
+  input: ServerRequest | URL | string,
+  options?: RequestInit,
+): ServerRequest {
+  if (typeof input === "string") {
+    let url = input;
+    if (url[0] === "/") {
+      const headers = options?.headers
+        ? new Headers(options.headers)
+        : undefined;
+      const host = headers?.get("host") || "localhost";
+      const proto =
+        headers?.get("x-forwarded-proto") === "https" ? "https" : "http";
+      url = `${proto}://${host}${url}`;
+    }
+    return new Request(url, options);
+  } else if (options || input instanceof URL) {
+    return new Request(input, options);
+  }
+  return input;
+}
 
 /**
  * Get parsed query string object from the request URL.

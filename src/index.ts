@@ -80,6 +80,7 @@ export type { RouteDefinition } from "./utils/route.ts";
 
 // Request
 export {
+  toRequest,
   getRequestHost,
   getRequestIP,
   getRequestProtocol,

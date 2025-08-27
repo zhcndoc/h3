@@ -120,6 +120,7 @@ describe("h3 package", () => {
         "toEventHandler",
         "toNodeHandler",
         "toNodeListener",
+        "toRequest",
         "toResponse",
         "toWebHandler",
         "unsealSession",
