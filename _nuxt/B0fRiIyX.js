@@ -1,0 +1,1 @@
+import{r as a}from"./DDEtara-.js";import t from"./DHkubxc2.js";import{a as n,c as e,o as s,w as c,f as i}from"#entry";import"./BN_7HF1G.js";const d={__name:"Caution",setup(p){const o=n();return(r,f)=>(s(),e(t,{color:"error",icon:i(o).ui.icons.caution},{default:c(()=>[a(r.$slots,"default",{mdcUnwrap:"p"})]),_:3},8,["icon"]))}};export{d as default};
