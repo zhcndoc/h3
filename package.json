@@ -50,7 +50,7 @@
     "cookie-es": "^2.0.0",
     "fetchdts": "^0.1.7",
     "rou3": "^0.7.5",
-    "srvx": "^0.8.8"
+    "srvx": "^0.8.9"
   },
   "devDependencies": {
     "@mitata/counters": "^0.0.8",
