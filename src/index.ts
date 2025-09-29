@@ -187,6 +187,11 @@ export {
 
 // WebSocket
 export { defineWebSocketHandler, defineWebSocket } from "./utils/ws.ts";
+export type {
+  WebSocketHooks,
+  WebSocketPeer,
+  WebSocketMessage,
+} from "./utils/ws.ts";
 
 // ---- Deprecated ----
 
