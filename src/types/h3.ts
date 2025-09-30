@@ -114,6 +114,12 @@ export declare class H3 {
   _getMiddleware(route: MatchedRoute<H3Route> | void): Middleware[];
 
   /** @internal */
+  _normalizeMiddleware(
+    fn: Middleware,
+    _opts?: MiddlewareOptions & { route?: string },
+  ): Middleware;
+
+  /** @internal */
   _addRoute(_route: H3Route): void;
 
   /**

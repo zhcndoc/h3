@@ -178,6 +178,10 @@ export const H3Core = /* @__PURE__ */ (() => {
       return this as unknown as H3Type;
     }
 
+    _normalizeMiddleware(fn: Middleware, _opts: any): Middleware {
+      return fn;
+    }
+
     use(arg1: unknown, arg2?: unknown, arg3?: unknown): H3Type {
       let route: string | undefined;
       let fn: Middleware | H3Type;
@@ -191,10 +195,7 @@ export const H3Core = /* @__PURE__ */ (() => {
         opts = arg2 as MiddlewareOptions;
       }
       this._middleware.push(
-        normalizeMiddleware(
-          fn as Middleware,
-          route ? { ...opts, route } : opts,
-        ),
+        this._normalizeMiddleware(fn as Middleware, { ...opts, route }),
       );
       return this as unknown as H3Type;
     }
@@ -230,5 +231,12 @@ export class H3 extends H3Core {
   override _addRoute(_route: H3Route): void {
     addRoute(this._rou3, _route.method, _route.route!, _route);
     super._addRoute(_route);
+  }
+
+  override _normalizeMiddleware(
+    fn: Middleware,
+    opts?: MiddlewareOptions & { route?: string },
+  ): Middleware {
+    return normalizeMiddleware(fn as Middleware, opts);
   }
 }
