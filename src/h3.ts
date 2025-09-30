@@ -25,6 +25,8 @@ import { toRequest } from "./utils/request.ts";
 
 export type H3Core = H3Type;
 
+const NoHandler = () => kNotFound;
+
 export const H3Core = /* @__PURE__ */ (() => {
   // prettier-ignore
   const HTTPMethods = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "CONNECT", "TRACE" ] as const;
@@ -99,18 +101,23 @@ export const H3Core = /* @__PURE__ */ (() => {
       this._routes.push(_route);
     }
 
+    _getMiddleware(route: MatchedRoute<H3Route> | void): Middleware[] {
+      return route?.data.middleware
+        ? [...this._middleware, ...route.data.middleware]
+        : this._middleware;
+    }
+
     handler(event: H3Event): unknown | Promise<unknown> {
       const route = this._findRoute(event);
       if (route) {
         event.context.params = route.params;
         event.context.matchedRoute = route.data;
       }
-      const middleware = route?.data.middleware
-        ? [...this._middleware, ...route.data.middleware]
-        : this._middleware;
-      return callMiddleware(event, middleware, () => {
-        return route ? route.data.handler(event) : kNotFound;
-      });
+      const routeHandler = route?.data.handler || NoHandler;
+      const middleware = this._getMiddleware(route);
+      return middleware.length > 0
+        ? callMiddleware(event, middleware, () => routeHandler(event))
+        : routeHandler(event);
     }
 
     mount(
@@ -208,9 +215,7 @@ export const H3Core = /* @__PURE__ */ (() => {
 })() as unknown as { new (config?: H3Config): H3Type };
 
 export class H3 extends H3Core {
-  /**
-   * @internal
-   */
+  /** @internal */
   _rou3: RouterContext<H3Route>;
 
   constructor(config: H3Config = {}) {

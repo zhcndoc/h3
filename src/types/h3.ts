@@ -69,14 +69,10 @@ export type MiddlewareOptions = {
 };
 
 export declare class H3 {
-  /**
-   * @internal
-   */
+  /** @internal */
   _middleware: Middleware[];
 
-  /**
-   * @internal
-   */
+  /** @internal */
   _routes: H3Route[];
 
   /**
@@ -111,14 +107,13 @@ export declare class H3 {
     context?: H3EventContext,
   ): Response | Promise<Response>;
 
-  /**
-   * @internal
-   */
+  /** @internal */
   _findRoute(_event: H3Event): MatchedRoute<H3Route> | void;
 
-  /**
-   * @internal
-   */
+  /** @internal */
+  _getMiddleware(route: MatchedRoute<H3Route> | void): Middleware[];
+
+  /** @internal */
   _addRoute(_route: H3Route): void;
 
   /**
