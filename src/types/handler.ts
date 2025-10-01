@@ -68,10 +68,13 @@ export type Middleware = (
 
 // --- lazy event handler ---
 
-export type LazyEventHandler = () => EventHandler | Promise<EventHandler>;
+export type LazyEventHandler = () =>
+  | EventHandler
+  | FetchableObject
+  | Promise<EventHandler | FetchableObject>;
 
 export interface DynamicEventHandler extends EventHandlerWithFetch {
-  set: (handler: EventHandler) => void;
+  set: (handler: EventHandler | FetchableObject) => void;
 }
 
 // --- utils ---

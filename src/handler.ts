@@ -10,6 +10,7 @@ import type {
   EventHandlerResponse,
   DynamicEventHandler,
   EventHandlerWithFetch,
+  FetchableObject,
 } from "./types/handler.ts";
 import type {
   InferOutput,
@@ -130,14 +131,14 @@ function handlerWithFetch<
 //  --- dynamic event handler ---
 
 export function dynamicEventHandler(
-  initial?: EventHandler,
+  initial?: EventHandler | FetchableObject,
 ): DynamicEventHandler {
-  let current: EventHandler | undefined = initial;
+  let current: EventHandler | undefined = _toEventHandler(initial);
   return Object.assign(
     defineHandler((event: H3Event) => current?.(event)),
     {
-      set: (handler: EventHandler) => {
-        current = handler;
+      set: (handler: EventHandler | FetchableObject) => {
+        current = _toEventHandler(handler);
       },
     },
   );
@@ -146,7 +147,10 @@ export function dynamicEventHandler(
 // --- lazy event handler ---
 
 export function defineLazyEventHandler(
-  load: () => Promise<EventHandler> | EventHandler,
+  load: () =>
+    | Promise<EventHandler | FetchableObject>
+    | EventHandler
+    | FetchableObject,
 ): EventHandlerWithFetch {
   let _promise: Promise<typeof _resolved>;
   let _resolved: { handler: EventHandler };
@@ -157,14 +161,16 @@ export function defineLazyEventHandler(
     }
     if (!_promise) {
       _promise = Promise.resolve(load()).then((r: any) => {
-        const handler = r.default || r;
+        let handler = r.default || r;
         if (typeof handler !== "function") {
-          throw new (TypeError as any)(
-            "Invalid lazy handler result. It should be a function:",
-            handler,
-          );
+          const _fetchHandler = (handler as FetchableObject).fetch;
+          if (typeof _fetchHandler === "function") {
+            handler = (event: H3Event) => _fetchHandler(event.req);
+          } else {
+            throw new TypeError("Invalid lazy handler: " + r);
+          }
         }
-        _resolved = { handler: r.default || r };
+        _resolved = { handler };
         return _resolved;
       });
     }
@@ -177,4 +183,17 @@ export function defineLazyEventHandler(
     }
     return resolveHandler().then((r) => r.handler(event));
   });
+}
+
+// --- normalize ---
+
+function _toEventHandler(
+  handler: undefined | EventHandler | FetchableObject,
+): EventHandler | undefined {
+  if (typeof handler === "function") {
+    return handler;
+  }
+  if (typeof handler?.fetch === "function") {
+    return (event: H3Event) => handler.fetch!(event.req);
+  }
 }

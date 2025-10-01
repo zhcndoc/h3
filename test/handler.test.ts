@@ -50,6 +50,17 @@ describe("handler.ts", () => {
       expect(result).toBe("initial");
     });
 
+    it("should call the initial handler if set (fetchable)", async () => {
+      const initialHandler = vi.fn(() => new Response("initial"));
+      const dynamicHandler = dynamicEventHandler(initialHandler);
+
+      const mockEvent = {} as H3Event;
+      const result = await dynamicHandler(mockEvent);
+
+      expect(initialHandler).toHaveBeenCalledWith(mockEvent);
+      expect(result).toBeInstanceOf(Response);
+    });
+
     it("should allow setting a new handler", async () => {
       const initialHandler = vi.fn(async (_: H3Event) => "initial");
       const newHandler = vi.fn(async (_: H3Event) => "new");
@@ -79,6 +90,19 @@ describe("handler.ts", () => {
       expect(result).toBe("lazy");
     });
 
+    it("should resolve and call the lazy-loaded handler (fetchable)", async () => {
+      const lazyHandler = vi.fn(async (_req: Request) => new Response("lazy"));
+      const load = vi.fn(() => Promise.resolve({ fetch: lazyHandler }));
+      const lazyEventHandler = defineLazyEventHandler(load);
+
+      const mockEvent = {} as H3Event;
+      const result = await lazyEventHandler(mockEvent);
+
+      expect(load).toHaveBeenCalled();
+      expect(lazyHandler).toHaveBeenCalled();
+      expect(result).toBeInstanceOf(Response);
+    });
+
     it("should throw an error if the lazy-loaded handler is invalid", async () => {
       const load = vi.fn(() => Promise.resolve({}));
       const lazyEventHandler = defineLazyEventHandler(load as any);
@@ -86,7 +110,7 @@ describe("handler.ts", () => {
       const mockEvent = {} as H3Event;
 
       await expect(lazyEventHandler(mockEvent)).rejects.toThrow(
-        "Invalid lazy handler result. It should be a function:",
+        "Invalid lazy handler:",
       );
     });
   });
