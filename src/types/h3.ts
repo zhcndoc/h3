@@ -1,5 +1,5 @@
 import type { H3EventContext } from "./context.ts";
-import type { EventHandler, FetchableObject, Middleware } from "./handler.ts";
+import type { HTTPHandler, EventHandler, Middleware } from "./handler.ts";
 import type { HTTPError } from "../error.ts";
 import type { MaybePromise } from "./_utils.ts";
 import type { FetchHandler, ServerRequest } from "srvx";
@@ -55,8 +55,6 @@ export function definePlugin<T = unknown>(
 }
 
 // --- H3 App ---
-
-export type RouteHandler = EventHandler | FetchableObject;
 
 export type RouteOptions = {
   middleware?: Middleware[];
@@ -156,22 +154,22 @@ export declare class H3 {
   on(
     method: HTTPMethod | Lowercase<HTTPMethod> | "",
     route: string,
-    handler: RouteHandler,
+    handler: HTTPHandler,
     opts?: RouteOptions,
   ): this;
 
   /**
    * Register a route handler for all HTTP methods.
    */
-  all(route: string, handler: RouteHandler, opts?: RouteOptions): this;
+  all(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
 
-  get(route: string, handler: RouteHandler, opts?: RouteOptions): this;
-  post(route: string, handler: RouteHandler, opts?: RouteOptions): this;
-  put(route: string, handler: RouteHandler, opts?: RouteOptions): this;
-  delete(route: string, handler: RouteHandler, opts?: RouteOptions): this;
-  patch(route: string, handler: RouteHandler, opts?: RouteOptions): this;
-  head(route: string, handler: RouteHandler, opts?: RouteOptions): this;
-  options(route: string, handler: RouteHandler, opts?: RouteOptions): this;
-  connect(route: string, handler: RouteHandler, opts?: RouteOptions): this;
-  trace(route: string, handler: RouteHandler, opts?: RouteOptions): this;
+  get(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
+  post(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
+  put(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
+  delete(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
+  patch(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
+  head(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
+  options(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
+  connect(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
+  trace(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
 }

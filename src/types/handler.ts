@@ -3,6 +3,9 @@ import type { TypedRequest, TypedResponse, ResponseHeaderMap } from "fetchdts";
 import type { H3Event, HTTPEvent } from "../event.ts";
 import type { MaybePromise } from "./_utils.ts";
 import type { H3RouteMeta } from "./h3.ts";
+import type { H3Core } from "../h3.ts";
+
+export type HTTPHandler = EventHandler | FetchableObject | H3Core;
 
 //  --- event handler ---
 

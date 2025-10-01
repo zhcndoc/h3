@@ -11,12 +11,14 @@ import type {
   DynamicEventHandler,
   EventHandlerWithFetch,
   FetchableObject,
+  HTTPHandler,
 } from "./types/handler.ts";
 import type {
   InferOutput,
   StandardSchemaV1,
 } from "./utils/internal/standard-schema.ts";
 import type { TypedRequest } from "fetchdts";
+import type { H3Core } from "./h3.ts";
 import { validatedRequest, validatedURL } from "./utils/internal/validate.ts";
 
 // --- event handler ---
@@ -133,12 +135,12 @@ function handlerWithFetch<
 export function dynamicEventHandler(
   initial?: EventHandler | FetchableObject,
 ): DynamicEventHandler {
-  let current: EventHandler | undefined = _toEventHandler(initial);
+  let current: EventHandler | undefined = toEventHandler(initial);
   return Object.assign(
     defineHandler((event: H3Event) => current?.(event)),
     {
       set: (handler: EventHandler | FetchableObject) => {
-        current = _toEventHandler(handler);
+        current = toEventHandler(handler);
       },
     },
   );
@@ -161,14 +163,9 @@ export function defineLazyEventHandler(
     }
     if (!_promise) {
       _promise = Promise.resolve(load()).then((r: any) => {
-        let handler = r.default || r;
+        const handler = toEventHandler(r) || toEventHandler(r.default);
         if (typeof handler !== "function") {
-          const _fetchHandler = (handler as FetchableObject).fetch;
-          if (typeof _fetchHandler === "function") {
-            handler = (event: H3Event) => _fetchHandler(event.req);
-          } else {
-            throw new TypeError("Invalid lazy handler: " + r);
-          }
+          throw new TypeError("Invalid lazy handler: " + r);
         }
         _resolved = { handler };
         return _resolved;
@@ -185,15 +182,18 @@ export function defineLazyEventHandler(
   });
 }
 
-// --- normalize ---
+// --- normalization utils ---
 
-function _toEventHandler(
-  handler: undefined | EventHandler | FetchableObject,
+export function toEventHandler(
+  handler: HTTPHandler | undefined,
 ): EventHandler | undefined {
   if (typeof handler === "function") {
     return handler;
   }
-  if (typeof handler?.fetch === "function") {
-    return (event: H3Event) => handler.fetch!(event.req);
+  if (typeof (handler as H3Core)?.handler === "function") {
+    return (handler as H3Core).handler;
+  }
+  if (typeof (handler as FetchableObject)?.fetch === "function") {
+    return (event: H3Event) => (handler as FetchableObject).fetch!(event.req);
   }
 }

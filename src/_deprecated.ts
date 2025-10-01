@@ -344,15 +344,6 @@ export const fromNodeMiddleware: (
 /** @deprecated Please use `toNodeHandler` */
 export const toNodeListener: (app: H3) => NodeHandler = toNodeHandler;
 
-/** @deprecated */
-export function toEventHandler(
-  input: any,
-  _?: any,
-  _route?: string,
-): EventHandler {
-  return input;
-}
-
 // -- App/Router --
 
 /** @deprecated Please use `new H3()` */

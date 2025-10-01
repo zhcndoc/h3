@@ -5,12 +5,13 @@ import { callMiddleware, normalizeMiddleware } from "./middleware.ts";
 
 import type { ServerRequest } from "srvx";
 import type { RouterContext, MatchedRoute } from "rou3";
-import type { RouteHandler, H3Config, H3Plugin } from "./types/h3.ts";
+import type { H3Config, H3Plugin } from "./types/h3.ts";
 import type { H3EventContext } from "./types/context.ts";
 import type {
   EventHandler,
   FetchableObject,
   FetchHandler,
+  HTTPHandler,
   Middleware,
 } from "./types/handler.ts";
 import type {
@@ -22,6 +23,7 @@ import type {
 } from "./types/h3.ts";
 
 import { toRequest } from "./utils/request.ts";
+import { toEventHandler } from "./handler.ts";
 
 export type H3Core = H3Type;
 
@@ -159,22 +161,15 @@ export const H3Core = /* @__PURE__ */ (() => {
     on(
       method: HTTPMethod | Lowercase<HTTPMethod> | "",
       route: string,
-      handler: RouteHandler,
+      handler: HTTPHandler,
       opts?: RouteOptions,
     ): H3Type {
       const _method = (method || "").toUpperCase();
       route = new URL(route, "http://_").pathname;
-      if (
-        typeof handler === "object" &&
-        typeof (handler as FetchableObject)?.fetch === "function"
-      ) {
-        const _fetchHandler = (handler as FetchableObject).fetch.bind(handler);
-        handler = (event) => _fetchHandler(event.req);
-      }
       this._addRoute({
         method: _method as HTTPMethod,
         route,
-        handler: handler as EventHandler,
+        handler: toEventHandler(handler)!,
         middleware: opts?.middleware,
         meta: { ...(handler as EventHandler).meta, ...opts?.meta },
       });
