@@ -13,8 +13,7 @@ jobs:
       - uses: actions/setup-node@v5
         with: { node-version: lts/*, cache: pnpm }
       - run: pnpm install
-      - run: pnpm stub && pnpm lint
-        if: ${{ matrix.os != 'windows-latest' }}
+      - run: pnpm lint
       - run: pnpm test:types
       - run: pnpm build
       - run: pnpm vitest --coverage
@@ -23,6 +22,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions: { id-token: write, contents: read }
+    needs: tests
     if: contains('refs/heads/main', github.ref) && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v5
