@@ -48,8 +48,6 @@ export {
   dynamicEventHandler,
   defineValidatedHandler,
   toEventHandler,
-  toMiddleware,
-  defineLazyMiddleware,
 } from "./handler.ts";
 
 export { defineMiddleware } from "./middleware.ts";
