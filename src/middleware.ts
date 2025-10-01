@@ -35,7 +35,7 @@ function createMatcher(opts: MiddlewareOptions & { route?: string }) {
   }
   const routeMatcher = opts.route ? routeToRegExp(opts.route) : undefined;
   const method = opts.method?.toUpperCase();
-  return (event: H3Event) => {
+  return function _middlewareMatcher(event: H3Event) {
     if (method && event.req.method !== method) {
       return false;
     }

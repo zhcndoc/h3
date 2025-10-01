@@ -27,7 +27,7 @@ import { toEventHandler } from "./handler.ts";
 
 export type H3Core = H3Type;
 
-const NoHandler = () => kNotFound;
+export const NoHandler: EventHandler = () => kNotFound;
 
 export const H3Core = /* @__PURE__ */ (() => {
   // prettier-ignore
@@ -121,7 +121,7 @@ export const H3Core = /* @__PURE__ */ (() => {
       const routeHandler = route?.data.handler || NoHandler;
       const middleware = this._getMiddleware(event, route);
       return middleware.length > 0
-        ? callMiddleware(event, middleware, () => routeHandler(event))
+        ? callMiddleware(event, middleware, routeHandler)
         : routeHandler(event);
     }
 
@@ -145,7 +145,7 @@ export const H3Core = /* @__PURE__ */ (() => {
         }
       } else {
         const fetchHandler = "fetch" in input ? input.fetch : input;
-        this.all(`${base}/**`, (event) => {
+        this.all(`${base}/**`, function _mountedMiddleware(event) {
           const url = new URL(event.url);
           url.pathname = url.pathname.slice(base.length) || "/";
           return fetchHandler(new Request(url, event.req));

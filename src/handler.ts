@@ -1,7 +1,7 @@
 import type { ServerRequest } from "srvx";
 import { H3Event } from "./event.ts";
 import { callMiddleware } from "./middleware.ts";
-import { kNotFound, toResponse } from "./response.ts";
+import { toResponse } from "./response.ts";
 
 import type {
   EventHandler,
@@ -12,14 +12,13 @@ import type {
   EventHandlerWithFetch,
   FetchableObject,
   HTTPHandler,
-  Middleware,
 } from "./types/handler.ts";
 import type {
   InferOutput,
   StandardSchemaV1,
 } from "./utils/internal/standard-schema.ts";
 import type { TypedRequest } from "fetchdts";
-import type { H3Core } from "./h3.ts";
+import { NoHandler, type H3Core } from "./h3.ts";
 import { validatedRequest, validatedURL } from "./utils/internal/validate.ts";
 
 // --- event handler ---
@@ -42,12 +41,18 @@ export function defineHandler(
   }
   const handler: EventHandler =
     input.handler ||
-    (input.fetch ? (event) => input.fetch!(event.req) : () => {});
+    (input.fetch
+      ? function _fetchHandler(event) {
+          return input.fetch!(event.req);
+        }
+      : NoHandler);
 
   return Object.assign(
     handlerWithFetch(
       input.middleware?.length
-        ? (event) => callMiddleware(event, input.middleware!, handler)
+        ? function _handlerMiddleware(event) {
+            return callMiddleware(event, input.middleware!, handler);
+          }
         : handler,
     ),
     input,
@@ -90,7 +95,7 @@ export function defineValidatedHandler<
   }
   return defineHandler({
     ...def,
-    handler: (event) => {
+    handler: function _validatedHandler(event) {
       (event as any) /* readonly */.req = validatedRequest(
         event.req,
         def.validate!,
@@ -138,7 +143,9 @@ export function dynamicEventHandler(
 ): DynamicEventHandler {
   let current: EventHandler | undefined = toEventHandler(initial);
   return Object.assign(
-    defineHandler((event: H3Event) => current?.(event)),
+    defineHandler(function _dynamicEventHandler(event: H3Event) {
+      return current?.(event);
+    }),
     {
       set: (handler: EventHandler | FetchableObject) => {
         current = toEventHandler(handler);
@@ -156,7 +163,7 @@ export function defineLazyEventHandler(
 ): EventHandlerWithFetch {
   let handler: EventHandler | undefined;
   let promise: Promise<EventHandler> | undefined;
-  const resolve = () => {
+  const resolveLazyHandler = () => {
     if (handler) {
       return Promise.resolve(handler);
     }
@@ -169,9 +176,11 @@ export function defineLazyEventHandler(
       return handler;
     }));
   };
-  return defineHandler((event) =>
-    handler ? handler(event) : resolve().then((r) => r(event)),
-  );
+  return defineHandler(function lazyHandler(event) {
+    return handler
+      ? handler(event)
+      : resolveLazyHandler().then((r) => r(event));
+  });
 }
 
 // --- normalization utils ---
@@ -186,6 +195,8 @@ export function toEventHandler(
     return (handler as H3Core).handler;
   }
   if (typeof (handler as FetchableObject)?.fetch === "function") {
-    return (event: H3Event) => (handler as FetchableObject).fetch!(event.req);
+    return function _fetchHandler(event: H3Event) {
+      return (handler as FetchableObject).fetch!(event.req);
+    };
   }
 }

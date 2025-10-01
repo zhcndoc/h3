@@ -28,7 +28,7 @@ export function defineWebSocket(
 export function defineWebSocketHandler(
   hooks: Partial<WebSocketHooks>,
 ): EventHandler {
-  return defineHandler(() => {
+  return defineHandler(function _webSocketHandler() {
     return Object.assign(
       new Response("WebSocket upgrade is required.", {
         status: 426,
