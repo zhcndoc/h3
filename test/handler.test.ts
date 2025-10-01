@@ -104,14 +104,13 @@ describe("handler.ts", () => {
     });
 
     it("should throw an error if the lazy-loaded handler is invalid", async () => {
-      const load = vi.fn(() => Promise.resolve({}));
+      const mod = { test: 123 };
+      const load = vi.fn(() => Promise.resolve(mod));
       const lazyEventHandler = defineLazyEventHandler(load as any);
-
       const mockEvent = {} as H3Event;
-
-      await expect(lazyEventHandler(mockEvent)).rejects.toThrow(
-        "Invalid lazy handler:",
-      );
+      const promise = lazyEventHandler(mockEvent);
+      await expect(promise).rejects.toThrowError("Invalid lazy handler");
+      await expect(promise).rejects.toMatchObject({ cause: { resolved: mod } });
     });
   });
 

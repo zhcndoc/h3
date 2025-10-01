@@ -1,7 +1,7 @@
 import type { ServerRequest } from "srvx";
 import { H3Event } from "./event.ts";
 import { callMiddleware } from "./middleware.ts";
-import { toResponse } from "./response.ts";
+import { kNotFound, toResponse } from "./response.ts";
 
 import type {
   EventHandler,
@@ -12,6 +12,7 @@ import type {
   EventHandlerWithFetch,
   FetchableObject,
   HTTPHandler,
+  Middleware,
 } from "./types/handler.ts";
 import type {
   InferOutput,
@@ -148,38 +149,55 @@ export function dynamicEventHandler(
 
 // --- lazy event handler ---
 
+type MaybePromise<T> = T | Promise<T>;
+
 export function defineLazyEventHandler(
-  load: () =>
-    | Promise<EventHandler | FetchableObject>
-    | EventHandler
-    | FetchableObject,
+  loader: () => MaybePromise<HTTPHandler>,
 ): EventHandlerWithFetch {
-  let _promise: Promise<typeof _resolved>;
-  let _resolved: { handler: EventHandler };
-
-  const resolveHandler = () => {
-    if (_resolved) {
-      return Promise.resolve(_resolved);
+  let handler: EventHandler | undefined;
+  let promise: Promise<EventHandler> | undefined;
+  const resolve = () => {
+    if (handler) {
+      return Promise.resolve(handler);
     }
-    if (!_promise) {
-      _promise = Promise.resolve(load()).then((r: any) => {
-        const handler = toEventHandler(r) || toEventHandler(r.default);
-        if (typeof handler !== "function") {
-          throw new TypeError("Invalid lazy handler: " + r);
-        }
-        _resolved = { handler };
-        return _resolved;
-      });
-    }
-    return _promise;
+    return (promise ??= Promise.resolve(loader()).then((r: any) => {
+      handler = toEventHandler(r) || toEventHandler(r.default);
+      if (typeof handler !== "function") {
+        // @ts-expect-error
+        throw new TypeError("Invalid lazy handler", { cause: { resolved: r } });
+      }
+      return handler;
+    }));
   };
+  return defineHandler((event) =>
+    handler ? handler(event) : resolve().then((r) => r(event)),
+  );
+}
 
-  return defineHandler((event) => {
-    if (_resolved) {
-      return _resolved.handler(event);
+export function defineLazyMiddleware(
+  loader: () => MaybePromise<HTTPHandler | Middleware | undefined>,
+): Middleware {
+  let middleware: Middleware | undefined;
+  let promise: Promise<Middleware> | undefined;
+  const resolve = () => {
+    if (middleware) {
+      return Promise.resolve(middleware);
     }
-    return resolveHandler().then((r) => r.handler(event));
-  });
+    return (promise ??= Promise.resolve(loader()).then((r: any) => {
+      middleware = toMiddleware(r) || toMiddleware(r.default);
+      if (typeof middleware !== "function") {
+        // @ts-expect-error
+        throw new TypeError("Invalid lazy middleware", {
+          cause: { resolved: r },
+        });
+      }
+      return middleware;
+    }));
+  };
+  return (event, next) =>
+    middleware
+      ? middleware(event, next)
+      : resolve().then((r) => r(event, next));
 }
 
 // --- normalization utils ---
@@ -196,4 +214,20 @@ export function toEventHandler(
   if (typeof (handler as FetchableObject)?.fetch === "function") {
     return (event: H3Event) => (handler as FetchableObject).fetch!(event.req);
   }
+}
+
+export function toMiddleware(
+  handler: HTTPHandler | Middleware | undefined,
+): Middleware {
+  const fn = toEventHandler(handler as HTTPHandler) as Middleware | undefined;
+  if (!fn) {
+    return (_event, next) => next();
+  }
+  if (fn.length > 1 || fn.constructor?.name === "AsyncFunction") {
+    return fn; // Fast path: async or with explicit next()
+  }
+  return (event, next) => {
+    const res = fn(event, next);
+    return res === undefined || res === kNotFound ? next() : res;
+  };
 }
