@@ -111,7 +111,7 @@ export declare class H3 {
   /** @internal */
   _getMiddleware(
     event: H3Event,
-    route: MatchedRoute<H3Route> | void,
+    route: MatchedRoute<H3Route> | undefined,
   ): Middleware[];
 
   /** @internal */
