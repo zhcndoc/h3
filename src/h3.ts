@@ -101,7 +101,10 @@ export const H3Core = /* @__PURE__ */ (() => {
       this._routes.push(_route);
     }
 
-    _getMiddleware(route: MatchedRoute<H3Route> | void): Middleware[] {
+    _getMiddleware(
+      _event: H3Event,
+      route: MatchedRoute<H3Route> | void,
+    ): Middleware[] {
       return route?.data.middleware
         ? [...this._middleware, ...route.data.middleware]
         : this._middleware;
@@ -114,7 +117,7 @@ export const H3Core = /* @__PURE__ */ (() => {
         event.context.matchedRoute = route.data;
       }
       const routeHandler = route?.data.handler || NoHandler;
-      const middleware = this._getMiddleware(route);
+      const middleware = this._getMiddleware(event, route);
       return middleware.length > 0
         ? callMiddleware(event, middleware, () => routeHandler(event))
         : routeHandler(event);

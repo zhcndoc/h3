@@ -111,7 +111,10 @@ export declare class H3 {
   _findRoute(_event: H3Event): MatchedRoute<H3Route> | void;
 
   /** @internal */
-  _getMiddleware(route: MatchedRoute<H3Route> | void): Middleware[];
+  _getMiddleware(
+    event: H3Event,
+    route: MatchedRoute<H3Route> | void,
+  ): Middleware[];
 
   /** @internal */
   _normalizeMiddleware(
