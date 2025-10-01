@@ -35,6 +35,7 @@
     "dev": "vitest",
     "lint": "eslint --cache . && prettier -c src test examples docs",
     "lint:fix": "automd && eslint --cache . --fix && prettier -c src test examples docs -w",
+    "prepack": "pnpm build",
     "play:bun": "bun ./test/fixture/bun.ts",
     "play:node": "pnpm test/fixture/node.ts",
     "play:plain": "pnpm test/fixture/plain.ts",
