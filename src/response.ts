@@ -123,26 +123,35 @@ function prepareResponse(
   if (!preparedHeaders) {
     return val; // Fast path: no headers to merge
   }
-  return new FastResponse(
-    nullBody(event.req.method, val.status) ? null : val.body,
-    {
-      status: val.status,
-      statusText: val.statusText,
-      headers: mergeHeaders(preparedHeaders, val.headers),
-    },
-  ) as Response;
+  try {
+    mergeHeaders(val.headers, preparedHeaders, val.headers);
+    return val;
+  } catch {
+    // Headers are immutable
+    return new FastResponse(
+      nullBody(event.req.method, val.status) ? null : val.body,
+      {
+        status: val.status,
+        statusText: val.statusText,
+        headers: mergeHeaders(val.headers, preparedHeaders),
+      },
+    ) as Response;
+  }
 }
 
-function mergeHeaders(base: HeadersInit, merge: Headers): Headers {
-  const mergedHeaders = new Headers(base);
-  for (const [name, value] of merge) {
+function mergeHeaders(
+  base: HeadersInit,
+  overrides: Headers,
+  target = new Headers(base),
+): Headers {
+  for (const [name, value] of overrides) {
     if (name === "set-cookie") {
-      mergedHeaders.append(name, value);
+      target.append(name, value);
     } else {
-      mergedHeaders.set(name, value);
+      target.set(name, value);
     }
   }
-  return mergedHeaders;
+  return target;
 }
 
 const emptyHeaders = /* @__PURE__ */ new Headers({ "content-length": "0" });
