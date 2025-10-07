@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.0.0-rc.1
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.0-beta.5...v2.0.0-rc.1)
+
+### 🚀 Enhancements
+
+- ⚠️  `HTTPResponse` ([#1212](https://github.com/h3js/h3/pull/1212))
+
+### 🔥 Performance
+
+- Try avoid cloning response for meriging headers ([#1214](https://github.com/h3js/h3/pull/1214))
+
+### 🩹 Fixes
+
+- **cors:** Use defaults in handleCors ([#1161](https://github.com/h3js/h3/pull/1161))
+
+### 💅 Refactors
+
+- Hide internal `event._res` and `event.res._headers` ([#1185](https://github.com/h3js/h3/pull/1185))
+
+### 📦 Build
+
+- Add missing exports ([#1211](https://github.com/h3js/h3/pull/1211))
+
+### 🏡 Chore
+
+- Update deps ([6396029](https://github.com/h3js/h3/commit/6396029))
+- Prepare for rc ([#1213](https://github.com/h3js/h3/pull/1213))
+- Update srvx ([4c1eefc](https://github.com/h3js/h3/commit/4c1eefc))
+
+#### ⚠️ Breaking Changes
+
+- ⚠️  `HTTPResponse` ([#1212](https://github.com/h3js/h3/pull/1212))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Ilya Semenov ([@IlyaSemenov](https://github.com/IlyaSemenov))
+- Huseeiin ([@huseeiin](https://github.com/huseeiin))
+- Sandro Circi ([@sandros94](https://github.com/sandros94))
+
 ## v2.0.0-beta.5
 
 [compare changes](https://github.com/h3js/h3/compare/v2.0.0-beta.4...v2.0.0-beta.5)
