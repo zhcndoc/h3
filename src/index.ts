@@ -57,7 +57,7 @@ export { defineMiddleware, callMiddleware } from "./middleware.ts";
 
 // Response
 
-export { toResponse } from "./response.ts";
+export { toResponse, HTTPResponse } from "./response.ts";
 
 // Error
 
