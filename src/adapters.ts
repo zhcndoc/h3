@@ -1,4 +1,3 @@
-import { toNodeHandler as _toNodeHandler } from "srvx/node";
 import { HTTPError } from "./error.ts";
 import { kHandled } from "./response.ts";
 
@@ -79,13 +78,6 @@ export function defineNodeHandler(handler: NodeHandler): NodeHandler {
 
 export function defineNodeMiddleware(handler: NodeMiddleware): NodeMiddleware {
   return handler;
-}
-
-/**
- * Convert H3 app instance to a NodeHandler with (IncomingMessage, ServerResponse) => void signature.
- */
-export function toNodeHandler(app: H3): NodeHandler {
-  return _toNodeHandler(app.fetch);
 }
 
 function callNodeHandler(
