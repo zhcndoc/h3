@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.0.1-rc.2
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.0-rc.1...v2.0.1-rc.2)
+
+### 💅 Refactors
+
+- Deprecate and move `toNodeHandler` to `h3/node` ([#1215](https://github.com/h3js/h3/pull/1215))
+
+### 🏡 Chore
+
+- Update deps ([e6d666a](https://github.com/h3js/h3/commit/e6d666a))
+- Release as `2.0.1-rc.1` ([fe27148](https://github.com/h3js/h3/commit/fe27148))
+- Update deps ([cd298c6](https://github.com/h3js/h3/commit/cd298c6))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+
 ## v2.0.0-rc.1
 
 [compare changes](https://github.com/h3js/h3/compare/v2.0.0-beta.5...v2.0.0-rc.1)
