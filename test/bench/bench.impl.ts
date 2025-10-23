@@ -1,6 +1,6 @@
 import { compileRouter } from "rou3/compiler";
 import * as _h3src from "../../src/index.ts";
-import * as _h3v1 from "h3-v1";
+// import * as _h3v1 from "h3-v1";
 import * as _h3nightly from "h3-nightly";
 import { EmptyObject } from "../../src/utils/internal/obj.ts";
 
