@@ -54,11 +54,11 @@
   "devDependencies": {
     "@mitata/counters": "^0.0.8",
     "@types/connect": "^3.4.38",
-    "@types/express": "^5.0.3",
+    "@types/express": "^5.0.4",
     "@types/node": "^24.9.1",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
-    "@vitest/coverage-v8": "^4.0.1",
+    "@vitest/coverage-v8": "^4.0.3",
     "automd": "^0.4.2",
     "changelogen": "^0.6.2",
     "connect": "^3.7.0",
@@ -71,8 +71,8 @@
     "express": "^5.1.0",
     "fetchdts": "^0.1.7",
     "get-port-please": "^3.2.0",
-    "h3-nightly": "^3.0.0-20251023-133055-f185ce6",
-    "hono": "^4.10.2",
+    "h3-nightly": "3.0.0-20251023-133803-7632fc3",
+    "hono": "^4.10.3",
     "memoirist": "^0.4.0",
     "mitata": "^1.0.34",
     "obuild": "^0.2.1",
@@ -81,7 +81,7 @@
     "react-dom": "^19.2.0",
     "typescript": "^5.9.3",
     "vite": "^7.1.12",
-    "vitest": "^4.0.1",
+    "vitest": "^4.0.3",
     "zod": "^4.1.12"
   },
   "peerDependencies": {
