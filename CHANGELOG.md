@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.0.1-rc.4
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.3...v2.0.1-rc.4)
+
+### 🚀 Enhancements
+
+- Add `assertBodySize` util and `bodyLimit` middleware ([#1222](https://github.com/h3js/h3/pull/1222))
+
+### 🩹 Fixes
+
+- Support happy-dom environment ([#1230](https://github.com/h3js/h3/pull/1230))
+
+### 🏡 Chore
+
+- Update deps ([6d8204a](https://github.com/h3js/h3/commit/6d8204a))
+
+### ❤️ Contributors
+
+- Reve ([@aquapi](https://github.com/aquapi))
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+
 ## v2.0.1-rc.3
 
 [compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.2...v2.0.1-rc.3)
