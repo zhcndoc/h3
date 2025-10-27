@@ -108,11 +108,11 @@ export class H3Core implements H3CoreType {
 
 export const H3 = /* @__PURE__ */ (() => {
   class H3 extends H3Core {
-    "~rout3": RouterContext<H3Route>;
+    "~rou3": RouterContext<H3Route>;
 
     constructor(config: H3Config = {}) {
       super(config);
-      this["~rout3"] = createRouter();
+      this["~rou3"] = createRouter();
       this.request = this.request.bind(this);
       config.plugins?.forEach((plugin) => plugin(this as unknown as H3Type));
     }
@@ -185,11 +185,11 @@ export const H3 = /* @__PURE__ */ (() => {
     }
 
     override "~findRoute"(_event: H3Event): MatchedRoute<H3Route> | void {
-      return findRoute(this["~rout3"], _event.req.method, _event.url.pathname);
+      return findRoute(this["~rou3"], _event.req.method, _event.url.pathname);
     }
 
     override "~addRoute"(_route: H3Route): void {
-      addRoute(this["~rout3"], _route.method, _route.route!, _route);
+      addRoute(this["~rou3"], _route.method, _route.route!, _route);
       super["~addRoute"](_route);
     }
 
