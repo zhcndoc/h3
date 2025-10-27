@@ -3,8 +3,19 @@ import type { HTTPHandler, EventHandler, Middleware } from "./handler.ts";
 import type { HTTPError } from "../error.ts";
 import type { MaybePromise } from "./_utils.ts";
 import type { FetchHandler, ServerRequest } from "srvx";
-import type { MatchedRoute, RouterContext } from "rou3";
+// import type { MatchedRoute, RouterContext } from "rou3";
 import type { H3Event } from "../event.ts";
+
+// Inlined from rou3 for type portability
+export interface RouterContext {
+  root: any;
+  static: Record<string, any>;
+}
+
+export type MatchedRoute<T = any> = {
+  data: T;
+  params?: Record<string, string>;
+};
 
 // --- Misc ---
 
@@ -120,7 +131,7 @@ export declare class H3Core {
 
 export declare class H3 extends H3Core {
   /** @internal */
-  "~rou3": RouterContext<H3Route>;
+  "~rou3": RouterContext;
 
   /**
    * A [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)-compatible API allowing to fetch app routes.

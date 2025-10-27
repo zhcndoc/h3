@@ -4,8 +4,13 @@ import { toResponse, kNotFound } from "./response.ts";
 import { callMiddleware, normalizeMiddleware } from "./middleware.ts";
 
 import type { ServerRequest } from "srvx";
-import type { RouterContext, MatchedRoute } from "rou3";
-import type { H3Config, H3CoreConfig, H3Plugin } from "./types/h3.ts";
+import type {
+  H3Config,
+  H3CoreConfig,
+  H3Plugin,
+  MatchedRoute,
+  RouterContext,
+} from "./types/h3.ts";
 import type { H3EventContext } from "./types/context.ts";
 import type {
   EventHandler,
@@ -108,7 +113,7 @@ export class H3Core implements H3CoreType {
 
 export const H3 = /* @__PURE__ */ (() => {
   class H3 extends H3Core {
-    "~rou3": RouterContext<H3Route>;
+    "~rou3": RouterContext;
 
     constructor(config: H3Config = {}) {
       super(config);
