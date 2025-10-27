@@ -132,9 +132,15 @@ export const H3Core = /* @__PURE__ */ (() => {
       if ("handler" in input) {
         if (input._middleware.length > 0) {
           this._middleware.push((event, next) => {
-            return event.url.pathname.startsWith(base)
-              ? callMiddleware(event, input._middleware, next)
-              : next();
+            const originalPathname = event.url.pathname;
+            if (!originalPathname.startsWith(base)) {
+              return next();
+            }
+            event.url.pathname = event.url.pathname.slice(base.length) || "/";
+            return callMiddleware(event, input._middleware, () => {
+              event.url.pathname = originalPathname;
+              return next();
+            });
           });
         }
         for (const r of input._routes) {
