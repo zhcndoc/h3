@@ -2,6 +2,7 @@ import { beforeEach } from "vitest";
 import { describeMatrix } from "./_setup.ts";
 import { H3 } from "../src/h3.ts";
 import { defineHandler } from "../src/handler.ts";
+import { Hono } from "hono";
 
 describeMatrix("middleware", (t, { it, expect }) => {
   beforeEach(() => {
@@ -127,5 +128,22 @@ describeMatrix("middleware", (t, { it, expect }) => {
     const response = await t.app.request("/test/...");
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ log: expect.any(String) });
+  });
+
+  it("can mount sub-router as middleware", async () => {
+    t.app.get("/", () => "hi!");
+
+    const honoApp = new Hono().get("/hello", (c) => {
+      return c.text("world");
+    });
+    t.app.use((event) => honoApp.fetch(event.req));
+
+    const res = await t.fetch("/hello");
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("world");
+
+    const res2 = await t.fetch("/");
+    expect(res2.status).toBe(200);
+    expect(await res2.text()).toBe("hi!");
   });
 });
