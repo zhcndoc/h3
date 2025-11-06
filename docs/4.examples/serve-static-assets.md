@@ -29,7 +29,7 @@ app.use("/public/**", (event) => {
 
 这段代码还未提供任何文件服务。你需要实现 `getContents` 和 `getMeta` 方法。
 
-- `getContents` 用于读取文件内容。它应该返回一个 `Promise`，解析为文件内容，如果文件不存在则为 `undefined`。
+- `getContents` 用于读取文件内容。它应该返回一个 `Promise`，解析为文件内容，如果文件不存在则为 `undefined`。  
 - `getMeta` 用于获取文件元信息。它应该返回一个 `Promise`，解析为文件的元数据，如果文件不存在则为 `undefined`。
 
 它们被分开是为了让 H3 可以在不读取文件内容的情况下响应 `HEAD` 请求，并使用 `Last-Modified` 头部。
