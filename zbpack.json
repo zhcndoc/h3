@@ -1,0 +1,6 @@
+{
+  "app_dir": "/",
+  "build_command": "cd docs && NITRO_PRESET=node_server bun run build",
+  "install_command": "npm install -g bun && cd docs && bun install",
+  "output_dir": "docs/.docs/.output/public"
+}
