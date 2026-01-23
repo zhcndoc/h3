@@ -1,5 +1,6 @@
 ---
 icon: icons8:up-round
+title: Migration
 ---
 
 # 从 v1 到 v2 的迁移指南

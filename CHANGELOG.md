@@ -2,6 +2,134 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.0.1-rc.11
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.10...v2.0.1-rc.11)
+
+### 📦 Build
+
+- Fix types bundling ([e32d9e6](https://github.com/h3js/h3/commit/e32d9e6))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+
+## v2.0.1-rc.10
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.9...v2.0.1-rc.10)
+
+### 📦 Build
+
+- Move fetchdts to dependencies due to bundle issues ([0d753cf](https://github.com/h3js/h3/commit/0d753cf))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+
+## v2.0.1-rc.9
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.8...v2.0.1-rc.9)
+
+### 🩹 Fixes
+
+- **basic-auth:** Use jitter and  constant-time string comparison ([#1283](https://github.com/h3js/h3/pull/1283))
+
+### 🌊 Types
+
+- **onResponse:** Allow returning any value ([#1277](https://github.com/h3js/h3/pull/1277))
+
+### 🏡 Chore
+
+- Update deps ([b85db16](https://github.com/h3js/h3/commit/b85db16))
+- Update undocs ([3fc60f2](https://github.com/h3js/h3/commit/3fc60f2))
+- Update deps ([4d87e29](https://github.com/h3js/h3/commit/4d87e29))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Huseeiin ([@huseeiin](https://github.com/huseeiin))
+
+## v2.0.1-rc.8
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.7...v2.0.1-rc.8)
+
+### 🩹 Fixes
+
+- **fromNodeHandler:** Pipe responses once ([#1273](https://github.com/h3js/h3/pull/1273))
+
+### 💅 Refactors
+
+- Avoid unnecessary `    Error.captureStackTrace` ([652e883](https://github.com/h3js/h3/commit/652e883))
+
+### 🏡 Chore
+
+- Update deps ([1dfe739](https://github.com/h3js/h3/commit/1dfe739))
+- Lint ([2ec1eea](https://github.com/h3js/h3/commit/2ec1eea))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+
+## v2.0.1-rc.7
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.6...v2.0.1-rc.7)
+
+### 🚀 Enhancements
+
+- Experimental tracing support ([#1251](https://github.com/h3js/h3/pull/1251))
+- Customizable validation errors ([#1146](https://github.com/h3js/h3/pull/1146))
+
+### 🩹 Fixes
+
+- **mockEvent:** Make sure `duplex` option is properly set ([eb83aad](https://github.com/h3js/h3/commit/eb83aad))
+- **handleCacheHeaders:** Round `modifiedTime` to seconds ([#1262](https://github.com/h3js/h3/pull/1262))
+
+### 🏡 Chore
+
+- Fix typo in jsdocs ([#1263](https://github.com/h3js/h3/pull/1263))
+- Update deps ([fcd9ff9](https://github.com/h3js/h3/commit/fcd9ff9))
+- Update srvx to 0.10 ([0385342](https://github.com/h3js/h3/commit/0385342))
+
+### ❤️ Contributors
+
+- Minsu Lee ([@amondnet](https://github.com/amondnet))
+- Sandro Circi ([@sandros94](https://github.com/sandros94))
+- Abdelrahman Awad ([@logaretm](https://github.com/logaretm))
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Huseeiin ([@huseeiin](https://github.com/huseeiin))
+
+## v2.0.1-rc.6
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.5...v2.0.1-rc.6)
+
+### 🚀 Enhancements
+
+- **defineWebSocketHandler:** Support callback with `event` ([#1242](https://github.com/h3js/h3/pull/1242))
+
+### 🩹 Fixes
+
+- **proxy:** Strip `transfer-encoding` header from proxied response ([#1248](https://github.com/h3js/h3/pull/1248))
+- Clear `event.res` after prepare ([#1259](https://github.com/h3js/h3/pull/1259))
+
+### 📖 Documentation
+
+- Add `H3ravel` to the community section ([#1239](https://github.com/h3js/h3/pull/1239))
+- Add intlify to community integrations ([#1244](https://github.com/h3js/h3/pull/1244))
+
+### 🏡 Chore
+
+- Lint ([4218cbe](https://github.com/h3js/h3/commit/4218cbe))
+- Update deps ([bb10838](https://github.com/h3js/h3/commit/bb10838))
+- Update build config ([504e878](https://github.com/h3js/h3/commit/504e878))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Dardan Bujupaj ([@dardanbujupaj](https://github.com/dardanbujupaj))
+- Minsu Lee ([@amondnet](https://github.com/amondnet))
+- Kazuya Kawaguchi <kawakazu80@gmail.com>
+- Legacy ([@3m1n3nc3](https://github.com/3m1n3nc3))
+
 ## v2.0.1-rc.5
 
 [compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.4...v2.0.1-rc.5)

@@ -1,6 +1,6 @@
 {
   "name": "h3",
-  "version": "2.0.1-rc.5",
+  "version": "2.0.1-rc.11",
   "description": "Minimal H(TTP) framework built for high performance and portability.",
   "homepage": "https://h3.dev",
   "repository": "h3js/h3",
@@ -22,7 +22,8 @@
     "./cloudflare": "./dist/_entries/cloudflare.mjs",
     "./service-worker": "./dist/_entries/service-worker.mjs",
     "./node": "./dist/_entries/node.mjs",
-    "./generic": "./dist/_entries/generic.mjs"
+    "./generic": "./dist/_entries/generic.mjs",
+    "./tracing": "./dist/tracing.mjs"
   },
   "types": "./dist/_entries/generic.d.mts",
   "files": [
@@ -42,51 +43,52 @@
     "play:web": "pnpm test/fixture/web.ts",
     "release": "pnpm test && pnpm build && changelogen --release --prerelease --publish && git push --follow-tags",
     "test": "pnpm lint && pnpm test:types && vitest --run --coverage",
-    "test:types": "tsc --noEmit --skipLibCheck"
+    "test:types": "tsgo --noEmit --skipLibCheck"
   },
   "resolutions": {
     "h3": "link:."
   },
   "dependencies": {
-    "rou3": "^0.7.9",
-    "srvx": "^0.9.1"
+    "rou3": "^0.7.12",
+    "srvx": "^0.10.1"
   },
   "devDependencies": {
-    "@happy-dom/global-registrator": "^20.0.8",
+    "@happy-dom/global-registrator": "^20.3.3",
     "@mitata/counters": "^0.0.8",
     "@types/connect": "^3.4.38",
-    "@types/express": "^5.0.4",
-    "@types/node": "^24.9.1",
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.2",
-    "@vitest/coverage-v8": "^4.0.4",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.0.9",
+    "@types/react": "^19.2.8",
+    "@types/react-dom": "^19.2.3",
+    "@typescript/native-preview": "^7.0.0-dev.20260119.1",
+    "@vitest/coverage-v8": "^4.0.17",
     "automd": "^0.4.2",
     "changelogen": "^0.6.2",
     "connect": "^3.7.0",
     "cookie-es": "^2.0.0",
-    "crossws": "^0.4.1",
-    "elysia": "^1.4.13",
-    "esbuild": "^0.25.11",
-    "eslint": "^9.38.0",
-    "eslint-config-unjs": "^0.5.0",
-    "express": "^5.1.0",
+    "crossws": "^0.4.3",
+    "elysia": "^1.4.22",
+    "esbuild": "^0.27.2",
+    "eslint": "^9.39.2",
+    "eslint-config-unjs": "^0.6.2",
+    "express": "^5.2.1",
     "fetchdts": "^0.1.7",
     "get-port-please": "^3.2.0",
-    "h3-nightly": "^2.0.0-20251027-114947-241a45b",
-    "happy-dom": "^20.0.8",
-    "hono": "^4.10.3",
+    "h3-nightly": "^2.0.0-20260117-105852-2b7718c",
+    "happy-dom": "^20.3.3",
+    "hono": "^4.11.4",
     "magic-string": "^0.30.21",
     "memoirist": "^0.4.0",
     "mitata": "^1.0.34",
-    "obuild": "^0.3.0",
-    "oxc-parser": "^0.95.0",
-    "prettier": "^3.6.2",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "obuild": "npm:obuild-nightly@0.4.18-20260120-084242-d92d40b",
+    "oxc-parser": "^0.110.0",
+    "prettier": "^3.8.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "typescript": "^5.9.3",
-    "vite": "^7.1.12",
-    "vitest": "^4.0.4",
-    "zod": "^4.1.12"
+    "vite": "^7.3.1",
+    "vitest": "^4.0.17",
+    "zod": "^4.3.5"
   },
   "peerDependencies": {
     "crossws": "^0.4.1"
@@ -96,7 +98,7 @@
       "optional": true
     }
   },
-  "packageManager": "pnpm@10.19.0",
+  "packageManager": "pnpm@10.28.1",
   "engines": {
     "node": ">=20.11.1"
   }

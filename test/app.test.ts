@@ -14,7 +14,7 @@ describeMatrix("app", (t, { it, expect }) => {
   });
 
   it("can return bigint directly", async () => {
-    t.app.get("/", () => BigInt(9_007_199_254_740_991));
+    t.app.get("/", () => 9_007_199_254_740_991n);
     const res = await t.fetch("/");
 
     expect(await res.text()).toBe("9007199254740991");
@@ -287,6 +287,44 @@ describeMatrix("app", (t, { it, expect }) => {
       );
       const res = await t.fetch("/");
       expect(await res.json()).toEqual({ works: 1 });
+    },
+  );
+
+  it.skipIf(t.target !== "node")("fromNodeHandler + piping", async () => {
+    t.app.all(
+      "/*",
+      fromNodeHandler((req, res) => {
+        const iterator = (async function* () {
+          yield "item1,";
+          yield "item2,";
+          yield "item3";
+        })();
+        NodeStreamReadable.from(iterator).pipe(res);
+      }),
+    );
+    const res = await t.fetch("/");
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("item1,item2,item3");
+  });
+
+  it.skipIf(t.target !== "node")(
+    "fromNodeHandler + piping (with Error and custom status)",
+    async () => {
+      t.app.all(
+        "/*",
+        fromNodeHandler((req, res) => {
+          res.statusCode = 201;
+          const iterator = (async function* () {
+            yield "item1,";
+            yield "item2";
+            throw new Error("Test Error");
+          })();
+          NodeStreamReadable.from(iterator).pipe(res);
+        }),
+      );
+      const res = await t.fetch("/");
+      expect(res.status).toBe(201);
+      expect(await res.text()).toBe("item1,item2");
     },
   );
 
