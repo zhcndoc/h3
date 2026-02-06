@@ -74,10 +74,7 @@ import * as z from "zod";
 import * as v from "valibot";
 
 // 使用 Zod 示例
-const stringToNumber = z
-  .string()
-  .regex(/^\d+$/, "必须是数字字符串")
-  .transform(Number);
+const stringToNumber = z.string().regex(/^\d+$/, "必须是数字字符串").transform(Number);
 const paginationSchema = z.object({
   page: stringToNumber.optional().default(1),
   size: stringToNumber.optional().default(10),
@@ -191,10 +188,7 @@ const contentSchema = v.object({
 });
 
 router.use("/content/:topic/:uuid", async (event) => {
-  const params = await getValidatedRouterParams(
-    event,
-    v.safeParser(contentSchema),
-  );
+  const params = await getValidatedRouterParams(event, v.safeParser(contentSchema));
   if (!params.success) {
     // 处理验证错误
     return `验证失败：\n${v.summarize(params.issues)}`;

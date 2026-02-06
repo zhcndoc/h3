@@ -78,9 +78,7 @@ app.use(async (event) => {
     count: count,
   });
 
-  return count === 0
-    ? "Hello world!"
-    : `Hello world! 您已经访问此页面 ${count} 次。`;
+  return count === 0 ? "Hello world!" : `Hello world! 您已经访问此页面 ${count} 次。`;
 });
 ```
 

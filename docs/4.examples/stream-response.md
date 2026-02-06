@@ -42,15 +42,15 @@ const stream = new ReadableStream({
 ## 发送流
 
 ```ts
-import { H3, setResponseHeader } from "h3";
+import { H3 } from "h3";
 
 export const app = new H3();
 
 app.use((event) => {
   // 设置响应头，告知客户端我们正在发送一个流。
-  setResponseHeader(event, "Content-Type", "text/html");
-  setResponseHeader(event, "Cache-Control", "no-cache");
-  setResponseHeader(event, "Transfer-Encoding", "chunked");
+  event.res.headers.set("Content-Type", "text/html");
+  event.res.headers.set("Cache-Control", "no-cache");
+  event.res.headers.set("Transfer-Encoding", "chunked");
 
   let interval: NodeJS.Timeout;
   const stream = new ReadableStream({
