@@ -1,6 +1,8 @@
 import type { H3Event } from "../../event.ts";
 import type { EventStreamMessage, EventStreamOptions } from "../event-stream.ts";
 
+const _noop = () => {};
+
 /**
  * A helper class for [server sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#event_stream_format)
  */
@@ -69,7 +71,9 @@ export class EventStream {
       this._unsentData += formatEventStreamComment(comment);
       return;
     }
-    await this._writer.write(this._encoder.encode(formatEventStreamComment(comment))).catch();
+    await this._writer.write(this._encoder.encode(formatEventStreamComment(comment))).catch(() => {
+      this._writerIsClosed = true;
+    });
   }
 
   private async _sendEvent(message: EventStreamMessage) {
@@ -84,7 +88,9 @@ export class EventStream {
       this._unsentData += formatEventStreamMessage(message);
       return;
     }
-    await this._writer.write(this._encoder.encode(formatEventStreamMessage(message))).catch();
+    await this._writer.write(this._encoder.encode(formatEventStreamMessage(message))).catch(() => {
+      this._writerIsClosed = true;
+    });
   }
 
   private async _sendEvents(messages: EventStreamMessage[]) {
@@ -101,7 +107,9 @@ export class EventStream {
       return;
     }
 
-    await this._writer.write(this._encoder.encode(payload)).catch();
+    await this._writer.write(this._encoder.encode(payload)).catch(() => {
+      this._writerIsClosed = true;
+    });
   }
 
   pause(): void {
@@ -122,7 +130,9 @@ export class EventStream {
       return;
     }
     if (this._unsentData?.length) {
-      await this._writer.write(this._encoder.encode(this._unsentData));
+      await this._writer.write(this._encoder.encode(this._unsentData)).catch(() => {
+        this._writerIsClosed = true;
+      });
       this._unsentData = undefined;
     }
   }
@@ -149,7 +159,7 @@ export class EventStream {
    * It is also triggered after calling the `close()` method.
    */
   onClosed(cb: () => any): void {
-    this._writer.closed.then(cb);
+    this._writer.closed.then(cb).catch(_noop);
   }
 
   async send(): Promise<BodyInit> {
@@ -168,22 +178,35 @@ export function isEventStream(input: unknown): input is EventStream {
 }
 
 export function formatEventStreamComment(comment: string): string {
-  return `: ${comment}\n\n`;
+  return (
+    comment
+      .split(/\r\n|\r|\n/)
+      .map((l) => `: ${l}\n`)
+      .join("") + "\n"
+  );
 }
 
 export function formatEventStreamMessage(message: EventStreamMessage): string {
   let result = "";
   if (message.id) {
-    result += `id: ${message.id}\n`;
+    result += `id: ${_sanitizeSingleLine(message.id)}\n`;
   }
   if (message.event) {
-    result += `event: ${message.event}\n`;
+    result += `event: ${_sanitizeSingleLine(message.event)}\n`;
   }
   if (typeof message.retry === "number" && Number.isInteger(message.retry)) {
     result += `retry: ${message.retry}\n`;
   }
-  result += `data: ${message.data}\n\n`;
+  const data = typeof message.data === "string" ? message.data : "";
+  for (const line of data.split(/\r\n|\r|\n/)) {
+    result += `data: ${line}\n`;
+  }
+  result += "\n";
   return result;
+}
+
+function _sanitizeSingleLine(value: string): string {
+  return value.replace(/[\n\r]/g, "");
 }
 
 export function formatEventStreamMessages(messages: EventStreamMessage[]): string {

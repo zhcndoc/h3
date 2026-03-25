@@ -50,12 +50,12 @@ H3 版本 2 包含一些行为和 API 变更，您在迁移时需要考虑应用
 
 其他更名且需要显式 `return` 的发送工具：
 
-- `sendNoContent(event)` / `return null`：迁移为 `return noContent(event)`。
-- `sendIterable(event, <value>)`：迁移为 `return iterable(event, <value>)`。
-- `sendProxy(event, target)`：迁移为 `return proxy(event, target)`。
-- `handleCors(event)`：检查返回值（布尔型），如果已处理则提前 `return`。
-- `serveStatic(event, content)`：确保添加 `return`。
-- `sendRedirect(event, location, code)`：迁移为 `return redirect(event, location, code)`。
+- `sendNoContent(event)` / `return null`: 迁移为 `return noContent()`。
+- `sendIterable(event, <value>)`: 迁移为 `return iterable(<value>)`。
+- `sendProxy(event, target)`: 迁移为 `return proxy(event, target)`。
+- `handleCors(event)`: 检查返回值并在已处理时提前 `return`（不是 `false`）。
+- `serveStatic(event, content)`: 确保在前面添加 `return`。
+- `sendRedirect(event, location, code)`: 迁移为 `return redirect(location, code)`。
 
 :read-more{to="/guide/basics/response" title="发送响应"}
 
@@ -135,10 +135,18 @@ H3 v2 废弃了一些老旧及别名工具。
 
 ### 请求工具
 
-- `getHeader` / `getRequestHeader`：迁移为 `event.req.headers.get(name)`。
-- `getHeaders` / `getRequestHeaders`：迁移为 `Object.fromEntries(event.req.headers.entries())`。
-- `getRequestPath`：迁移为 `event.path` 或 `event.url`。
-- `getMethod`：迁移为 `event.method`。
+- `getHeader` / `getRequestHeader`: Migrate to `event.req.headers.get(name)`.
+- `getHeaders` / `getRequestHeaders`: Migrate to `Object.fromEntries(event.req.headers.entries())`.
+- `getRequestPath`: Migrate to `event.url.pathname`.
+- `getMethod`: Migrate to `event.req.method`.
+
+> [!NOTE]
+> The following `H3Event` properties are deprecated in v2 and might be removed in a future version:
+>
+> - `event.path` → use `event.url.pathname + event.url.search`
+> - `event.method` → use `event.req.method`
+> - `event.headers` → use `event.req.headers`
+> - `event.node` → use `event.runtime.node`
 
 ### 响应工具
 

@@ -19,7 +19,7 @@ H3 提供了许多用于处理会话的工具：
 
 ## 初始化会话
 
-要初始化会话，您需要在[事件处理器](/guide/handler)中使用 `useSession`：
+要初始化会话，您需要在事件处理器中使用 `useSession`：
 
 ```js
 import { useSession } from "h3";

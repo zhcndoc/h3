@@ -46,8 +46,8 @@ const contentSchema = v.object({
   uuid: v.pipe(v.string(), v.uuid()),
 });
 
-router.use(
-  // 您必须使用一个路由以使用参数
+app.all(
+  // You must use a router to use params
   "/content/:topic/:uuid",
   async (event) => {
     const params = await getValidatedRouterParams(event, contentSchema);
@@ -166,7 +166,7 @@ const contentSchema = z.object({
   uuid: z.string().uuid(),
 });
 
-router.use("/content/:topic/:uuid", async (event) => {
+app.all("/content/:topic/:uuid", async (event) => {
   const params = await getValidatedRouterParams(event, contentSchema.safeParse);
   if (!params.success) {
     // 处理验证错误
@@ -187,7 +187,7 @@ const contentSchema = v.object({
   uuid: v.pipe(v.string(), v.uuid()),
 });
 
-router.use("/content/:topic/:uuid", async (event) => {
+app.all("/content/:topic/:uuid", async (event) => {
   const params = await getValidatedRouterParams(event, v.safeParser(contentSchema));
   if (!params.success) {
     // 处理验证错误

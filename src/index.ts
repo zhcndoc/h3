@@ -75,13 +75,15 @@ export {
 
 // ------ Utils ------
 
-// Route
+// Routing
 
-export { type RouteDefinition, defineRoute } from "./utils/route.ts";
+export { type RouteDefinition, defineRoute, removeRoute } from "./utils/route.ts";
 
 // Request
 
 export {
+  requestWithURL,
+  requestWithBaseURL,
   toRequest,
   getRequestHost,
   getRequestIP,
@@ -98,7 +100,14 @@ export {
 
 // Response
 
-export { writeEarlyHints, redirect, iterable, noContent, html } from "./utils/response.ts";
+export {
+  writeEarlyHints,
+  redirect,
+  redirectBack,
+  iterable,
+  noContent,
+  html,
+} from "./utils/response.ts";
 
 // Middleware
 
@@ -122,6 +131,7 @@ export { readBody, readValidatedBody, assertBodySize } from "./utils/body.ts";
 
 export {
   getCookie,
+  getValidatedCookies,
   deleteCookie,
   parseCookies,
   setCookie,
@@ -137,6 +147,10 @@ export {
   type EventStreamOptions,
   createEventStream,
 } from "./utils/event-stream.ts";
+
+// Timing
+
+export { setServerTiming, withServerTiming } from "./utils/timing.ts";
 
 // Sanitize
 

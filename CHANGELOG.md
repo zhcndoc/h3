@@ -2,6 +2,146 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.0.1-rc.19
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.18...v2.0.1-rc.19)
+
+### 🩹 Fixes
+
+- **body:** Enforce stream-based body size check regardless of content-length header ([708a3aa](https://github.com/h3js/h3/commit/708a3aa))
+
+### 💅 Refactors
+
+- Upgrade cookie-es to v3 ([9d244a7](https://github.com/h3js/h3/commit/9d244a7))
+
+### 📖 Documentation
+
+- Remove `await-thenable` lint rule and fix invalid `await` usage ([#1353](https://github.com/h3js/h3/pull/1353))
+
+### 📦 Build
+
+- Move docs to dist ([e87ceca](https://github.com/h3js/h3/commit/e87ceca))
+
+### 🏡 Chore
+
+- Update deps ([88ce5cd](https://github.com/h3js/h3/commit/88ce5cd))
+- Remove unused import ([766cd39](https://github.com/h3js/h3/commit/766cd39))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Nick Spaargaren ([@nickspaargaren](https://github.com/nickspaargaren))
+
+## v2.0.1-rc.18
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.17...v2.0.1-rc.18)
+
+### 🩹 Fixes
+
+- **utils:** Prevent open redirect via protocol-relative path in `redirectBack()` ([459a1c6](https://github.com/h3js/h3/commit/459a1c6))
+- **cookie:** Prevent unbounded chunked cookie count ([399257c](https://github.com/h3js/h3/commit/399257c))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+
+## v2.0.1-rc.17
+
+[compare changes](https://github.com/h3js/h3/compare/v1.15.8...v2.0.1-rc.17)
+
+### 🚀 Enhancements
+
+- Add redirectBack utility ([#1329](https://github.com/h3js/h3/pull/1329))
+- Add `removeRoute` ([#1331](https://github.com/h3js/h3/pull/1331))
+
+### 🩹 Fixes
+
+- **cors:** Preserve CORS headers on error responses ([#1352](https://github.com/h3js/h3/pull/1352))
+- **sse:** Mark writer as closed on write failure ([#1322](https://github.com/h3js/h3/pull/1322))
+- **request:** Include `Allow` header in 405 response ([#1314](https://github.com/h3js/h3/pull/1314))
+- **sse:** Sanitize carriage returns in event stream data and comments ([79cabe3](https://github.com/h3js/h3/commit/79cabe3))
+- **mount:** Normalize percent-encoded pathname in `requestWithBaseURL` ([0295f90](https://github.com/h3js/h3/commit/0295f90))
+- **static:** Prevent path traversal via double-encoded dot segments ([8e9993f](https://github.com/h3js/h3/commit/8e9993f))
+- **mount:** Enforce path segment boundary in `startsWith` check ([7ccc9e2](https://github.com/h3js/h3/commit/7ccc9e2))
+
+### 📖 Documentation
+
+- Fix typo ([#1351](https://github.com/h3js/h3/pull/1351))
+- Improve security notes about proxy utils ([448e7eb](https://github.com/h3js/h3/commit/448e7eb))
+
+### 🏡 Chore
+
+- Enable type-aware linting with oxclint ([#1349](https://github.com/h3js/h3/pull/1349))
+- Update deps ([28a3863](https://github.com/h3js/h3/commit/28a3863))
+
+### ✅ Tests
+
+- Update bundle tests ([44f295d](https://github.com/h3js/h3/commit/44f295d))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Wind ([@productdevbook](https://github.com/productdevbook))
+- Terminal Chai ([@terminalchai](https://github.com/terminalchai))
+- Nick Spaargaren ([@nickspaargaren](https://github.com/nickspaargaren))
+- Gabriel Trzimajewski ([@Sn0wye](https://github.com/Sn0wye))
+
+## v2.0.1-rc.16
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.15...v2.0.1-rc.16)
+
+### 🏡 Chore
+
+- Update deps ([e69f0c4](https://github.com/h3js/h3/commit/e69f0c4))
+- Update rou3 to 0.8 ([4701dc4](https://github.com/h3js/h3/commit/4701dc4))
+- Update srvx ([05959e38](https://github.com/h3js/h3/commit/05959e38))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+
+## v2.0.1-rc.15
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.14...v2.0.1-rc.15)
+
+### 🚀 Enhancements
+
+- **handler:** New `defineJsonRpcHandler` and `defineJsonRpcWebSocketHandler` ([#1180](https://github.com/h3js/h3/pull/1180))
+
+### 🔥 Performance
+
+- **resolveLazyHandler:** Replace with inline expression ([#1296](https://github.com/h3js/h3/pull/1296))
+
+### 🩹 Fixes
+
+- **sse:** Sanitize newlines in event stream fields to prevent SSE injection ([7791538](https://github.com/h3js/h3/commit/7791538))
+- **static:** Prevent path traversal via percent-encoded dot segments ([0e751b4](https://github.com/h3js/h3/commit/0e751b4))
+
+### 📖 Documentation
+
+- **community:** Add clear router ([#1303](https://github.com/h3js/h3/pull/1303))
+- Add `unjwt` community library entry ([#1309](https://github.com/h3js/h3/pull/1309))
+
+### 📦 Build
+
+- Bundle docs as skill + `h3 docs` ([#1311](https://github.com/h3js/h3/pull/1311))
+
+### 🏡 Chore
+
+- Add `ESNext` to tsconfig's `lib` ([#1297](https://github.com/h3js/h3/pull/1297))
+- Update deps ([7e7309a](https://github.com/h3js/h3/commit/7e7309a))
+- Update deps ([c037c0d](https://github.com/h3js/h3/commit/c037c0d))
+- Rename format script to fmt ([8d0dda8](https://github.com/h3js/h3/commit/8d0dda8))
+- Add agents.md ([52c82e1](https://github.com/h3js/h3/commit/52c82e1))
+- Update deps ([6da10a9](https://github.com/h3js/h3/commit/6da10a9))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Sandro Circi ([@sandros94](https://github.com/sandros94))
+- Octavio Araiza ([@8ctavio](https://github.com/8ctavio))
+- Legacy ([@3m1n3nc3](https://github.com/3m1n3nc3))
+
 ## v2.0.1-rc.14
 
 [compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.13...v2.0.1-rc.14)

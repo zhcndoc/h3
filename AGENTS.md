@@ -10,16 +10,15 @@ H3（读作 /eɪtʃθriː/）是一个为高性能和可移植性打造的极简
 # 安装
 corepack enable && pnpm install
 
-# 开发
-pnpm dev                    # vitest 监听模式
-pnpm vitest run <path>      # 运行指定测试
-pnpm test                   # 全套测试（lint + 类型检查 + 覆盖率）
-pnpm build                  # 用 obuild 构建
-pnpm lint                   # oxlint + oxfmt --check
+# Development
+pnpm dev                    # vitest watch mode
+pnpm vitest run <path>      # run specific test
+pnpm test                   # full suite (lint + typecheck + coverage)
+pnpm build                  # build with obuild
+pnpm lint                   # oxlint + oxfmt --check (lint + typecheck)
 pnpm fmt                    # automd + oxlint --fix + oxfmt
-pnpm typecheck              # tsgo --noEmit --skipLibCheck
-pnpm bench:node             # Node.js 基准测试
-pnpm bench:bun              # Bun 基准测试
+pnpm bench:node             # node benchmarks
+pnpm bench:bun              # bun benchmarks
 ```
 
 ## 架构

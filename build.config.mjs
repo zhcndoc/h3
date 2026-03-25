@@ -1,6 +1,7 @@
 import { defineBuildConfig } from "obuild/config";
 import { parseSync } from "oxc-parser";
 import MagicString from "magic-string";
+import { mkdir } from "node:fs/promises";
 
 const entries = ["deno", "bun", "cloudflare", "service-worker", "node", "generic"];
 
@@ -15,6 +16,17 @@ export default defineBuildConfig({
     rolldownOutput(config) {
       config.codeSplitting = {};
       config.chunkFileNames = "h3-[hash].mjs";
+    },
+    async end() {
+      const { DocsManager, DocsSourceFS, exportDocsToFS } = await import("mdzilla");
+      const man = new DocsManager(new DocsSourceFS("./docs"));
+      await man.load();
+      await mkdir("./dist/docs", { recursive: true });
+      await exportDocsToFS(man, "./dist/docs", {
+        title: "H3 Documentation",
+        tocFile: "TOC.md",
+        filter: (e) => !e.entry.path.startsWith("/blog"),
+      });
     },
     rolldownConfig(config) {
       config.experimental ??= {};

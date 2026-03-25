@@ -5,7 +5,7 @@ shortDescription: 通用、小巧且快速的服务器
 description: 基于 Web 标准构建的H(TTP)服务器框架，旨在实现高性能与模块化组合。
 
 themeColor: amber
-automd: true
+automd: false
 
 redirects:
   "/guide/event-handler": "/guide/handler"
