@@ -1,6 +1,6 @@
 {
   "app_dir": "/",
-  "build_command": "cd docs && NITRO_PRESET=node_server pnpm run build",
+  "build_command": "cd docs && NITRO_PRESET=static pnpm run build",
   "output_dir": "docs/.docs/.output/public",
   "install_command": "cd docs && pnpm install --frozen-lockfile"
 }
