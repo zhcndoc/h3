@@ -34,7 +34,7 @@ app.use(async (event) => {
 ```
 
 > [!WARNING]
-> 您必须提供一个密码来加密会话。
+> 您必须提供一个密码来加密会话。下面的示例使用了硬编码值以保持可读性，但在实际应用中，应从环境变量中加载，例如 `process.env.SESSION_PASSWORD`，并确保它是一个至少 32 个字符的强密钥，且永远不要将其提交到源代码控制中。
 
 这将初始化一个会话并返回一个包含名为 `h3` 的 cookie 和加密内容的 `Set-Cookie` 头。
 
@@ -133,3 +133,36 @@ app.use(async (event) => {
   return session.data;
 });
 ```
+
+除 `password` 外，每个选项都是可选的。`name` 选项值得特别说明：它会设置用于存储会话的 cookie，默认值为 `h3`。H3 还会从一个由 `name` 派生的请求头中读取会话，并将其规范化为小写，格式为 `x-${name.toLowerCase()}-session`，因此默认名称 `h3` 会生成前面看到的 `x-h3-session` 请求头。像 `MyApp` 这样混合大小写的 `name` 仍然会解析为小写的 `x-myapp-session` 请求头，而 cookie 会保留原始大小写。正因为这个默认值，前面的示例才会设置一个名为 `h3` 的 cookie。
+
+> [!NOTE]
+> `secure: true` 选项会告诉浏览器只在 HTTPS 下存储和发送该 cookie。在本地通过普通 HTTP 开发时，兼容的浏览器（尤其是 Safari 和 iOS，以及某些本地域名上的 Chrome）会静默丢弃该 cookie，因此会话不会持久化。请在本地开发时将 `cookie: { secure: false }` 设为关闭，以解决此问题。
+
+## 使用多个会话
+
+由于每个会话都存储在自己的 `name` 下，你可以在同一个请求上运行多个彼此独立的会话。它们会保存在不同的 cookie 中，且永远不会互相覆盖，这对于将无关的事项分开很有用，例如一个长期存在的认证会话和一个短暂的闪现消息：
+
+```js
+import { useSession } from "h3";
+
+app.use(async (event) => {
+  const auth = await useSession(event, {
+    name: "auth",
+    password: "80d42cfb-1cd2-462c-8f17-e3237d9027e9",
+  });
+
+  const flash = await useSession(event, {
+    name: "flash",
+    password: "80d42cfb-1cd2-462c-8f17-e3237d9027e9",
+  });
+
+  await flash.update({ message: "已保存！" });
+
+  // `auth` 和 `flash` 由不同的 cookie 支持，因此它们会保持独立
+  return { user: auth.data.user, flash: flash.data.message };
+});
+```
+
+> [!NOTE]
+> 为每个会话使用不同的 `name`。两个共享同一个 `name` 的会话也会共享同一个 cookie，因此最后一次写入的内容会生效。

@@ -162,6 +162,10 @@ export { sanitizeStatusCode, sanitizeStatusMessage } from "./utils/sanitize.ts";
 
 export { type CacheConditions, handleCacheHeaders } from "./utils/cache.ts";
 
+// Path
+
+export { type ResolveDotSegmentsOptions, resolveDotSegments } from "./utils/path.ts";
+
 // Static
 
 export { type ServeStaticOptions, type StaticAssetMeta, serveStatic } from "./utils/static.ts";
@@ -210,6 +214,7 @@ export {
   type WebSocketHooks,
   type WebSocketPeer,
   type WebSocketMessage,
+  type WebSocketResponse,
   defineWebSocketHandler,
   defineWebSocket,
 } from "./utils/ws.ts";
