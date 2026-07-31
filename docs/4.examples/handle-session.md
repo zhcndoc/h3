@@ -19,7 +19,7 @@ H3 提供了许多用于处理会话的工具：
 
 ## 初始化会话
 
-要初始化会话，您需要在事件处理器中使用 `useSession`：
+要初始化会话，您需要在[事件处理器](/guide/basics/handler)中使用 `useSession`：
 
 ```js
 import { useSession } from "h3";
@@ -34,7 +34,13 @@ app.use(async (event) => {
 ```
 
 > [!WARNING]
-> 您必须提供一个密码来加密会话。下面的示例使用了硬编码值以保持可读性，但在实际应用中，应从环境变量中加载，例如 `process.env.SESSION_PASSWORD`，并确保它是一个至少 32 个字符的强密钥，且永远不要将其提交到源代码控制中。
+> `password` 会对每个会话 cookie 进行加密，其**熵是实际的安全边界**。被窃取的会话 cookie 会以明文形式携带盐值和完整性摘要，因此弱密码或容易猜测的密码可能会遭到离线暴力破解——增加 PBKDF2 迭代次数只会减慢破解速度，并不能修复低熵密钥。请始终使用密码学安全的随机源生成密码，例如：
+>
+> ```sh
+> node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
+> ```
+>
+> 下面的示例使用硬编码值以保持可读性，但在实际应用中，请从环境变量（例如 `process.env.SESSION_PASSWORD`）中加载一个随机生成的、至少包含 32 个字符的密钥，并且绝不要将其提交到源代码管理系统中。容易猜测的密码短语（即使长度 ≥32 个字符）也不安全。
 
 这将初始化一个会话并返回一个包含名为 `h3` 的 cookie 和加密内容的 `Set-Cookie` 头。
 
@@ -137,7 +143,10 @@ app.use(async (event) => {
 除 `password` 外，每个选项都是可选的。`name` 选项值得特别说明：它会设置用于存储会话的 cookie，默认值为 `h3`。H3 还会从一个由 `name` 派生的请求头中读取会话，并将其规范化为小写，格式为 `x-${name.toLowerCase()}-session`，因此默认名称 `h3` 会生成前面看到的 `x-h3-session` 请求头。像 `MyApp` 这样混合大小写的 `name` 仍然会解析为小写的 `x-myapp-session` 请求头，而 cookie 会保留原始大小写。正因为这个默认值，前面的示例才会设置一个名为 `h3` 的 cookie。
 
 > [!NOTE]
-> `secure: true` 选项会告诉浏览器只在 HTTPS 下存储和发送该 cookie。在本地通过普通 HTTP 开发时，兼容的浏览器（尤其是 Safari 和 iOS，以及某些本地域名上的 Chrome）会静默丢弃该 cookie，因此会话不会持久化。请在本地开发时将 `cookie: { secure: false }` 设为关闭，以解决此问题。
+> 会话 cookie 的默认值为 `secure: true`、`httpOnly: true`、`sameSite: "lax"` 和 `path: "/"`。这些选项中的任何一个都可以通过 `cookie` 进行覆盖。
+
+> [!NOTE]
+> `secure: true` 选项会告知浏览器仅通过 HTTPS 存储和发送 cookie。在使用普通 HTTP 进行本地开发时，符合规范的浏览器（尤其是 Safari 和 iOS，以及某些本地域名下的 Chrome）会静默丢弃 cookie，因此会话将无法持久化。要解决此问题，请在本地开发期间设置 `cookie: { secure: false }`。
 
 ## 使用多个会话
 

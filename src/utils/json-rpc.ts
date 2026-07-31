@@ -101,7 +101,12 @@ export function defineJsonRpcHandler<RequestT extends EventHandlerRequest = Even
     let body: unknown;
     try {
       body = await event.req.json();
-    } catch {
+    } catch (error) {
+      // Keep a real `HTTPError` (e.g. the `413` from an aborted body-limit
+      // stream) instead of masking it as a JSON-RPC parse error.
+      if (HTTPError.isError(error)) {
+        throw error;
+      }
       return createJsonRpcError(null, PARSE_ERROR, "Parse error");
     }
     const result = await processJsonRpcBody(body, methodMap, event);
@@ -205,8 +210,10 @@ async function processJsonRpcBody<C extends H3Event | WebSocketPeer>(
   context: C,
 ): Promise<JsonRpcResponse | JsonRpcResponse[] | undefined> {
   // Body must be a non-null object or array.
+  // Note: parsing already succeeded here, so a primitive body is not a Parse
+  // error (§5.1 reserves -32700 for invalid JSON) but an Invalid Request.
   if (!body || typeof body !== "object") {
-    return createJsonRpcError(null, PARSE_ERROR, "Parse error");
+    return createJsonRpcError(null, INVALID_REQUEST, "Invalid Request");
   }
 
   const requests = Array.isArray(body) ? body : [body];
@@ -319,10 +326,11 @@ async function processJsonRpcMethod<C extends H3Event | WebSocketPeer>(
       : {
           status: 500,
           message: "Internal error",
-          data:
-            error_ != null && typeof error_ === "object" && "message" in error_
-              ? error_.message
-              : undefined,
+          // Never expose internal exception details to untrusted callers.
+          // Consistent with `HTTPError.toJSON()` hiding `data`/`message` for
+          // unhandled errors (see `src/error.ts`). Thrown `HTTPError`s keep
+          // their opt-in `data`/`message` via the branch above.
+          data: undefined,
         };
     const statusCode = h3Error.status;
     const statusMessage = h3Error.message;

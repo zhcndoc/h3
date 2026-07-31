@@ -1,6 +1,6 @@
 ---
 icon: icons8:up-round
-title: Migration
+title: 迁移
 ---
 
 # 从 v1 到 v2 的迁移指南
@@ -105,7 +105,7 @@ H3 迁移到了全新的路由匹配引擎（[🌳 rou3](https://rou3.h3.dev/)�
 ## Cookie 和 Headers
 
 > [!TIP]
-> H3 现原生使用标准 Web [`Headers`](https://developer.mozilla.org/en-US/docs/Web/API/Headers) 来支持所有工具。
+> H3 现在原生使用标准 Web [`Headers`](https://developer.mozilla.org/en-US/docs/Web/API/Headers) 来支持所有工具。
 
 Header 值现在始终为纯 `string` 类型（不再可能是 `null`、`undefined`、`number` 或 `string[]`）。
 
@@ -135,18 +135,21 @@ H3 v2 废弃了一些老旧及别名工具。
 
 ### 请求工具
 
-- `getHeader` / `getRequestHeader`: Migrate to `event.req.headers.get(name)`.
-- `getHeaders` / `getRequestHeaders`: Migrate to `Object.fromEntries(event.req.headers.entries())`.
-- `getRequestPath`: Migrate to `event.url.pathname`.
-- `getMethod`: Migrate to `event.req.method`.
+- `getHeader` / `getRequestHeader`：迁移为 `event.req.headers.get(name)`。
+- `getHeaders` / `getRequestHeaders`：迁移为 `Object.fromEntries(event.req.headers.entries())`。
+- `getRequestPath`：迁移为 `event.url.pathname`。
+- `getMethod`：迁移为 `event.req.method`。
+
+> [!IMPORTANT]
+> `getRequestProtocol`（以及 `getRequestURL`）默认不再信任 `x-forwarded-proto` 请求头。若要信任该请求头（仅应在受信任的反向代理或 CDN 后使用），请通过 `{ xForwardedProto: true }` 显式启用。这与 `getRequestHost`（`xForwardedHost`）和 `getRequestIP`（`xForwardedFor`）现有的显式启用行为保持一致。
 
 > [!NOTE]
-> The following `H3Event` properties are deprecated in v2 and might be removed in a future version:
+> 以下 `H3Event` 属性在 v2 中已废弃，未来版本中可能会被移除：
 >
-> - `event.path` → use `event.url.pathname + event.url.search`
-> - `event.method` → use `event.req.method`
-> - `event.headers` → use `event.req.headers`
-> - `event.node` → use `event.runtime.node`
+> - `event.path` → 使用 `event.url.pathname + event.url.search`
+> - `event.method` → 使用 `event.req.method`
+> - `event.headers` → 使用 `event.req.headers`
+> - `event.node` → 使用 `event.runtime.node`
 
 ### 响应工具
 
@@ -185,10 +188,11 @@ H3 v2 废弃了一些老旧及别名工具。
 
 ### 其他工具
 
+- `createEventStream`：迁移为 `new EventStream(event)`。
 - `isStream`：迁移为 `instanceof ReadableStream`。
 - `isWebResponse`：迁移为 `instanceof Response`。
-- `splitCookiesString`：请使用 [cookie-es](https://github.com/unjs/cookie-es) 中的 `splitSetCookieString`。
-- `MIMES`：移除。
+- `splitCookiesString`：使用 [cookie-es](https://github.com/unjs/cookie-es) 中的 `splitSetCookieString`。
+- `MIMES`：（已移除）。
 
 ### 类型导出
 

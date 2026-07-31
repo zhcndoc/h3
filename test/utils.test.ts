@@ -1,4 +1,4 @@
-import { beforeEach } from "vitest";
+import { beforeEach, vi } from "vitest";
 import {
   redirect,
   redirectBack,
@@ -11,6 +11,7 @@ import {
   getRequestFingerprint,
   handleCacheHeaders,
   html,
+  raw,
   writeEarlyHints,
 } from "../src/index.ts";
 import { describeMatrix } from "./_setup.ts";
@@ -18,7 +19,7 @@ import { describeMatrix } from "./_setup.ts";
 describeMatrix("utils", (t, { it, describe, expect }) => {
   describe("html", () => {
     it("can return html response", async () => {
-      t.app.get("/test", () => html("<h1>Hello</h1>"));
+      t.app.get("/test", () => html(raw("<h1>Hello</h1>")));
       const res1 = await t.fetch("/test");
       expect(res1.headers.get("content-type")).toBe("text/html; charset=utf-8");
       expect(await res1.text()).toBe("<h1>Hello</h1>");
@@ -27,6 +28,71 @@ describeMatrix("utils", (t, { it, describe, expect }) => {
       const res2 = await t.fetch("/test2");
       expect(res2.headers.get("content-type")).toBe("text/html; charset=utf-8");
       expect((await res2.text()).trim()).toBe("<h1>Hello</h1>");
+    });
+
+    it("escapes interpolated values in tagged template", async () => {
+      const name = `<script>alert("xss")</script>&'`;
+      t.app.get("/test", () => html`<h1>Hello, ${name}!</h1>`);
+      const res = await t.fetch("/test");
+      expect(res.headers.get("content-type")).toBe("text/html; charset=utf-8");
+      expect(await res.text()).toBe(
+        "<h1>Hello, &lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;&amp;&#39;!</h1>",
+      );
+    });
+
+    it("passes raw() values through unescaped", async () => {
+      const trusted = "<b>bold</b>";
+      const user = "<script>";
+      t.app.get("/test", () => html`<div>${raw(trusted)}${user}</div>`);
+      const res = await t.fetch("/test");
+      expect(await res.text()).toBe("<div><b>bold</b>&lt;script&gt;</div>");
+    });
+
+    it("does not treat duck-typed objects as raw values", async () => {
+      const spoofed = { value: "<script>alert(1)</script>" };
+      t.app.get("/test", () => html`<div>${spoofed}</div>`);
+      const res = await t.fetch("/test");
+      expect(await res.text()).not.toContain("<script>");
+    });
+
+    it("does not accept forged raw() markers via the global symbol registry", async () => {
+      // The trust marker is a module-private, unregistered symbol, so an object
+      // carrying `Symbol.for("h3.rawHTML")` cannot forge trust and is escaped.
+      const forged = { [Symbol.for("h3.rawHTML")]: true, value: "<b>bold</b>" };
+      t.app.get("/test", () => html`<div>${forged}</div>`);
+      const res = await t.fetch("/test");
+      expect(await res.text()).toBe("<div>[object Object]</div>");
+    });
+
+    it("escapes plain string usage and warns once", async () => {
+      (html as { _isWarned?: boolean })._isWarned = false;
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        t.app.get("/test", () => html("<p>raw & <string></p>"));
+        const res = await t.fetch("/test");
+        expect(await res.text()).toBe("&lt;p&gt;raw &amp; &lt;string&gt;&lt;/p&gt;");
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+        expect(warnSpy.mock.calls[0][0]).toContain("html``");
+
+        const res2 = await t.fetch("/test");
+        expect(await res2.text()).toBe("&lt;p&gt;raw &amp; &lt;string&gt;&lt;/p&gt;");
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+
+    it("does not warn for plain strings without special characters", async () => {
+      (html as { _isWarned?: boolean })._isWarned = false;
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        t.app.get("/test", () => html("Hello, World!"));
+        const res = await t.fetch("/test");
+        expect(await res.text()).toBe("Hello, World!");
+        expect(warnSpy).not.toHaveBeenCalled();
+      } finally {
+        warnSpy.mockRestore();
+      }
     });
   });
 
@@ -689,6 +755,129 @@ describeMatrix("utils", (t, { it, describe, expect }) => {
         headers: {
           "if-modified-since": "Fri, 01 Jan 2021 00:00:00 GMT",
         },
+      });
+      expect(res.status).toBe(304);
+    });
+
+    it("does not force `public` when explicit cacheControls are provided (#1442, #1453)", async () => {
+      t.app.use((event) => {
+        handleCacheHeaders(event, {
+          maxAge: 60,
+          cacheControls: ["private"],
+        });
+        return "ok";
+      });
+      const res = await t.fetch("/");
+      // `private` responses must not carry the shared-cache `s-maxage` directive (#1454).
+      expect(res.headers.get("cache-control")).toBe("private, max-age=60");
+    });
+
+    it("keeps `public` when explicit cacheControls do not set visibility (#1454)", async () => {
+      t.app.use((event) => {
+        handleCacheHeaders(event, {
+          cacheControls: ["must-revalidate"],
+        });
+        return "ok";
+      });
+      // A shared cache needs `public` to store authenticated responses (RFC 9111 §3.5),
+      // so it must survive alongside non-visibility directives like `must-revalidate`.
+      const res = await t.fetch("/");
+      expect(res.headers.get("cache-control")).toBe("public, must-revalidate");
+    });
+
+    it("omits `s-maxage` when `no-store` is set (#1454)", async () => {
+      t.app.use((event) => {
+        handleCacheHeaders(event, {
+          maxAge: 60,
+          cacheControls: ["no-store"],
+        });
+        return "ok";
+      });
+      const res = await t.fetch("/");
+      expect(res.headers.get("cache-control")).toBe("no-store, max-age=60");
+    });
+
+    it("treats an empty `if-none-match` as absent so `if-modified-since` still applies (#1454)", async () => {
+      t.app.use((event) => {
+        if (
+          handleCacheHeaders(event, {
+            modifiedTime: new Date("2021-01-01"),
+          })
+        ) {
+          return null;
+        }
+        return "ok";
+      });
+      const res = await t.fetch("/", {
+        headers: {
+          "if-none-match": "",
+          "if-modified-since": "Fri, 01 Jan 2021 00:00:00 GMT",
+        },
+      });
+      expect(res.status).toBe(304);
+    });
+
+    it("ignores if-modified-since when if-none-match is present (RFC 9110 §13.1.3, #1453)", async () => {
+      t.app.use((event) => {
+        if (
+          handleCacheHeaders(event, {
+            etag: '"v2"',
+            modifiedTime: new Date("2021-01-01"),
+          })
+        ) {
+          return null;
+        }
+        return "ok";
+      });
+      // The ETag does not match, so If-Modified-Since must be ignored and a 200
+      // returned even though the resource was not modified since that date.
+      const res = await t.fetch("/", {
+        headers: {
+          "if-none-match": '"v1"',
+          "if-modified-since": "Fri, 01 Jan 2021 00:00:00 GMT",
+        },
+      });
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe("ok");
+    });
+
+    it("matches etag using weak comparison and wildcard (#1453)", async () => {
+      t.app.use((event) => {
+        handleCacheHeaders(event, { etag: '"v2"' });
+        return "ok";
+      });
+      const weak = await t.fetch("/", {
+        headers: { "if-none-match": 'W/"v2"' },
+      });
+      expect(weak.status).toBe(304);
+
+      const wildcard = await t.fetch("/", {
+        headers: { "if-none-match": "*" },
+      });
+      expect(wildcard.status).toBe(304);
+    });
+
+    it("detects `private` when bundled into a single cacheControls entry (#1454)", async () => {
+      t.app.use((event) => {
+        handleCacheHeaders(event, {
+          maxAge: 60,
+          cacheControls: ["max-age=30, private"],
+        });
+        return "ok";
+      });
+      // A combined directive string must still be recognized as private so no
+      // contradictory `public`/`s-maxage` is added for a personalized response.
+      const res = await t.fetch("/");
+      expect(res.headers.get("cache-control")).toBe("max-age=30, private, max-age=60");
+    });
+
+    it("matches a quoted etag whose value contains a comma (#1454)", async () => {
+      t.app.use((event) => {
+        handleCacheHeaders(event, { etag: '"a,b"' });
+        return "ok";
+      });
+      const res = await t.fetch("/", {
+        headers: { "if-none-match": '"a,b"' },
       });
       expect(res.status).toBe(304);
     });

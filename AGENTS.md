@@ -57,9 +57,9 @@ src/
 ├── index.ts              # 公共 API 导出
 ├── h3.ts                 # H3Core + H3 类
 ├── event.ts              # H3Event
-├── handler.ts            # defineHandler、defineValidatedHandler 等
-├── middleware.ts         # 中间件系统
-├── response.ts           # toResponse、HTTPResponse、kNotFound、kHandled
+├── handler.ts            # defineHandler, defineValidatedHandler, etc.
+├── middleware.ts          # Middleware system
+├── response.ts           # toResponse, HTTPResponse
 ├── error.ts              # HTTPError
 ├── adapters.ts           # Web/Node 处理器适配器
 ├── tracing.ts            # 跟踪插件（独立入口）
@@ -90,9 +90,9 @@ src/
 │       ├── iron-crypto.ts     # 会话封装加密
 │       ├── standard-schema.ts # 标准数据校验
 │       └── validate.ts
-├── _entries/             # 平台特定入口点
-│   ├── generic.ts        # Web Worker / 浏览器
-│   ├── node.ts           # Node.js（带 serve()）
+├── _entries/             # Platform-specific entry points
+│   ├── generic.ts        # Web Worker / Browser
+│   ├── node.ts           # Node.js (adds toNodeHandler)
 │   ├── bun.ts            # Bun
 │   ├── deno.ts           # Deno
 │   ├── cloudflare.ts     # Cloudflare Workers
@@ -206,10 +206,10 @@ pnpm test                                # 全套：lint + 类型检查 + 覆盖
 ### 包导出
 
 ```
-h3           → 运行时自动解析（deno/bun/workerd/node/default）
-h3/node      → Node.js（带 serve()）
-h3/bun       → Bun 运行时
-h3/deno      → Deno 运行时
+h3           → auto-resolved by runtime (deno/bun/workerd/node/default)
+h3/node      → Node.js runtime (adds toNodeHandler)
+h3/bun       → Bun runtime
+h3/deno      → Deno runtime
 h3/cloudflare → Cloudflare Workers
 h3/service-worker → Service Workers
 h3/generic   → 通用 Web 标准

@@ -20,6 +20,20 @@ export interface CorsOptions {
    * If an array of strings or regular expressions, it can be used with origin matching.
    * If a custom function, it's used to validate the origin. It takes the origin as an argument and returns `true` if allowed.
    *
+   * **Security:** Regular-expression entries are tested against the full origin
+   * string **unanchored** (via `RegExp.prototype.test`). A pattern like
+   * `/example\.com/` therefore also matches `https://example.com.evil.test` and
+   * `https://notexample.com`. Always **anchor** (`^`…`$`) and **escape** literal
+   * dots in regex origins — e.g. `/^https:\/\/([a-z0-9-]+\.)?example\.com$/` to
+   * allow `example.com` and one optional subdomain label (use `(…\.)*` for
+   * arbitrary depth), or `/^https?:\/\/example\.com$/` for an exact host. Prefer
+   * plain string entries (matched by exact equality) when
+   * you don't need pattern matching.
+   *
+   * Avoid `"null"` together with `credentials: true`. Sandboxed iframes, `data:`/`file:` documents,
+   * and other opaque origins all send `Origin: null`, so allowing it with credentials would share
+   * them across untrusted contexts.
+   *
    * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
    * @default "*"
    */
@@ -28,9 +42,16 @@ export interface CorsOptions {
   /**
    * This determines the value of the "access-control-allow-methods" response header of a preflight request.
    *
+   * The default `"*"` permits any method (including non-safelisted ones like `QUERY`).
+   * When using an explicit allowlist, remember that `QUERY` is **not** a CORS-safelisted
+   * method, so browsers preflight it — include `"QUERY"` in the array to allow it.
+   *
+   * When `credentials` is enabled, browsers treat `"*"` as a literal method name — in that
+   * case the requested method is reflected back instead of sending a literal `*`.
+   *
    * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Methods
    * @default "*"
-   * @example ["GET", "HEAD", "PUT", "POST"]
+   * @example ["GET", "HEAD", "PUT", "POST", "QUERY"]
    */
   methods?: "*" | string[];
 
@@ -44,6 +65,9 @@ export interface CorsOptions {
 
   /**
    * This determines the value of the "access-control-expose-headers" response header.
+   *
+   * When `credentials` is enabled, browsers treat `"*"` as a literal header name — in that
+   * case the header is omitted; list the headers explicitly to expose them.
    *
    * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Expose-Headers
    * @default "*"
@@ -91,25 +115,21 @@ export function isPreflightRequest(event: HTTPEvent): boolean {
  * Append CORS preflight headers to the response.
  */
 export function appendCorsPreflightHeaders(event: H3Event, options: CorsOptions): void {
-  const originHeaders = createOriginHeaders(event, options);
-  const allowHeaderHeaders = createAllowHeaderHeaders(event, options);
-  const headers = {
-    ...originHeaders,
-    ...createCredentialsHeaders(options),
-    ...createMethodsHeaders(options),
-    ...allowHeaderHeaders,
-    ...createMaxAgeHeader(options),
-  };
-  // Both createOriginHeaders and createAllowHeaderHeaders can independently emit a `vary`
-  // key. Plain spread overwrites the first — merge them so neither is lost.
-  const varyValues = [originHeaders.vary, allowHeaderHeaders.vary].filter(Boolean);
+  const headerGroups = [
+    createOriginHeaders(event, options),
+    createCredentialsHeaders(options),
+    createMethodsHeaders(event, options),
+    createAllowHeaderHeaders(event, options),
+    createMaxAgeHeader(options),
+  ];
+  // Several groups can independently emit a `vary` key. Plain spread would keep
+  // only the last one — merge them so none is lost.
+  const headers: Record<string, string> = Object.assign({}, ...headerGroups);
+  const varyValues = headerGroups.map((group) => group.vary).filter(Boolean);
   if (varyValues.length > 0) {
     headers.vary = varyValues.join(", ");
   }
-  for (const [key, value] of Object.entries(headers)) {
-    event.res.headers.append(key, value);
-    event.res.errHeaders.append(key, value);
-  }
+  setCorsHeaders(event, headers);
 }
 
 /**
@@ -121,9 +141,25 @@ export function appendCorsHeaders(event: H3Event, options: CorsOptions): void {
     ...createCredentialsHeaders(options),
     ...createExposeHeaders(options),
   };
+  setCorsHeaders(event, headers);
+}
+
+/**
+ * Apply CORS response headers.
+ *
+ * CORS headers are single-valued, so use `.set` to avoid invalid duplicated
+ * values (e.g. `*, *`) when CORS is applied more than once (middleware + handler).
+ * The `vary` header is legitimately multi-valued and is appended instead.
+ */
+function setCorsHeaders(event: H3Event, headers: Record<string, string>): void {
   for (const [key, value] of Object.entries(headers)) {
-    event.res.headers.append(key, value);
-    event.res.errHeaders.append(key, value);
+    if (key === "vary") {
+      event.res.headers.append(key, value);
+      event.res.errHeaders.append(key, value);
+    } else {
+      event.res.headers.set(key, value);
+      event.res.errHeaders.set(key, value);
+    }
   }
 }
 

@@ -1,6 +1,7 @@
 import { FastResponse } from "srvx";
 import { HTTPError } from "./error.ts";
 import { isJSONSerializable } from "./utils/internal/object.ts";
+import { kEventDispose, type DisposeState } from "./utils/internal/dispose.ts";
 
 import type { H3Config } from "./types/h3.ts";
 import { kEventRes, kEventResHeaders, kEventResErrHeaders, type H3Event } from "./event.ts";
@@ -16,19 +17,68 @@ export function toResponse(
   if (typeof (val as PromiseLike<unknown>)?.then === "function") {
     return (val as Promise<unknown>).then(
       (resolvedVal) => toResponse(resolvedVal, event, config),
-      (r) => toResponse(typeof r === "number" ? new HTTPError({ status: r }) : r, event, config),
+      (r) => toResponse(toError(r), event, config),
     ) as Promise<Response>;
   }
 
-  const response = prepareResponse(val, event, config);
+  let response: Response | Promise<Response>;
+  try {
+    response = prepareResponse(val, event, config);
+  } catch (error) {
+    return toResponse(toError(error), event, config);
+  }
   if (typeof (response as PromiseLike<Response>)?.then === "function") {
     return toResponse(response, event, config);
   }
 
   const { onResponse } = config;
-  return onResponse
-    ? Promise.resolve(onResponse(response as Response, event)).then(() => response)
-    : response;
+  if (onResponse) {
+    // onResponse is a terminal side-effect hook (returns void). A throw/rejection here must not
+    // escape the lifecycle (onError already ran); absorb and log it (consistent with dispose
+    // callbacks), then still return the already-built response. The hook is invoked inside `.then`
+    // so a synchronous throw is caught too (not just a rejected promise).
+    return Promise.resolve()
+      .then(() => onResponse(response as Response, event))
+      .catch((error) => {
+        if (!config.silent) console.error(error);
+      })
+      .then(
+        () =>
+          ((event as any)[kEventDispose] as DisposeState | undefined)?.observe(
+            response as Response,
+            val,
+          ) ?? (response as Response),
+      );
+  }
+  return (
+    ((event as any)[kEventDispose] as DisposeState | undefined)?.observe(
+      response as Response,
+      val,
+    ) ?? (response as Response)
+  );
+}
+
+/**
+ * Normalize a thrown or rejected value before rendering it as a response.
+ *
+ * Errors and the internal sentinels are passed through, and numbers are coerced to a status code
+ * (`throw 404`). Anything else — an object, a string, `undefined` — is wrapped into an unhandled
+ * 500, so it is logged instead of being rendered as a successful response body.
+ *
+ * Nothing is taken from the thrown value: `status`, `message`, `data`, `statusText` and `headers`
+ * are all dropped, and the value is kept as `cause`, which is never serialized. A non-Error object
+ * is never trusted to shape the response, not even via a `status` shorthand.
+ */
+export function toError(value: unknown): unknown {
+  if (value === kNotFound || value === kHandled || value instanceof Error) {
+    return value;
+  }
+  if (typeof value === "number") {
+    return new HTTPError({ status: value });
+  }
+  const error = new HTTPError({ status: 500, unhandled: true });
+  (error as { cause: unknown }).cause = value;
+  return error;
 }
 
 export class HTTPResponse {
@@ -42,11 +92,19 @@ export class HTTPResponse {
     this.body = body;
     this.#init = init;
   }
-  get status(): number {
-    return this.#init?.status || 200;
+  /**
+   * Status of the response, or `undefined` when unset.
+   *
+   * Unset means "inherit": the status staged on `event.res.status` is used, falling back to `200`.
+   * Defaulting to `200` here instead would make an untouched `HTTPResponse` indistinguishable from
+   * one explicitly built with `{ status: 200 }`, and always win over `event.res`.
+   */
+  get status(): number | undefined {
+    return this.#init?.status;
   }
-  get statusText(): string {
-    return this.#init?.statusText || "OK";
+  /** Status text of the response, or `undefined` when unset. See {@link HTTPResponse.status}. */
+  get statusText(): string | undefined {
+    return this.#init?.statusText;
   }
   get headers(): Headers {
     return (this.#headers ||= new Headers(this.#init?.headers));
@@ -86,7 +144,8 @@ function prepareResponse(
     const { onError } = config;
     const errHeaders: Headers | undefined = (event as any)[kEventRes]?.[kEventResErrHeaders];
     return onError && !nested
-      ? Promise.resolve(onError(error, event))
+      ? Promise.resolve()
+          .then(() => onError(error, event))
           .catch((error) => error)
           .then((newVal) => prepareResponse(newVal ?? val, event, config, true))
       : errorResponse(error, config.debug, errHeaders);
@@ -95,10 +154,13 @@ function prepareResponse(
   // Only set if event.res.headers is accessed
   const preparedRes:
     | undefined
-    | { status?: number; statusText?: string; [kEventResHeaders]?: Headers } = (event as any)[
-    kEventRes
-  ];
-  const preparedHeaders = preparedRes?.[kEventResHeaders];
+    | {
+        status?: number;
+        statusText?: string;
+        [kEventResHeaders]?: Headers;
+        [kEventResErrHeaders]?: Headers;
+      } = (event as any)[kEventRes];
+  let preparedHeaders = preparedRes?.[kEventResHeaders];
   (event as any)[kEventRes] = undefined; // Clear prepared response to avoid duplication
 
   if (!(val instanceof Response)) {
@@ -114,21 +176,38 @@ function prepareResponse(
     });
   }
 
-  // Avoid merging if no prepared headers are provided or we are rendering an Error
-  if (!preparedHeaders || nested || !val.ok) {
-    return val; // Fast path: no headers to merge
+  // Success and redirect responses receive all prepared headers.
+  // Error responses (4xx/5xx) only receive headers explicitly staged as `event.res.errHeaders`
+  // to avoid leaking success-only headers (caching, content negotiation, ...) into errors.
+  if (val.status >= 400) {
+    preparedHeaders = preparedRes?.[kEventResErrHeaders];
   }
-  try {
-    mergeHeaders(val.headers, preparedHeaders, val.headers);
-    return val;
-  } catch {
-    // Headers are immutable
-    return new FastResponse(nullBody(event.req.method, val.status) ? null : val.body, {
-      status: val.status,
-      statusText: val.statusText,
-      headers: mergeHeaders(val.headers, preparedHeaders),
-    }) as Response;
+
+  // Merge prepared headers unless there is nothing to merge or a custom error
+  // render is returned from `onError`.
+  if (preparedHeaders && !nested) {
+    try {
+      mergeHeaders(val.headers, preparedHeaders, val.headers);
+    } catch {
+      // Headers are immutable
+      return new FastResponse(nullBody(event.req.method, val.status) ? null : val.body, {
+        status: val.status,
+        statusText: val.statusText,
+        headers: mergeHeaders(val.headers, preparedHeaders),
+      }) as Response;
+    }
   }
+
+  // Strip the body for HEAD requests (runtimes usually do this, but keep
+  // self-consistent for web-mode / service-worker consumers). Covers the
+  // in-place merge path above, which previously returned the body intact.
+  return event.req.method === "HEAD" && val.body !== null
+    ? (new FastResponse(null, {
+        status: val.status,
+        statusText: val.statusText,
+        headers: val.headers,
+      }) as Response)
+    : val;
 }
 
 function mergeHeaders(base: HeadersInit, overrides: Headers, target = new Headers(base)): Headers {
@@ -183,8 +262,12 @@ function prepareResponseBody(
 
   // Buffer (should be before JSON)
   if (val instanceof Uint8Array) {
-    event.res.headers.set("content-length", val.byteLength.toString());
-    return { body: val as BufferSource };
+    // Set on the returned headers, not `event.res` (already cleared by the caller):
+    // writing to `event.res.headers` here would recreate it post-clear and be discarded.
+    return {
+      body: val as BufferSource,
+      headers: new Headers({ "content-length": val.byteLength.toString() }),
+    };
   }
 
   // Partial Response

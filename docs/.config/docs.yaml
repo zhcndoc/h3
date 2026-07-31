@@ -8,8 +8,8 @@ themeColor: amber
 automd: false
 
 redirects:
-  "/guide/event-handler": "/guide/handler"
-  "/guide/router": "/guide/routing"
+  "/guide/event-handler": "/guide/basics/handler"
+  "/guide/router": "/guide/basics/routing"
   "/adapters/**": "/guide"
 
 github: zhcndoc/h3

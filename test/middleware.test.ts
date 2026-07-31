@@ -160,6 +160,27 @@ describeMatrix("middleware", (t, { it, expect }) => {
     expect(await res2.text()).toBe("hi!");
   });
 
+  it("GET-scoped global middleware also runs for HEAD requests", async () => {
+    const app = new H3();
+    const seen: string[] = [];
+    app.use(
+      (event) => {
+        seen.push(event.req.method);
+      },
+      { method: "GET" },
+    );
+    app.get("/foo", () => "hello");
+
+    const headRes = await app.request("/foo", { method: "HEAD" });
+    expect(headRes.status).toBe(200);
+    expect(await headRes.text()).toBe("");
+
+    const postRes = await app.request("/foo", { method: "POST" });
+    expect(postRes.status).toBe(404); // no POST route; POST-scoped exclusion still holds
+
+    expect(seen).toEqual(["HEAD"]); // ran for HEAD, not for POST
+  });
+
   it('onResponse() does not duplicate "Set-Cookie" headers', async () => {
     // onResponse uses toResponse() internally (#1259)
     t.app.use(onResponse(() => {}));
@@ -171,6 +192,24 @@ describeMatrix("middleware", (t, { it, expect }) => {
 
     const res = await t.fetch("/");
     expect(res.status).toBe(200);
+    expect(res.headers.getSetCookie()).toMatchObject(["session=abc123; Path=/; HttpOnly"]);
+  });
+
+  // Regression for #1477: the Uint8Array branch used to set `content-length` on
+  // `event.res.headers` after it had already been cleared, losing the header and
+  // re-populating `event.res`, which a second `toResponse()` pass (e.g. this
+  // `onResponse()` middleware, #1259) would then merge as stale/duplicated headers.
+  it("keeps content-length for a Uint8Array response without duplicating headers (#1477)", async () => {
+    t.app.use(onResponse(() => {}));
+
+    t.app.use((event) => {
+      event.res.headers.append("Set-Cookie", "session=abc123; Path=/; HttpOnly");
+      return new Uint8Array([1, 2, 3]);
+    });
+
+    const res = await t.fetch("/");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-length")).toBe("3");
     expect(res.headers.getSetCookie()).toMatchObject(["session=abc123; Path=/; HttpOnly"]);
   });
 });

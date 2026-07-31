@@ -1,5 +1,5 @@
 import { type ErrorDetails, HTTPError } from "../error.ts";
-import { decodePathname } from "./internal/path.ts";
+import { decodePathname, stripBase } from "./internal/path.ts";
 import { parseQuery } from "./internal/query.ts";
 import { validateData } from "./internal/validate.ts";
 import { getEventContext } from "./event.ts";
@@ -43,7 +43,7 @@ export function requestWithBaseURL(req: ServerRequest, base: string): ServerRequ
     // Malformed percent-encoding: fall back to the raw pathname instead of throwing.
     pathname = url.pathname;
   }
-  url.pathname = pathname.slice(base.length) || "/";
+  url.pathname = stripBase(pathname, base);
   return requestWithURL(req, url.href);
 }
 
@@ -170,7 +170,9 @@ export function getValidatedQuery(
 /**
  * Get matched route params.
  *
- * If `decode` option is `true`, it will decode the matched route params using `decodeURIComponent`.
+ * If `decode` option is `true`, it will decode the matched route params (like
+ * `decodeURIComponent`), except encoded path separators (`%2f`, `%5c`) are kept
+ * encoded so decoding can never reintroduce a `/` or `\` the router never matched.
  *
  * @example
  * app.get("/", (event) => {
@@ -187,10 +189,49 @@ export function getRouterParams(
   if (opts.decode) {
     params = { ...params };
     for (const key in params) {
-      params[key] = decodeURIComponent(params[key]);
+      params[key] = decodeRouterParam(params[key]);
     }
   }
   return params;
+}
+
+// Percent-encoded path separators (`%2f` → `/`, `%5c` → `\`) at any `%25`-nesting
+// depth (`%2f`, `%252f`, ...). Whatever reaches a param already survived the pathname
+// decode in `event.ts` (a single `decodeURI` that preserves `%25`) still encoded:
+// `decodeURI` keeps `%2f` as a reserved char, and `%25`-nested forms (`%252f`,
+// `%255c`, ...) only lose one `%25` level. A bare `%5c` never reaches a param at all —
+// it decodes to `\`, which the URL parser normalizes into a real `/` the router splits
+// on — but it stays in the pattern as a cheap guard. Either way, route matching and any
+// pathname-based middleware only ever saw the matched param as one opaque, still-encoded
+// segment (a `:id` capture can never hold a raw separator).
+const ENCODED_SEP_RE_G = /%(?:25)*(?:2f|5c)/gi;
+
+/**
+ * `decodeURIComponent` a matched route param, but never let an encoded path
+ * separator collapse into a raw `/` or `\`.
+ *
+ * A full second decode on top of the already-once-decoded pathname would
+ * reintroduce a separator (and thus `..`-based traversal) the routing/middleware
+ * layer could not see — a path desync / smuggling vector when the decoded param
+ * feeds a filesystem or upstream path. So the encoded separators are kept in
+ * their encoded form while every other escape (spaces, non-ASCII, ...) still
+ * decodes normally, keeping `decode:true` human-readable.
+ */
+function decodeRouterParam(value: string): string {
+  if (!value.includes("%")) {
+    return value; // Fast path: nothing to decode.
+  }
+  // Decode around the encoded separators: split on them, decode the pieces, and
+  // rejoin keeping each separator in its original (encoded) form so it can never
+  // become a raw separator.
+  let result = "";
+  let lastIndex = 0;
+  ENCODED_SEP_RE_G.lastIndex = 0;
+  for (let m: RegExpExecArray | null; (m = ENCODED_SEP_RE_G.exec(value));) {
+    result += decodeURIComponent(value.slice(lastIndex, m.index)) + m[0];
+    lastIndex = m.index + m[0].length;
+  }
+  return result + decodeURIComponent(value.slice(lastIndex));
 }
 
 export function getValidatedRouterParams<Event extends HTTPEvent, S extends StandardSchemaV1>(
@@ -216,7 +257,9 @@ export function getValidatedRouterParams<
 /**
  * Get matched route params and validate with validate function.
  *
- * If `decode` option is `true`, it will decode the matched route params using `decodeURIComponent`.
+ * If `decode` option is `true`, it will decode the matched route params (like
+ * `decodeURIComponent`), except encoded path separators (`%2f`, `%5c`) are kept
+ * encoded so decoding can never reintroduce a `/` or `\` the router never matched.
  *
  * You can use a simple function to validate the params object or use a Standard-Schema compatible library like `zod` to define a schema.
  *
@@ -279,7 +322,9 @@ export function getValidatedRouterParams(
 /**
  * Get a matched route param by name.
  *
- * If `decode` option is `true`, it will decode the matched route param using `decodeURIComponent`.
+ * If `decode` option is `true`, it will decode the matched route param (like
+ * `decodeURIComponent`), except encoded path separators (`%2f`, `%5c`) are kept
+ * encoded so decoding can never reintroduce a `/` or `\` the router never matched.
  *
  * @example
  * app.get("/", (event) => {
@@ -367,6 +412,12 @@ export function assertMethod(
  *
  * If no host header is found, it will return an empty string.
  *
+ * **Security:** The returned host reflects the client-supplied `Host` (or
+ * `X-Forwarded-Host`) header and can be spoofed. Do not trust it for security
+ * decisions (CSRF/origin checks, cache keys, generating absolute links sent to
+ * other users) unless the `Host` value is pinned or validated upstream (e.g. an
+ * allow-list of expected hosts, or a reverse proxy that overwrites it).
+ *
  * @example
  * app.get("/", (event) => {
  *   const host = getRequestHost(event); // "example.com"
@@ -386,7 +437,9 @@ export function getRequestHost(event: HTTPEvent, opts: { xForwardedHost?: boolea
 /**
  * Get the request protocol.
  *
- * If `x-forwarded-proto` header is set to "https", it will return "https". If the header contains a comma-separated list of protocols, the first entry is used. You can disable this behavior by setting `xForwardedProto` to `false`.
+ * If `xForwardedProto` is `true`, it will use the `x-forwarded-proto` header if it exists. When the header contains a comma-separated list of protocols, the first entry is used.
+ *
+ * Note: This header is opt-in (default `false`) since it can be spoofed by clients. Only enable it when your application runs behind a trusted reverse proxy or CDN that sets this header. This default was changed to match `getRequestHost` (`xForwardedHost`) and `getRequestIP` (`xForwardedFor`).
  *
  * If protocol cannot be determined, it will default to "http".
  *
@@ -399,7 +452,7 @@ export function getRequestProtocol(
   event: HTTPEvent | H3Event,
   opts: { xForwardedProto?: boolean } = {},
 ): "http" | "https" | (string & {}) {
-  if (opts.xForwardedProto !== false) {
+  if (opts.xForwardedProto) {
     const _header = event.req.headers.get("x-forwarded-proto");
     const forwardedProto = (_header || "").split(",")[0].trim();
     if (forwardedProto === "https") {
@@ -418,7 +471,16 @@ export function getRequestProtocol(
  *
  * If `xForwardedHost` is `true`, it will use the `x-forwarded-host` header if it exists.
  *
- * If `xForwardedProto` is `false`, it will not use the `x-forwarded-proto` header.
+ * If `xForwardedProto` is `true`, it will use the `x-forwarded-proto` header if it exists.
+ *
+ * **Security:** The `.origin` and `.host` of the returned URL are derived from the
+ * client-supplied `Host` (or `X-Forwarded-Host`) header and can be spoofed. Do not
+ * trust them for security decisions (CSRF/origin checks, cache keys, generating
+ * absolute links sent to other users) unless the `Host` value is pinned or
+ * validated upstream (e.g. an allow-list of expected hosts, or a reverse proxy
+ * that overwrites it). The `.pathname` and `.search` are not derived from the
+ * spoofable host, but remain untrusted client input — validate or encode them for
+ * their eventual sink (e.g. filesystem lookups, HTML output, downstream queries).
  *
  * @example
  * app.get("/", (event) => {

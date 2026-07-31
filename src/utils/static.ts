@@ -3,25 +3,36 @@ import { HTTPError } from "../error.ts";
 import { withoutTrailingSlash } from "./internal/path.ts";
 import { resolveDotSegments } from "./path.ts";
 import { getType, getExtension } from "./internal/mime.ts";
+import { isCacheMatch } from "./internal/cache.ts";
 import { HTTPResponse } from "../response.ts";
 
 export interface StaticAssetMeta {
   type?: string;
   etag?: string;
   mtime?: number | string | Date;
-  path?: string;
   size?: number;
   encoding?: string;
 }
 
 export interface ServeStaticOptions {
   /**
-   * This function should resolve asset meta
+   * This function should resolve asset meta.
+   *
+   * **Security:** The `id` keeps encoded separators percent-encoded: `%2f`
+   * (encoded `/`) always survives, and a double-encoded backslash arrives as a
+   * literal `%5c` (a single-encoded `%5c` is decoded to `\` and normalized away
+   * by `serveStatic`). Path traversal safety depends on this backend **not**
+   * decoding them — a decode would re-introduce separators and defeat the
+   * traversal normalization done by `serveStatic`. See {@link serveStatic}.
    */
   getMeta: (id: string) => StaticAssetMeta | undefined | Promise<StaticAssetMeta | undefined>;
 
   /**
-   * This function should resolve asset content
+   * This function should resolve asset content.
+   *
+   * **Security:** As with `getMeta`, the `id` keeps encoded separators (`%2f`,
+   * and a double-encoded `%5c`) percent-encoded and this backend must not decode
+   * them before resolving the asset. See {@link serveStatic}.
    */
   getContents: (id: string) => BodyInit | null | undefined | Promise<BodyInit | null | undefined>;
 
@@ -60,6 +71,24 @@ export interface ServeStaticOptions {
 
 /**
  * Dynamically serve static assets based on the request path.
+ *
+ * **Security — path traversal:** `serveStatic` resolves `.`/`..` segments and
+ * normalizes the request path, but deliberately keeps encoded separators
+ * **percent-encoded** in the `id` it passes to `getMeta`/`getContents`: `%2f`
+ * (encoded `/`) always survives, and a double-encoded backslash arrives as a
+ * literal `%5c` (a single-encoded `%5c` is decoded to `\` and normalized away).
+ * Traversal safety therefore depends on those backends **not** decoding the `id`:
+ * a backend that percent-decodes it (e.g. an extra `decodeURIComponent`, or a
+ * lookup layer that decodes) re-introduces separators and **re-opens the
+ * traversal hole**. Resolve the `id` against your asset root as an opaque string.
+ *
+ * When implementing custom `getMeta`/`getContents` over a real filesystem, the
+ * integrator is also responsible for two things `serveStatic` cannot enforce.
+ * **Case-insensitive filesystems** (macOS, Windows): case-fold both sides of any
+ * allow/deny checks — otherwise `/SECRET.env` can slip past a check written for
+ * `/secret.env`. **Symlink containment:** re-assert that the resolved path stays
+ * within the asset root after following links (e.g. compare `realpath(target)`
+ * against the root), since a symlink can point outside it.
  */
 export async function serveStatic(
   event: H3Event,
@@ -84,28 +113,9 @@ export async function serveStatic(
     throw new HTTPError({ status: 405 });
   }
 
-  // Resolve `.`/`..` traversal FIRST, then decode, so the on-disk id matches
-  // what `sirv`/`serve-static` serve (a filesystem-backed `getContents` no
-  // longer needs self-decoding logic — e.g. `/50%25.png` finds `50%.png`).
-  //
-  // `event.url.pathname` is already decoded once by the event layer
-  // (`decodePathname`, a single `decodeURI` that preserves `%25`), and
-  // `resolveDotSegments` neutralizes every traversal escape (literal `../`,
-  // `..\`, and `%2e`-encoded dot segments at any `%25`-nesting depth). Only
-  // then do we `decodeURI` to peel one `%25` level (`%25` → `%`) for the
-  // lookup. This never reintroduces a separator: `decodeURI` preserves `%2f`
-  // (reserved), and a single-encoded `%5c` can't reach here — the event layer
-  // already decoded it to `\` and `resolveDotSegments` normalized that away, so
-  // only a double-encoded `%255c` survives and `decodeURI` collapses it to a
-  // literal `%5c`, not a raw `\`.
-  //
-  // The final decode is guarded: with `allowMalformedURL`, a raw malformed `%`
-  // (e.g. `/foo%`, `/%ZZ`) reaches here and `decodeURI` throws — fall back to
-  // the traversal-resolved (still-safe) value so `fallthrough`/404 handling is
-  // reached instead of a 500. A `%`-free path (the common case) skips the
-  // decode entirely, matching the fast-path guards at the event layer and in
-  // `resolveDotSegments`.
-  const resolvedId = resolveDotSegments(withoutTrailingSlash(event.url.pathname));
+  // Resolve traversal first, then peel one `%25` level for the on-disk lookup
+  // (guarded: malformed `%` falls back to the safe traversal-resolved value).
+  const resolvedId = withoutTrailingSlash(resolveDotSegments(event.url.pathname));
   let originalId = resolvedId;
   if (resolvedId.includes("%")) {
     try {
@@ -145,21 +155,12 @@ export async function serveStatic(
     throw new HTTPError({ statusCode: 404 });
   }
 
+  let mtimeDate: Date | undefined;
   if (meta.mtime) {
-    const mtimeDate = new Date(meta.mtime);
-    // HTTP dates have whole-second precision, but `mtime` may carry sub-second
-    // milliseconds. The `last-modified` header is emitted truncated to seconds,
-    // so the comparison must also ignore milliseconds — otherwise a client that
-    // echoes our own `last-modified` value in `if-modified-since` never matches.
+    mtimeDate = new Date(meta.mtime);
+    // Truncate to whole seconds to match HTTP date precision, so a client
+    // echoing our `last-modified` in `if-modified-since` still matches.
     mtimeDate.setMilliseconds(0);
-
-    const ifModifiedSinceH = event.req.headers.get("if-modified-since");
-    if (ifModifiedSinceH && new Date(ifModifiedSinceH) >= mtimeDate) {
-      return new HTTPResponse(null, {
-        status: 304,
-        statusText: "Not Modified",
-      });
-    }
 
     if (!event.res.headers.get("last-modified")) {
       event.res.headers.set("last-modified", mtimeDate.toUTCString());
@@ -170,8 +171,7 @@ export async function serveStatic(
     event.res.headers.set("etag", meta.etag);
   }
 
-  const ifNotMatch = meta.etag && event.req.headers.get("if-none-match") === meta.etag;
-  if (ifNotMatch) {
+  if (isCacheMatch(event.req.headers, { etag: meta.etag, lastModified: mtimeDate })) {
     return new HTTPResponse(null, {
       status: 304,
       statusText: "Not Modified",

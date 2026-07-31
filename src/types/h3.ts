@@ -6,6 +6,7 @@ import type { FetchHandler, ServerRequest } from "srvx";
 // import type { MatchedRoute, RouterContext } from "rou3";
 import type { H3Event } from "../event.ts";
 import type { H3Plugin } from "../plugin.ts";
+import type { ComposedMiddleware } from "../middleware.ts";
 
 // Inlined from rou3 for type portability
 export interface RouterContext {
@@ -22,7 +23,7 @@ export type MatchedRoute<T = any> = {
 
 // https://www.rfc-editor.org/rfc/rfc7231#section-4.1
 // prettier-ignore
-export type HTTPMethod =  "GET" | "HEAD" | "PATCH" | "POST" | "PUT" | "DELETE" | "CONNECT" | "OPTIONS" | "TRACE";
+export type HTTPMethod =  "GET" | "HEAD" | "PATCH" | "POST" | "PUT" | "DELETE" | "CONNECT" | "OPTIONS" | "TRACE" | "QUERY";
 
 export interface H3Config {
   /**
@@ -65,6 +66,12 @@ export interface H3Route {
   middleware?: Middleware[];
   meta?: H3RouteMeta;
   handler: EventHandler;
+
+  /**
+   * Cached composition of `middleware` + `handler` (built on first match).
+   * @internal
+   */
+  "~composed"?: EventHandler;
 }
 
 // --- H3 App ---
@@ -81,12 +88,30 @@ export type MiddlewareOptions = {
 
 export declare class H3Core {
   /**
+   * Brand used to detect H3 instances (see `toEventHandler`).
+   * @internal
+   */
+  static "~h3": boolean;
+
+  /**
    * H3 instance config.
    */
   readonly config: H3Config;
 
   /** @internal */
   "~middleware": Middleware[];
+
+  /**
+   * Cached dispatch function (invalidated by `use()` and `mount()`).
+   * @internal
+   */
+  "~dispatch"?: (event: H3Event, route: MatchedRoute<H3Route> | void) => unknown | Promise<unknown>;
+
+  /**
+   * Cached composition of `~middleware` (invalidated by `use()` and `mount()`).
+   * @internal
+   */
+  "~composed"?: ComposedMiddleware;
 
   /** @internal */
   "~routes": H3Route[];
@@ -116,7 +141,13 @@ export declare class H3Core {
   /** @internal */
   "~findRoute"(_event: H3Event): MatchedRoute<H3Route> | void;
 
-  /** @internal */
+  /**
+   * Returns the middleware chain for an event. Can be overridden (subclass method or
+   * instance assignment) to provide dynamic per-event middleware, which disables
+   * middleware precomposition. Override before handling the first request — the
+   * dispatch strategy is cached and only re-evaluated after `use()` or `mount()`.
+   * @internal
+   */
   "~getMiddleware"(event: H3Event, route: MatchedRoute<H3Route> | undefined): Middleware[];
 
   /** @internal */
@@ -184,4 +215,5 @@ export declare class H3 extends H3Core {
   options(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
   connect(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
   trace(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
+  query(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
 }

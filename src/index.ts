@@ -53,7 +53,13 @@ export {
   toEventHandler,
 } from "./handler.ts";
 
-export { defineMiddleware, callMiddleware, toMiddleware } from "./middleware.ts";
+export {
+  defineMiddleware,
+  callMiddleware,
+  composeMiddleware,
+  toMiddleware,
+  type ComposedMiddleware,
+} from "./middleware.ts";
 
 // Response
 
@@ -80,6 +86,7 @@ export {
 // Routing
 
 export { type RouteDefinition, defineRoute, removeRoute } from "./utils/route.ts";
+export type { RouteRules } from "./types/route-rules.ts";
 
 // Request
 
@@ -108,8 +115,16 @@ export {
   redirectBack,
   iterable,
   noContent,
+  onDispose,
+  type DisposeCallback,
   html,
+  raw,
 } from "./utils/response.ts";
+export type { RawHTML } from "./utils/response.ts";
+
+// Query (RFC 10008 HTTP QUERY method)
+
+export { appendAcceptQuery, requireContentType } from "./utils/query.ts";
 
 // Middleware
 
@@ -127,7 +142,7 @@ export {
 
 // Body
 
-export { readBody, readValidatedBody, assertBodySize } from "./utils/body.ts";
+export { readBody, readValidatedBody, assertBodySize, type ReadBodyOptions } from "./utils/body.ts";
 
 // Cookie
 
@@ -147,7 +162,7 @@ export {
 export {
   type EventStreamMessage,
   type EventStreamOptions,
-  createEventStream,
+  EventStream,
 } from "./utils/event-stream.ts";
 
 // Timing
@@ -164,7 +179,11 @@ export { type CacheConditions, handleCacheHeaders } from "./utils/cache.ts";
 
 // Path
 
-export { type ResolveDotSegmentsOptions, resolveDotSegments } from "./utils/path.ts";
+export {
+  type ResolveDotSegmentsOptions,
+  isCanonicalPath,
+  resolveDotSegments,
+} from "./utils/path.ts";
 
 // Static
 

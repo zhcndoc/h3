@@ -14,6 +14,7 @@ import type { H3Config } from "./types/h3.ts";
 import type { IterationSource, IteratorSerializer } from "./utils/internal/iterable.ts";
 import { HTTPError, type ErrorDetails } from "./error.ts";
 import type { HTTPResponse } from "./response.ts";
+import { EventStream, type EventStreamOptions } from "./utils/event-stream.ts";
 
 // --- Error ---
 
@@ -130,7 +131,7 @@ export const sendNoContent: (event: H3Event, code?: number) => HTTPResponse = (_
   noContent(code);
 
 /** @deprecated Please use `return redirect(event, code)` */
-export const sendRedirect: (event: H3Event, location: string, code: number) => HTTPResponse = (
+export const sendRedirect: (event: H3Event, location: string, code?: number) => HTTPResponse = (
   _,
   loc,
   code,
@@ -146,6 +147,11 @@ export const sendProxy: (
   opts?: ProxyOptions,
 ) => Promise<HTTPResponse> = proxy;
 
+/** @deprecated Please use `new EventStream(event)` */
+export function createEventStream(event: H3Event, opts?: EventStreamOptions): EventStream {
+  return new EventStream(event, opts);
+}
+
 /** @deprecated Please use `return iterable(event, value)` */
 export const sendIterable: <Value = unknown, Return = unknown>(
   _event: H3Event,
@@ -153,7 +159,7 @@ export const sendIterable: <Value = unknown, Return = unknown>(
   options?: {
     serializer: IteratorSerializer<Value | Return>;
   },
-) => HTTPResponse = (_event, val, options) => {
+) => Promise<HTTPResponse> = (_event, val, options) => {
   return iterable(val, options);
 };
 
@@ -242,14 +248,15 @@ export function removeResponseHeader(event: H3Event, name: string): void {
 }
 
 /** @deprecated Please use `event.res.headers.append(name, value)` */
-export function appendResponseHeaders(event: H3Event, headers: string): void {
+export function appendResponseHeaders(event: H3Event, headers: Record<string, string>): void {
   for (const [name, value] of Object.entries(headers)) {
     appendResponseHeader(event, name, value!);
   }
 }
 
 /** @deprecated Please use `event.res.headers.append(name, value)` */
-export const appendHeaders: (event: H3Event, headers: string) => void = appendResponseHeaders;
+export const appendHeaders: (event: H3Event, headers: Record<string, string>) => void =
+  appendResponseHeaders;
 
 /** @deprecated Please use `event.res.headers.delete` */
 export function clearResponseHeaders(event: H3Event, headerNames?: string[]): void {

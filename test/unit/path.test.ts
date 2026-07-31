@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveDotSegments } from "../../src/utils/path.ts";
+import { isCanonicalPath, resolveDotSegments } from "../../src/utils/path.ts";
 
 describe("resolveDotSegments", () => {
   it("leaves a plain path untouched", () => {
@@ -54,6 +54,24 @@ describe("resolveDotSegments", () => {
     expect(resolveDotSegments("/assets/app.1a2b.js")).toBe("/assets/app.1a2b.js");
   });
 
+  it("keeps dot-prefixed segment names untouched in every mode", () => {
+    // A segment that merely STARTS with dots is not a dot segment — the guard
+    // must stay boundary-aware in each per-mode trigger regex.
+    for (const opts of [
+      undefined,
+      { decodeSlashes: true },
+      { mergeSlashes: true },
+      { decodeSlashes: true, mergeSlashes: true },
+    ]) {
+      expect(resolveDotSegments("/.well-known/security.txt", opts)).toBe(
+        "/.well-known/security.txt",
+      );
+      expect(resolveDotSegments("/a/..b/c", opts)).toBe("/a/..b/c");
+      expect(resolveDotSegments("/a%2eb/c", opts)).toBe("/a%2eb/c");
+      expect(resolveDotSegments("/a/...", opts)).toBe("/a/...");
+    }
+  });
+
   it("keeps non-separator, non-dot encodings untouched", () => {
     expect(resolveDotSegments("/foo%20bar")).toBe("/foo%20bar");
     expect(resolveDotSegments("/caf%C3%A9/x")).toBe("/caf%C3%A9/x");
@@ -103,5 +121,200 @@ describe("resolveDotSegments", () => {
   it("catches nested %25-encoded dot segments", () => {
     expect(resolveDotSegments("/api/orders/%252e%252e/admin")).toBe("/api/admin");
     expect(resolveDotSegments("/a/%25252e%25252e/b")).toBe("/b");
+  });
+
+  it("preserves interior empty segments by default", () => {
+    expect(resolveDotSegments("/api/orders//list.json")).toBe("/api/orders//list.json");
+    // The empty segment shields the `..` from popping `a` (it pops the empty
+    // segment instead), leaving the directory-form `/a/`.
+    expect(resolveDotSegments("/a//..")).toBe("/a/");
+    expect(resolveDotSegments("/api/foo/%2e%2e/%2fadmin/secret", { decodeSlashes: true })).toBe(
+      "/api//admin/secret",
+    );
+  });
+
+  it("preserves the trailing slash of a trailing dot segment (RFC 3986 §5.2.4)", () => {
+    // A trailing `.`/`..` resolves to a directory: `/a/b/..` -> `/a/`, not `/a`,
+    // matching what a WHATWG `URL`/nginx downstream resolves.
+    expect(resolveDotSegments("/a/b/..")).toBe("/a/");
+    expect(resolveDotSegments("/a/.")).toBe("/a/");
+    expect(resolveDotSegments("/a/b/.")).toBe("/a/b/");
+    // Encoded and nested forms resolve the same way.
+    expect(resolveDotSegments("/a/b/%2e%2e")).toBe("/a/");
+    expect(resolveDotSegments("/a/b/%252e")).toBe("/a/b/");
+    // Popping down to the root still yields a single-slash root, not `//`.
+    expect(resolveDotSegments("/a/..")).toBe("/");
+    expect(resolveDotSegments("/..")).toBe("/");
+    expect(resolveDotSegments("/a/../..")).toBe("/");
+    // Merge mode preserves it too.
+    expect(resolveDotSegments("/a/b/..", { mergeSlashes: true })).toBe("/a/");
+  });
+
+  describe("isCanonicalPath", () => {
+    const MODES = [
+      undefined,
+      { decodeSlashes: true },
+      { mergeSlashes: true },
+      { decodeSlashes: true, mergeSlashes: true },
+    ];
+
+    it("accepts already-canonical paths in every mode", () => {
+      for (const opts of MODES) {
+        expect(isCanonicalPath("/", opts)).toBe(true);
+        expect(isCanonicalPath("/api/users/123", opts)).toBe(true);
+        expect(isCanonicalPath("/assets/app.1a2b.js", opts)).toBe(true);
+        expect(isCanonicalPath("/.well-known/security.txt", opts)).toBe(true);
+        expect(isCanonicalPath("/foo%20bar/a%3Ab", opts)).toBe(true);
+        expect(isCanonicalPath("/a%2eb/..c/...", opts)).toBe(true);
+      }
+    });
+
+    it("rejects anything the resolver would change, per mode", () => {
+      // Mode-independent triggers.
+      for (const opts of MODES) {
+        expect(isCanonicalPath("/a/../b", opts)).toBe(false);
+        expect(isCanonicalPath("/a/%2e%2e/b", opts)).toBe(false);
+        expect(isCanonicalPath("/a\\b", opts)).toBe(false);
+        expect(isCanonicalPath("//evil.com", opts)).toBe(false);
+        expect(isCanonicalPath("relative", opts)).toBe(false);
+        expect(isCanonicalPath("", opts)).toBe(false);
+      }
+      // Opt-gated triggers: opaque in one mode, a separator in the other.
+      expect(isCanonicalPath("/a%2fb")).toBe(true);
+      expect(isCanonicalPath("/a%2fb", { decodeSlashes: true })).toBe(false);
+      expect(isCanonicalPath("/a%255cb", { decodeSlashes: true })).toBe(false);
+      expect(isCanonicalPath("/a//b")).toBe(true);
+      expect(isCanonicalPath("/a//b", { mergeSlashes: true })).toBe(false);
+    });
+
+    it("is exactly `resolveDotSegments(path, opts) === path` (seeded fuzz)", () => {
+      // The predicate IS the resolver's fast-path guard — this property is the
+      // contract that keeps them in lockstep: any future widening of what the
+      // resolver decodes must widen the guard in the same commit, or a caller
+      // using the predicate to skip resolving would silently skip a
+      // canonicalization step (a scope/auth-check bypass, not just a perf bug).
+      const FRAGMENTS = [
+        "/",
+        "//",
+        "\\",
+        ".",
+        "..",
+        "...",
+        "%2e",
+        "%2E",
+        "%252e",
+        "%2e%2e",
+        "%2f",
+        "%5C",
+        "%252f",
+        "a",
+        "app.js",
+        ".well-known",
+        "..b",
+        "a%2eb",
+        "%20",
+        "%25",
+        "%",
+        "admin",
+        "%2e.",
+        ".%2e",
+        "%25%32%66",
+      ];
+      let seed = 1234;
+      const rand = () => (seed = (seed * 1_103_515_245 + 12_345) & 0x7f_ff_ff_ff) / 0x7f_ff_ff_ff;
+      for (let i = 0; i < 50_000; i++) {
+        let path = rand() < 0.9 ? "/" : "";
+        const length = 1 + Math.floor(rand() * 6);
+        for (let j = 0; j < length; j++) {
+          path += FRAGMENTS[Math.floor(rand() * FRAGMENTS.length)];
+        }
+        for (const opts of MODES) {
+          const identity = resolveDotSegments(path, opts) === path;
+          if (isCanonicalPath(path, opts) !== identity) {
+            expect.fail(
+              `isCanonicalPath(${JSON.stringify(path)}, ${JSON.stringify(opts)}) !== ${identity}`,
+            );
+          }
+        }
+      }
+    });
+  });
+
+  describe("mergeSlashes", () => {
+    it("collapses runs of literal separators", () => {
+      expect(resolveDotSegments("/api/orders//list.json", { mergeSlashes: true })).toBe(
+        "/api/orders/list.json",
+      );
+      expect(resolveDotSegments("/a////b", { mergeSlashes: true })).toBe("/a/b");
+    });
+
+    it("resolves a `..` an empty segment would otherwise shield", () => {
+      expect(resolveDotSegments("/a//..", { mergeSlashes: true })).toBe("/");
+      expect(resolveDotSegments("/a/b//../c", { mergeSlashes: true })).toBe("/a/c");
+      expect(resolveDotSegments("/a//../..", { mergeSlashes: true })).toBe("/");
+    });
+
+    it("collapses runs formed by decoded separators", () => {
+      // The maximal-traversal reading: `..` traverses and reaches /api/admin,
+      // which is what a slash-merging downstream resolves.
+      expect(
+        resolveDotSegments("/api/foo/%2e%2e/%2fadmin/secret", {
+          decodeSlashes: true,
+          mergeSlashes: true,
+        }),
+      ).toBe("/api/admin/secret");
+      expect(
+        resolveDotSegments("/api/foo/%2e%2e/%2fadmin", { decodeSlashes: true, mergeSlashes: true }),
+      ).toBe("/api/admin");
+      expect(resolveDotSegments("/a/%2f%2fb", { decodeSlashes: true, mergeSlashes: true })).toBe(
+        "/a/b",
+      );
+      // ...at any `%25`-nesting depth, and for `%5c` too
+      expect(
+        resolveDotSegments("/a/%252f%255cb", { decodeSlashes: true, mergeSlashes: true }),
+      ).toBe("/a/b");
+      expect(
+        resolveDotSegments("/a/b/%2e%2e/%252f..%2fadmin", {
+          decodeSlashes: true,
+          mergeSlashes: true,
+        }),
+      ).toBe("/admin");
+    });
+
+    it("collapses runs formed by normalized backslashes", () => {
+      expect(resolveDotSegments("/a/\\/b", { mergeSlashes: true })).toBe("/a/b");
+      expect(resolveDotSegments("/a\\\\..", { mergeSlashes: true })).toBe("/");
+    });
+
+    it("leaves an encoded separator opaque without decodeSlashes", () => {
+      // `%2f` is not part of the active separator set, so it forms no run.
+      expect(resolveDotSegments("/a/%2f%2fb", { mergeSlashes: true })).toBe("/a/%2f%2fb");
+      expect(resolveDotSegments("/a/%2f..", { mergeSlashes: true })).toBe("/a/%2f..");
+    });
+
+    it("collapses only runs, preserving a single trailing slash", () => {
+      expect(resolveDotSegments("/a/", { mergeSlashes: true })).toBe("/a/");
+      expect(resolveDotSegments("/a//", { mergeSlashes: true })).toBe("/a/");
+      expect(resolveDotSegments("/a//b/../", { mergeSlashes: true })).toBe("/a/");
+      expect(resolveDotSegments("/", { mergeSlashes: true })).toBe("/");
+    });
+
+    it("still never escapes above the root or yields a protocol-relative path", () => {
+      expect(resolveDotSegments("/..//../etc/passwd", { mergeSlashes: true })).toBe("/etc/passwd");
+      expect(resolveDotSegments("//evil.com", { mergeSlashes: true })).toBe("/evil.com");
+      expect(
+        resolveDotSegments("/app/..%2f..%2f%2fevil.com/steal", {
+          decodeSlashes: true,
+          mergeSlashes: true,
+        }),
+      ).toBe("/evil.com/steal");
+    });
+
+    it("keeps a run-free path on the fast path", () => {
+      expect(resolveDotSegments("/assets/app.1a2b.js", { mergeSlashes: true })).toBe(
+        "/assets/app.1a2b.js",
+      );
+      expect(resolveDotSegments("/foo%20bar", { mergeSlashes: true })).toBe("/foo%20bar");
+    });
   });
 });

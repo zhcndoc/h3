@@ -88,27 +88,46 @@ describe("requestWithBaseURL", () => {
     const proxied = requestWithBaseURL(original, "/base");
     expect(proxied instanceof Request).toBe(true);
   });
+
+  it("collapses leading slashes after stripping base", () => {
+    // Otherwise `/base//evil.com` strips to `//evil.com`, a protocol-relative
+    // pathname a downstream redirect could turn into a `//host` open redirect.
+    const req = new Request("http://example.com/base//evil.com");
+    const proxied = requestWithBaseURL(req, "/base");
+    expect(new URL(proxied.url).pathname).toBe("/evil.com");
+  });
+
+  it("leaves pathname untouched when base does not match", () => {
+    const req = new Request("http://example.com/other/path");
+    const proxied = requestWithBaseURL(req, "/base");
+    expect(new URL(proxied.url).pathname).toBe("/other/path");
+  });
 });
 
 describe("getRequestProtocol", () => {
-  it("returns https for plain x-forwarded-proto: https", () => {
-    const event = makeEvent({ "x-forwarded-proto": "https" });
-    expect(getRequestProtocol(event)).toBe("https");
-  });
-
-  it("returns http for plain x-forwarded-proto: http", () => {
-    const event = makeEvent({ "x-forwarded-proto": "http" });
+  it("ignores x-forwarded-proto by default (spoofed https)", () => {
+    const event = makeEvent({ "x-forwarded-proto": "https" }, "http://localhost/test");
     expect(getRequestProtocol(event)).toBe("http");
   });
 
-  it("returns first entry of comma-list x-forwarded-proto (https,http)", () => {
-    const event = makeEvent({ "x-forwarded-proto": "https,http" });
-    expect(getRequestProtocol(event)).toBe("https");
+  it("returns https for plain x-forwarded-proto: https when enabled", () => {
+    const event = makeEvent({ "x-forwarded-proto": "https" });
+    expect(getRequestProtocol(event, { xForwardedProto: true })).toBe("https");
   });
 
-  it("returns first entry of comma-list x-forwarded-proto with spaces (https, http)", () => {
+  it("returns http for plain x-forwarded-proto: http when enabled", () => {
+    const event = makeEvent({ "x-forwarded-proto": "http" });
+    expect(getRequestProtocol(event, { xForwardedProto: true })).toBe("http");
+  });
+
+  it("returns first entry of comma-list x-forwarded-proto (https,http) when enabled", () => {
+    const event = makeEvent({ "x-forwarded-proto": "https,http" });
+    expect(getRequestProtocol(event, { xForwardedProto: true })).toBe("https");
+  });
+
+  it("returns first entry of comma-list x-forwarded-proto with spaces (https, http) when enabled", () => {
     const event = makeEvent({ "x-forwarded-proto": "https, http" });
-    expect(getRequestProtocol(event)).toBe("https");
+    expect(getRequestProtocol(event, { xForwardedProto: true })).toBe("https");
   });
 
   it("ignores x-forwarded-proto when xForwardedProto is false", () => {

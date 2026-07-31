@@ -1,6 +1,6 @@
 {
   "name": "h3",
-  "version": "2.0.1-rc.22",
+  "version": "2.0.1-rc.26",
   "description": "Minimal H(TTP) framework built for high performance and portability.",
   "homepage": "https://h3.dev",
   "license": "MIT",
@@ -45,28 +45,29 @@
     "play:node": "pnpm test/fixture/node.ts",
     "play:plain": "pnpm test/fixture/plain.ts",
     "play:web": "pnpm test/fixture/web.ts",
-    "release": "pnpm test && pnpm build && changelogen --release --prerelease --publish && git push --follow-tags",
-    "test": "pnpm lint && vitest --run --coverage"
+    "release": "pnpm test && pnpm build && changelogen --release --prerelease && npm publish --tag latest && git push --follow-tags",
+    "test": "pnpm lint && pnpm typecheck && vitest --run --coverage",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "rou3": "^0.9.0",
-    "srvx": "^0.11.20"
+    "rou3": "^0.9.1",
+    "srvx": "^0.12.4"
   },
   "devDependencies": {
-    "@happy-dom/global-registrator": "^20.10.6",
+    "@happy-dom/global-registrator": "^20.11.1",
     "@mitata/counters": "^0.0.8",
     "@types/connect": "^3.4.38",
     "@types/express": "^5.0.6",
-    "@types/node": "^26.1.0",
+    "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@typescript/native-preview": "latest",
-    "@vitest/coverage-v8": "^4.1.9",
+    "@vitest/coverage-v8": "^4.1.10",
     "automd": "^0.4.3",
     "changelogen": "^0.6.2",
     "connect": "^3.7.0",
     "cookie-es": "^3.1.1",
-    "crossws": "^0.4.8",
+    "crossws": "^0.4.10",
     "elysia": "^1.4.29",
     "esbuild": "^0.28.1",
     "express": "^5.2.1",
@@ -74,26 +75,25 @@
     "get-port-please": "^3.2.0",
     "h3": "workspace:*",
     "h3-nightly": "latest",
-    "happy-dom": "^20.10.6",
-    "hono": "^4.12.27",
-    "magic-string": "^0.30.21",
+    "happy-dom": "^20.11.1",
+    "hono": "^4.12.31",
+    "magic-string": "^1.1.0",
     "mdzilla": "^0.2.1",
-    "memoirist": "^1.1.0",
+    "memoirist": "^1.2.0",
     "mitata": "^1.0.34",
-    "obuild": "^0.4.37",
-    "oxc-parser": "^0.138.0",
-    "oxfmt": "^0.57.0",
-    "oxlint": "^1.72.0",
-    "oxlint-tsgolint": "^0.24.0",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "typescript": "^6.0.3",
-    "vite": "^8.1.2",
-    "vitest": "^4.1.9",
+    "obuild": "^0.4.38",
+    "oxc-parser": ">=0.140.0",
+    "oxfmt": ">=0.60.0",
+    "oxlint": "^1.75.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.5",
+    "vitest": "^4.1.10",
     "zod": "^4.4.3"
   },
   "peerDependencies": {
-    "crossws": "^0.4.8"
+    "crossws": "^0.4.9"
   },
   "peerDependenciesMeta": {
     "crossws": {
@@ -107,5 +107,5 @@
   "engines": {
     "node": ">=20.11.1"
   },
-  "packageManager": "pnpm@11.9.0"
+  "packageManager": "pnpm@11.15.1"
 }

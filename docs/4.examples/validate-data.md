@@ -22,7 +22,7 @@ H3 提供了一些辅助工具来帮助您处理数据验证。您将能够验�
 H3 不提供任何验证库，但它支持来自**Standard-Schema** 兼容库的 schema，比如：[Zod](https://zod.dev)、[Valibot](https://valibot.dev)、[ArkType](https://arktype.io/) 等……（所有兼容库请查看[它们的官方仓库](https://github.com/standard-schema/standard-schema)）。如果您想使用一个不兼容 Standard-Schema 的验证库，您仍然可以使用，但必须使用该库自身提供的解析函数（请参阅下面的[安全解析](#安全解析)部分）。
 
 > [!WARNING]
-> H3 是运行时无关的。这意味着您可以在[任何运行时](/adapters)中使用它。但某些验证库并不兼容所有运行时。
+> H3 与运行时无关。这意味着您可以在[任何运行时](/guide)中使用它。但某些验证库并不兼容所有运行时。
 
 下面让我们看看如何使用 [Zod](https://zod.dev) 和 [Valibot](https://valibot.dev) 进行数据验证。
 
@@ -47,7 +47,7 @@ const contentSchema = v.object({
 });
 
 app.all(
-  // You must use a router to use params
+  // 使用 params 时必须使用路由器
   "/content/:topic/:uuid",
   async (event) => {
     const params = await getValidatedRouterParams(event, contentSchema);
