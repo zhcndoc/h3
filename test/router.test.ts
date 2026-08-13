@@ -179,6 +179,20 @@ describeMatrix("router", (t, { it, expect, describe }) => {
         const nonAscii = await (await t.fetch("/files/caf%C3%A9")).text();
         expect(nonAscii).toBe("café");
       });
+
+      it("decodes exactly one level (documented in docs/2.utils/4.security.md)", async () => {
+        // `decode:true` is one `decodeURIComponent` pass, not a full
+        // normalization: `%25XX` yields the literal text `%XX`, so the result
+        // can still contain escapes and must not be decoded again.
+        t.app.get("/files/**:rest", (event) => {
+          return getRouterParams(event, { decode: true }).rest;
+        });
+
+        expect(await (await t.fetch("/files/%252e%252e/x")).text()).toBe("%2e%2e/x");
+        expect(await (await t.fetch("/files/%2500")).text()).toBe("%00");
+        // Separators stay encoded at every `%25`-nesting depth.
+        expect(await (await t.fetch("/files/a%252fb")).text()).toBe("a%252fb");
+      });
     });
 
     describe("without router", () => {
@@ -304,6 +318,39 @@ describeMatrix("router", (t, { it, expect, describe }) => {
       const postRes = await t.fetch("/path", { method: "POST" });
       expect(postRes.status).toBe(200);
       expect(await postRes.text()).toBe("post");
+    });
+  });
+
+  describe("encoded route registration", () => {
+    // Regression: `event.url.pathname` is canonicalized before routing (needless
+    // escapes like `%40` decoded to `@`, see src/event.ts / src/utils/internal/path.ts),
+    // but a route string passed to `on()`/`get()`/etc. was normalized with
+    // `new URL(route, "http://_").pathname` only — never canonicalized. A route
+    // registered in its escaped wire form (`/%40handle`) therefore matched
+    // neither the encoded request (canonicalized to `/@handle` before matching)
+    // nor the literal decoded request (`/@handle`, which never equals the raw
+    // `/%40handle` registration string) — the route was unreachable either way.
+    it("registering a needlessly-escaped route makes it reachable via both its encoded and decoded form", async () => {
+      t.app.get("/%40handle", () => "handle");
+      t.app.get("/**", () => "fallback");
+
+      const encoded = await t.fetch("/%40handle");
+      expect(await encoded.text()).toBe("handle");
+
+      const decoded = await t.fetch("/@handle");
+      expect(await decoded.text()).toBe("handle");
+    });
+
+    it("removeRoute canonicalizes the route it looks up, matching a route registered in its escaped form", async () => {
+      t.app.get("/%40removable", () => "handle");
+
+      const before = await t.fetch("/@removable");
+      expect(before.status).toBe(200);
+
+      removeRoute(t.app, "GET", "/@removable");
+
+      const after = await t.fetch("/@removable");
+      expect(after.status).toBe(404);
     });
   });
 
