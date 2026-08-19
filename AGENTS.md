@@ -67,19 +67,20 @@ src/
 │   ├── h3.ts             # 应用类型（H3Config、H3Plugin、H3Route、HTTPMethod）
 │   ├── handler.ts        # 处理器类型（EventHandler、Middleware）
 │   ├── context.ts        # H3EventContext
-│   └── _utils.ts         # 内部类型辅助
-├── utils/                # 约 30 个工具模块（公共 API）
-│   ├── request.ts        # getQuery、getRouterParams、getRequestURL 等
-│   ├── response.ts       # redirect、noContent、html、iterable 等
-│   ├── body.ts           # readBody、readValidatedBody、assertBodySize
-│   ├── cookie.ts         # getCookie、setCookie、parseCookies、chunked cookies
-│   ├── session.ts        # getSession、useSession、sealSession 等
-│   ├── auth.ts           # requireBasicAuth、basicAuth
-│   ├── cors.ts           # handleCors、appendCorsHeaders 等
-│   ├── proxy.ts          # proxy、proxyRequest、fetchWithEvent
-│   ├── ws.ts             # defineWebSocketHandler、defineWebSocket
-│   ├── json-rpc.ts       # defineJsonRpcHandler、defineJsonRpcWebSocketHandler
-│   ├── event-stream.ts   # createEventStream（SSE）
+│   ├── route-rules.ts    # RouteRules (shared, augmentable: merged rule options on event.context.routeRules)
+│   └── _utils.ts         # Internal type helpers
+├── utils/                # ~30 utility modules (public API)
+│   ├── request.ts        # getQuery, getRouterParams, getRequestURL, ...
+│   ├── response.ts       # redirect, noContent, html, iterable, ...
+│   ├── body.ts           # readBody, readValidatedBody, assertBodySize
+│   ├── cookie.ts         # getCookie, setCookie, parseCookies, chunked cookies
+│   ├── session.ts        # getSession, useSession, sealSession, ...
+│   ├── auth.ts           # requireBasicAuth, basicAuth
+│   ├── cors.ts           # handleCors, appendCorsHeaders, ...
+│   ├── proxy.ts          # proxy, proxyRequest, fetchWithEvent
+│   ├── ws.ts             # defineWebSocketHandler, defineWebSocket
+│   ├── json-rpc.ts       # defineJsonRpcHandler, defineJsonRpcWebSocketHandler
+│   ├── event-stream.ts   # createEventStream (SSE)
 │   ├── static.ts         # serveStatic
 │   ├── cache.ts          # handleCacheHeaders
 │   ├── middleware.ts     # onRequest、onResponse、onError、bodyLimit
@@ -90,6 +91,19 @@ src/
 │       ├── iron-crypto.ts     # 会话封装加密
 │       ├── standard-schema.ts # 标准数据校验
 │       └── validate.ts
+├── rules/                # Route rules (h3/rules subpath entries)
+│   ├── index.ts          # h3/rules — routeRules middleware, matchers, built-in handlers
+│   ├── middleware.ts     # routeRules() plug-and-play middleware
+│   ├── normalize.ts      # normalizeRouteRules (config → runtime rules)
+│   ├── match.ts          # createRouteRulesMatcher, createMatcherFromFind, memoize
+│   ├── merge.ts          # mergeMatchedRouteRules (layer merge semantics)
+│   ├── types.ts          # RouteRuleConfig, NormalizedRouteRules, MatchedRouteRule, RuleHandler
+│   ├── cache.ts          # h3/rules/cache — ocache-backed cache handler (optional peer)
+│   ├── proxy.ts          # h3/rules/proxy — proxyRequest-backed proxy handler
+│   ├── compiler.ts       # h3/rules/compiler — build-time codegen
+│   ├── handlers/         # Built-in rule handlers (headers, redirect, cors, cache)
+│   ├── compiler/         # Codegen internals (compile, codegen, runtime-rules, options)
+│   └── internal/         # key parsing, scope checks, node-key bucketing, pre-merge analysis
 ├── _entries/             # Platform-specific entry points
 │   ├── generic.ts        # Web Worker / Browser
 │   ├── node.ts           # Node.js (adds toNodeHandler)
@@ -101,11 +115,12 @@ src/
 └── _deprecated.ts        # 弃用导出（v1 兼容）
 
 test/
-├── _setup.ts             # 测试基础设施（describeMatrix、setupWebTest、setupNodeTest）
-├── *.test.ts             # 约 30 个集成测试文件
-├── unit/                 # 单元测试（含类型测试：types.test-d.ts）
-├── bench/                # 基准测试（mitata）
-└── fixture/              # 运行时特定测试用例
+├── _setup.ts             # Test infrastructure (describeMatrix, setupWebTest, setupNodeTest)
+├── *.test.ts             # ~30 integration test files
+├── rules/                # Route rules tests (+ type tests: types.test-d.ts)
+├── unit/                 # Unit tests (including type tests: types.test-d.ts)
+├── bench/                # Benchmarks (mitata)
+└── fixture/              # Runtime-specific playground fixtures
 ```
 
 ## 代码规范
@@ -197,11 +212,11 @@ pnpm test                                # 全套：lint + 类型检查 + 覆盖
 
 ## 构建
 
-- 使用 **obuild** 和 Rolldown 打包器
-- 6 个平台入口 + `tracing.ts` 独立入口
-- 启用代码拆分（生成 `h3-[hash].mjs` 代码块）
-- 自定义插件剥离注释（保留 `#/@` 注解）
-- 输出：`dist/_entries/*.mjs` + `dist/*.d.mts`
+- **obuild** with Rolldown bundler
+- 6 platform entries + `tracing.ts` and the 4 `rules/*` entries as separate entries
+- Code splitting enabled (`h3-[hash].mjs` chunks)
+- Custom plugin strips comments (preserves `#/@` annotations)
+- Output: `dist/_entries/*.mjs` + `dist/*.d.mts`
 
 ### 包导出
 
@@ -212,17 +227,22 @@ h3/bun       → Bun runtime
 h3/deno      → Deno runtime
 h3/cloudflare → Cloudflare Workers
 h3/service-worker → Service Workers
-h3/generic   → 通用 Web 标准
-h3/tracing   → 跟踪插件
+h3/generic   → Universal web standard
+h3/tracing   → Tracing plugin
+h3/rules     → Route rules (routeRules middleware, matchers, built-in handlers)
+h3/rules/cache → ocache-backed `cache` rule handler (optional `ocache` peer)
+h3/rules/proxy → `proxy` rule handler (pulls in proxyRequest)
+h3/rules/compiler → Build-time route rules codegen
 ```
 
 ## 依赖
 
-| 依赖       | 作用                         |
-| ---------- | ---------------------------- |
-| `rou3`     | 路由匹配引擎                 |
-| `srvx`     | 服务器抽象（多运行时）       |
-| `crossws`  | WebSocket 抽象（可选对等依赖）|
+| Dep       | Purpose                                                   |
+| --------- | --------------------------------------------------------- |
+| `rou3`    | Route matching engine                                     |
+| `srvx`    | Server abstraction (multi-runtime)                        |
+| `crossws` | WebSocket abstraction (optional peer dep)                 |
+| `ocache`  | Response caching for `h3/rules/cache` (optional peer dep) |
 
 ## 贡献最佳实践
 
