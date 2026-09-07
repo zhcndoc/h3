@@ -12,6 +12,7 @@ import type {
   EventHandlerWithFetch,
   FetchableObject,
   HTTPHandler,
+  ResolvedRequest,
 } from "./types/handler.ts";
 import type { StandardSchemaV1, InferOutput } from "./utils/internal/standard-schema.ts";
 import { NoHandler, type H3Core } from "./h3.ts";
@@ -142,9 +143,9 @@ export function dynamicEventHandler(initial?: EventHandler | FetchableObject): D
 
 type MaybePromise<T> = T | Promise<T>;
 
-export function defineLazyEventHandler(
-  loader: () => MaybePromise<HTTPHandler>,
-): EventHandlerWithFetch {
+export function defineLazyEventHandler<_RequestT extends EventHandlerRequest = EventHandlerRequest>(
+  loader: () => MaybePromise<HTTPHandler<_RequestT>>,
+): EventHandlerWithFetch<ResolvedRequest<_RequestT>> {
   let handler: EventHandler | undefined;
   let promise: Promise<EventHandler> | undefined;
   return defineHandler(function lazyHandler(event) {
@@ -162,12 +163,14 @@ export function defineLazyEventHandler(
 
 // --- normalization utils ---
 
-export function toEventHandler(handler: HTTPHandler | undefined): EventHandler | undefined {
+export function toEventHandler<_RequestT extends EventHandlerRequest = EventHandlerRequest>(
+  handler: HTTPHandler<_RequestT> | undefined,
+): EventHandler<ResolvedRequest<_RequestT>> | undefined {
   if (typeof handler === "function") {
-    return handler;
+    return handler as EventHandler<ResolvedRequest<_RequestT>>;
   }
   if (typeof (handler as H3Core)?.handler === "function" && (handler as any).constructor?.["~h3"]) {
-    return (handler as H3Core).handler;
+    return (handler as H3Core).handler as EventHandler<ResolvedRequest<_RequestT>>;
   }
   if (typeof (handler as FetchableObject)?.fetch === "function") {
     return function _fetchHandler(event: H3Event) {

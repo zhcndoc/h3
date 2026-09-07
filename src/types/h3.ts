@@ -1,5 +1,5 @@
 import type { H3EventContext } from "./context.ts";
-import type { HTTPHandler, EventHandler, Middleware } from "./handler.ts";
+import type { HTTPHandler, EventHandler, EventHandlerRequest, Middleware } from "./handler.ts";
 import type { HTTPError } from "../error.ts";
 import type { MaybePromise } from "./_utils.ts";
 import type { FetchHandler, ServerRequest } from "srvx";
@@ -154,6 +154,17 @@ export declare class H3Core {
   "~addRoute"(_route: H3Route): void;
 }
 
+/**
+ * Registers a route handler, inferring the handler request type when it has one.
+ */
+export interface RouteRegistrar<T> {
+  <_RequestT extends EventHandlerRequest = EventHandlerRequest>(
+    route: string,
+    handler: HTTPHandler<_RequestT>,
+    opts?: RouteOptions,
+  ): T;
+}
+
 export declare class H3 extends H3Core {
   /** @internal */
   "~rou3": RouterContext;
@@ -180,10 +191,10 @@ export declare class H3 extends H3Core {
   /**
    * Register a route handler for the specified HTTP method and route.
    */
-  on(
+  on<_RequestT extends EventHandlerRequest = EventHandlerRequest>(
     method: HTTPMethod | Lowercase<HTTPMethod> | "",
     route: string,
-    handler: HTTPHandler,
+    handler: HTTPHandler<_RequestT>,
     opts?: RouteOptions,
   ): this;
 
@@ -204,16 +215,15 @@ export declare class H3 extends H3Core {
   /**
    * Register a route handler for all HTTP methods.
    */
-  all(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
-
-  get(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
-  post(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
-  put(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
-  delete(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
-  patch(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
-  head(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
-  options(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
-  connect(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
-  trace(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
-  query(route: string, handler: HTTPHandler, opts?: RouteOptions): this;
+  all: RouteRegistrar<this>;
+  get: RouteRegistrar<this>;
+  post: RouteRegistrar<this>;
+  put: RouteRegistrar<this>;
+  delete: RouteRegistrar<this>;
+  patch: RouteRegistrar<this>;
+  head: RouteRegistrar<this>;
+  options: RouteRegistrar<this>;
+  connect: RouteRegistrar<this>;
+  trace: RouteRegistrar<this>;
+  query: RouteRegistrar<this>;
 }
