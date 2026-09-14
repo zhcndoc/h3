@@ -36,6 +36,12 @@ describe("types", () => {
     expectTypeOf(getAuthorization).returns.toEqualTypeOf<string | null>();
   });
 
+  it("event.req.headers uses request header names", () => {
+    type HeaderName = Parameters<H3Event["req"]["headers"]["delete"]>[0];
+    expectTypeOf<Extract<HeaderName, "Authorization">>().toEqualTypeOf<"Authorization">();
+    expectTypeOf<Extract<HeaderName, "X-Powered-By">>().toBeNever();
+  });
+
   type ReqOf<H> = H extends (event: H3Event<infer R>) => any ? R : never;
 
   describe("eventHandler", () => {
