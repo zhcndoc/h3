@@ -184,6 +184,7 @@ export { type CacheConditions, handleCacheHeaders } from "./utils/cache.ts";
 export {
   type ResolveDotSegmentsOptions,
   isCanonicalPath,
+  normalizeRoute,
   resolveDotSegments,
 } from "./utils/path.ts";
 
