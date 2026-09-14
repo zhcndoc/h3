@@ -276,6 +276,24 @@ describeMatrix("errors", (t, { it, expect, describe }) => {
       t.errors = [];
     });
 
+    // Fetch clients (ky, got) throw their own errors named `HTTPError`, without `status`, whose
+    // message carries the upstream request URL. They must not pass as h3 `HTTPError`s.
+    it("foreign error named HTTPError without status is unhandled", async () => {
+      class UpstreamHTTPError extends Error {
+        override name = "HTTPError";
+      }
+      const foreign = new UpstreamHTTPError("Request failed: GET https://internal/?token=secret");
+      expect(HTTPError.isError(foreign)).toBe(false);
+      t.app.use(() => {
+        throw foreign;
+      });
+      const res = await t.fetch("/");
+      expect(res.status).toBe(500);
+      expect(await res.json()).toMatchObject({ unhandled: true, message: "HTTPError" });
+      expect(t.errors[0].unhandled).toBe(true);
+      t.errors = [];
+    });
+
     it("onError receives the wrapped error", async () => {
       const onError = vi.fn();
       const app = new H3({ onError, silent: true });
