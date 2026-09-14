@@ -2,6 +2,58 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.0.1-rc.32
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.30...v2.0.1-rc.32)
+
+### 🚀 Enhancements
+
+- **rules:** Support non-trailing `**` in redirect/proxy targets ([228bca3](https://github.com/h3js/h3/commit/228bca3))
+- Export `normalizeRoute` as a public path utility ([#1549](https://github.com/h3js/h3/pull/1549))
+
+### 🔥 Performance
+
+- **rules:** Evict memoized matches with SIEVE instead of FIFO ([#1543](https://github.com/h3js/h3/pull/1543))
+
+### 🩹 Fixes
+
+- **route-rules:** Pass uncacheable requests through the cache rule ([b6c7d08](https://github.com/h3js/h3/commit/b6c7d08))
+- Handle srvx body limit errors as 413 ([b5d20d5](https://github.com/h3js/h3/commit/b5d20d5))
+- **error:** Require `status` in `HTTPError.isError` ([e6b726b](https://github.com/h3js/h3/commit/e6b726b))
+
+### 📦 Build
+
+- Export `TypedHeaders` type ([#1547](https://github.com/h3js/h3/pull/1547))
+
+### 🌊 Types
+
+- **handler:** Infer route handler request type instead of any ([#1546](https://github.com/h3js/h3/pull/1546))
+- **handler:** Use request header names for `req.headers` ([ae529f1](https://github.com/h3js/h3/commit/ae529f1))
+
+### 🏡 Chore
+
+- Apply automated updates ([c460ebe](https://github.com/h3js/h3/commit/c460ebe))
+- Update deps ([1316ffb](https://github.com/h3js/h3/commit/1316ffb))
+- Apply automated updates ([21a26d9](https://github.com/h3js/h3/commit/21a26d9))
+- Update lockfile ([00c0d3f](https://github.com/h3js/h3/commit/00c0d3f))
+- Apply automated updates ([6075f8a](https://github.com/h3js/h3/commit/6075f8a))
+- **release:** V2.0.1-rc.31 ([df811cd](https://github.com/h3js/h3/commit/df811cd))
+- Update lockfile ([bae31f3](https://github.com/h3js/h3/commit/bae31f3))
+- Apply automated updates ([7f5f106](https://github.com/h3js/h3/commit/7f5f106))
+- Update deps ([a5fdc86](https://github.com/h3js/h3/commit/a5fdc86))
+- Update deps ([60d883f](https://github.com/h3js/h3/commit/60d883f))
+
+### 🤖 CI
+
+- Replace setup-node and corepack with setup-jup ([#1544](https://github.com/h3js/h3/pull/1544))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Pi0x <x@pi0.io>
+- Rith Banerjee ([@Rithb898](https://github.com/Rithb898))
+- Lazizbek Ergashev ([@lazerg](https://github.com/lazerg))
+
 ## v2.0.1-rc.31
 
 [compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.30...v2.0.1-rc.31)
