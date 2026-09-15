@@ -101,9 +101,12 @@ export function toRequest(
 /**
  * Get parsed query string object from the request URL.
  *
+ * To access the raw (unparsed) query string, for example to parse nested queries with a custom parser such as `qs`, use `event.url.search` directly.
+ *
  * @example
  * app.get("/", (event) => {
  *   const query = getQuery(event); // { key: "value", key2: ["value1", "value2"] }
+ *   const rawQuery = event.url.search; // "?key=value&key2=value1&key2=value2"
  * });
  */
 export function getQuery<
