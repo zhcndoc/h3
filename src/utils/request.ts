@@ -1,5 +1,6 @@
 import { type ErrorDetails, HTTPError } from "../error.ts";
 import { decodePreservingSeparators, stripBase } from "./internal/path.ts";
+import { EmptyObject } from "./internal/obj.ts";
 import { parseQuery } from "./internal/query.ts";
 import { validateData } from "./internal/validate.ts";
 import { getEventContext } from "./event.ts";
@@ -18,15 +19,31 @@ import type { ServerRequest } from "srvx";
  * Avoids cloning the original request (no `new Request()` allocation).
  */
 export function requestWithURL(req: ServerRequest, url: string): ServerRequest {
+  // Null prototype: with a plain object literal every `Object.prototype` key is
+  // a cache hit, so `constructor` would resolve to `Object` and `__proto__` to
+  // `Object.prototype` instead of the request's own.
+  const cache: Record<string | symbol, unknown> = new EmptyObject();
+  cache.url = url;
   // Shadow `_url` too: the runtime-parsed URL object reflects the original
   // request URL and consumers must re-parse the overridden `url` instead.
-  const cache: Record<string | symbol, unknown> = { url, _url: undefined };
+  cache._url = undefined;
   return new Proxy(req, {
     get(target, prop) {
       if (prop in cache) return cache[prop];
       const value = Reflect.get(target, prop);
-      cache[prop] = typeof value === "function" ? value.bind(target) : value;
+      // Never memoize `bodyUsed`: it flips when the body is consumed.
+      if (prop === "bodyUsed") return value;
+      // Methods are bound so they run against the real request (private field
+      // brand checks), but `constructor` has to keep its identity for
+      // `req.constructor === Request` style duck-typing.
+      cache[prop] =
+        typeof value === "function" && prop !== "constructor" ? value.bind(target) : value;
       return cache[prop];
+    },
+    set(target, prop, value) {
+      // Writes go to the request, so drop the stale memo (except the shadowed url).
+      if (prop !== "url" && prop !== "_url") delete cache[prop];
+      return Reflect.set(target, prop, value);
     },
   });
 }
@@ -55,9 +72,14 @@ export function requestWithBaseURL(
 /**
  * Convert input into a web [Request](https://developer.mozilla.org/en-US/docs/Web/API/Request).
  *
- * If input is a relative URL, it will be normalized into a full path based on headers.
+ * If input is a relative URL, it will be normalized into a full path based on the `host` header.
  *
  * If input is already a Request and no options are provided, it will be returned as-is.
+ *
+ * **Security:** The `host` header is client input. It is only used as the authority of the
+ * synthesized URL (falling back to `localhost` when absent or malformed) and can never widen
+ * into the path, and `x-forwarded-proto` is ignored, so the scheme is always `http`. Pass an
+ * absolute URL to control the origin.
  */
 export function toRequest(
   input: ServerRequest | URL | string,
@@ -67,12 +89,7 @@ export function toRequest(
     let url = input;
     if (url[0] === "/") {
       const headers = options?.headers ? new Headers(options.headers) : undefined;
-      const host = headers?.get("host") || "localhost";
-      const proto =
-        (headers?.get("x-forwarded-proto") || "").split(",")[0].trim() === "https"
-          ? "https"
-          : "http";
-      url = `${proto}://${host}${url}`;
+      url = `http://${safeHost(headers?.get("host"))}${url}`;
     }
     return new Request(url, options);
   } else if (options || input instanceof URL) {
@@ -84,9 +101,12 @@ export function toRequest(
 /**
  * Get parsed query string object from the request URL.
  *
+ * To access the raw (unparsed) query string, for example to parse nested queries with a custom parser such as `qs`, use `event.url.search` directly.
+ *
  * @example
  * app.get("/", (event) => {
  *   const query = getQuery(event); // { key: "value", key2: ["value1", "value2"] }
+ *   const rawQuery = event.url.search; // "?key=value&key2=value1&key2=value2"
  * });
  */
 export function getQuery<
@@ -493,10 +513,7 @@ export function getRequestURL(
   if (opts.xForwardedHost) {
     const host = getRequestHost(event, opts);
     if (host) {
-      url.host = host;
-      if (!/:\d+$/.test(host)) {
-        url.port = "";
-      }
+      applyForwardedHost(url, host);
     }
   }
   return url;
@@ -505,9 +522,26 @@ export function getRequestURL(
 /**
  * Try to get the client IP address from the incoming request.
  *
- * If `xForwardedFor` is `true`, it will use the `x-forwarded-for` header if it exists.
+ * By default the address comes from `event.req.ip`: the connection peer, or the
+ * client resolved from the forwarded chain when the server is configured to
+ * trust an upstream proxy (e.g. srvx's `trustProxy`).
+ *
+ * If `xForwardedFor` is `true`, the **first** entry of the `x-forwarded-for`
+ * header is returned instead, when the header exists.
  *
  * If IP cannot be determined, it will default to `undefined`.
+ *
+ * **Security:** `xForwardedFor` is opt-in because that first entry is client
+ * input. Proxies conventionally *append* to the chain (nginx
+ * `$proxy_add_x_forwarded_for`, most CDNs, and h3's own {@link proxy} util), so
+ * a value sent by the client stays at the left of the chain and is exactly what
+ * this returns — letting any caller choose their own address and defeat IP
+ * allow-lists, rate limiting, geo checks, and audit logs. Enabling it also
+ * *overrides* `event.req.ip`, discarding an address the server already resolved
+ * correctly. Prefer configuring the server to trust your proxy (srvx
+ * `trustProxy` walks the chain from the right, past trusted hops) and leave this
+ * option off; only enable it when an upstream you control always overwrites
+ * `x-forwarded-for` on every request.
  *
  * @example
  * app.get("/", (event) => {
@@ -518,9 +552,12 @@ export function getRequestIP(
   event: HTTPEvent,
   opts: {
     /**
-     * Use the X-Forwarded-For HTTP header set by proxies.
+     * Return the first entry of the `X-Forwarded-For` HTTP header set by proxies.
      *
-     * Note: Make sure that this header can be trusted (your application running behind a CDN or reverse proxy) before enabling.
+     * Note: only enable this when an upstream you control *overwrites* the
+     * header. A proxy that appends to it (the common default) leaves a
+     * client-sent value first, making the result spoofable. Prefer a trusted
+     * proxy configured on the server (srvx `trustProxy`) with `event.req.ip`.
      */
     xForwardedFor?: boolean;
   } = {},
@@ -537,4 +574,40 @@ export function getRequestIP(
   }
 
   return (event.req.context?.clientAddress as string) || event.req.ip || undefined;
+}
+
+// --- internal ---
+
+/**
+ * Apply a client provided `hostname[:port]` to `url`.
+ *
+ * The URL `hostname` and `port` setters silently ignore invalid values, so both
+ * are checked before they are trusted: applying a malformed host as-is would
+ * leave the real authority half rewritten (a bad hostname keeping the real port
+ * or, worse, a spoofed hostname inheriting it).
+ */
+function applyForwardedHost(url: URL, host: string): void {
+  const sep = host.lastIndexOf(":");
+  const hasPort = sep > host.lastIndexOf("]"); // ignore the colons of an [ipv6] host
+  const hostname = hasPort ? host.slice(0, sep) : host;
+  const prevHostname = url.hostname;
+  url.hostname = hostname;
+  if (url.hostname === prevHostname && hostname.toLowerCase() !== prevHostname) {
+    return; // the setter was a no-op: keep the real authority
+  }
+  const port = hasPort ? host.slice(sep + 1) : "";
+  url.port = /^\d{1,5}$/.test(port) && +port < 65_536 ? port : "";
+}
+
+/**
+ * Authority for a URL synthesized from a relative path and a `host` header.
+ *
+ * The host is concatenated *ahead of* the path, so anything that can end the
+ * authority (`/`, `\`, `?`, `#`) or split it (`@`, whitespace) would let a
+ * client-supplied `Host` inject a request path or hand the authority to a
+ * different host. Such a value is not a host: fall back instead of parsing
+ * whatever prefix of it happens to be one.
+ */
+function safeHost(host: string | undefined | null): string {
+  return host && !/[/\\?#@\s]/.test(host) ? host : "localhost";
 }

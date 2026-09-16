@@ -1,4 +1,5 @@
 import { HTTPResponse } from "../../response.ts";
+import type { H3Event } from "../../event.ts";
 import type { EventHandler } from "../../types/handler.ts";
 import type { CacheRuleOptions, RuleHandler } from "../types.ts";
 
@@ -9,6 +10,14 @@ export type DefineCachedHandler = (handler: EventHandler, opts: CacheRuleOptions
 export interface CacheRuleHandlerOptions {
   /** Creates the cached wrapper for a matched route handler. */
   defineCachedHandler: DefineCachedHandler;
+  /**
+   * Requests the implementation never reads or writes a cache entry for.
+   * The rule continues the middleware chain for them instead of dispatching the
+   * matched route itself, so an uncacheable request reaches the rest of the app
+   * the way a CDN passes one through to its origin. Without it, *every* request
+   * to a matched route terminates the chain, whether or not it is cached.
+   */
+  shouldBypass?: (event: H3Event) => boolean;
   /** Default options merged into every cache rule (rule options win). */
   defaults?: CacheRuleOptions;
   /**
@@ -20,6 +29,20 @@ export interface CacheRuleHandlerOptions {
 
 const CACHE_GROUP = "h3/route-rules";
 
+/**
+ * Route handlers a cache rule is already dispatching, per event.
+ *
+ * `routeRules()` as *route* middleware (or composed in via
+ * `defineHandler({ middleware })`) lands inside the handler this rule
+ * dispatches, so the dispatch re-enters the rule with the same event and
+ * handler. Unguarded that hangs forever instead of overflowing the stack:
+ * ocache dedupes in-flight keys, so the re-entry awaits the resolution it is
+ * itself meant to produce. Keyed by handler and not by event alone because one
+ * event can legitimately reach the rule for a *different* matched route (a
+ * nested app), which must still be cached. Allocated on first dispatch.
+ */
+let dispatching: WeakMap<H3Event, Set<EventHandler>> | undefined;
+
 // Per-route-handler cache-key scope counter. Only ever appended to a key, never
 // parsed; uniqueness within the process is the whole contract.
 let scopeCounter = 0;
@@ -30,15 +53,24 @@ let scopeCounter = 0;
  * Cache keys are isolated by handler, method, and route unless `id` or an
  * explicit cache `name` opts into sharing.
  *
+ * Registering `routeRules()` as *route* middleware puts this rule inside the
+ * handler it dispatches; the re-entrant pass falls through (see {@link dispatching}).
+ *
  * Register `routeRules()` after every global middleware that must run for a
  * cached route: this handler dispatches the matched route handler itself rather
  * than calling `next()`, so global middleware registered after `routeRules()` is
- * skipped on *every* request to a `cache`-matched route — misses included, not
- * only hits. Per-route middleware is unaffected (it is part of the dispatched
- * `~composed` pair).
+ * skipped on *every* cacheable request to a `cache`-matched route — misses
+ * included, not only hits. Per-route middleware is unaffected (it is part of the
+ * dispatched `~composed` pair).
+ *
+ * Requests the implementation reports as uncacheable through
+ * {@link CacheRuleHandlerOptions.shouldBypass} continue down the chain instead
+ * of being dispatched from inside the rule, so which global middleware runs for
+ * a matched route can depend on the request.
  */
 export function createCacheRuleHandler(opts: CacheRuleHandlerOptions): RuleHandler<"cache"> {
   const defineCached = opts.defineCachedHandler;
+  const shouldBypass = opts.shouldBypass;
   const defaults = opts.defaults;
   const id = opts.id;
   const cachedHandlers = new WeakMap<
@@ -54,6 +86,12 @@ export function createCacheRuleHandler(opts: CacheRuleHandlerOptions): RuleHandl
     order: 3,
     handler: (m) =>
       function cacheRouteRule(event, next) {
+        // Nothing would be read from or written to the cache: continue the chain
+        // so the rest of the app runs, instead of dispatching the route from
+        // inside a cache that contributes nothing to this request.
+        if (shouldBypass?.(event)) {
+          return next();
+        }
         const matchedRoute = event.context.matchedRoute;
         if (!matchedRoute) {
           return next();
@@ -67,9 +105,10 @@ export function createCacheRuleHandler(opts: CacheRuleHandlerOptions): RuleHandl
         // response is body-less by definition: sharing the entry lets a single
         // anonymous `HEAD` store an empty body that every later `GET` is then
         // served for the whole TTL. Only the two cacheable methods are told
-        // apart — every other method bypasses caching, so one shared bucket for
-        // them keeps an `app.all()` route from growing a wrapper per arbitrary
-        // method token a client invents.
+        // apart — an implementation without a `shouldBypass` may still be asked
+        // to cache another method, and one shared bucket for the rest keeps an
+        // `app.all()` route from growing a wrapper per arbitrary method token a
+        // client invents.
         const method = event.req.method;
         const key = `${method === "GET" || method === "HEAD" ? method : "*"}:${m.route}:${matchedRoute.route}`;
         let entry = cachedHandlers.get(handler);
@@ -87,6 +126,18 @@ export function createCacheRuleHandler(opts: CacheRuleHandlerOptions): RuleHandl
           });
           entry.byRoute.set(key, cachedHandler);
         }
+        let active = dispatching?.get(event);
+        if (active?.has(handler)) {
+          // Inside this handler's own cached dispatch: it is the cache boundary,
+          // so continue to the route handler instead of dispatching again.
+          return next();
+        }
+        if (!active) {
+          (dispatching ??= new WeakMap()).set(event, (active = new Set()));
+        }
+        // Never released: a second entry for the same event and handler is
+        // re-entrancy whenever it happens, a detached `swr` revalidation included.
+        active.add(handler);
         const res = cachedHandler(event);
         return typeof (res as Promise<unknown>)?.then === "function"
           ? (res as Promise<unknown>).then(normalizeResult)

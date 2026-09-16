@@ -4,6 +4,7 @@ import { fromNodeHandler } from "../src/adapters.ts";
 import { withBase } from "../src/utils/base.ts";
 import { HTTPError } from "../src/error.ts";
 import { onResponse } from "../src/utils/middleware.ts";
+import { onDispose } from "../src/index.ts";
 import { setCookie } from "../src/utils/cookie.ts";
 import { handleCors } from "../src/utils/cors.ts";
 import { describeMatrix } from "./_setup.ts";
@@ -368,6 +369,44 @@ describeMatrix("app", (t, { it, expect }) => {
     },
   );
 
+  it.skipIf(t.target !== "node")(
+    "fromNodeHandler + piping (client disconnect settles the event)",
+    async () => {
+      // `pipe` only unpipes the source when the response closes, so an aborted
+      // request must not leave the handler promise pending: the event lifecycle
+      // has to complete and the source has to be released.
+      const { promise: destroyed, resolve: onDestroyed } = Promise.withResolvers<boolean>();
+      const { promise: disposed, resolve: onDisposed } = Promise.withResolvers<boolean>();
+
+      t.app.use((event) => {
+        onDispose(event, () => onDisposed(true));
+      });
+      t.app.all(
+        "/*",
+        fromNodeHandler((req, res) => {
+          new NodeStreamReadable({
+            read() {
+              this.push("x".repeat(64 * 1024));
+            },
+            destroy(err, cb) {
+              onDestroyed(true);
+              cb(err);
+            },
+          }).pipe(res);
+        }),
+      );
+
+      const controller = new AbortController();
+      const res = await t.fetch("/", { signal: controller.signal });
+      await res.body!.getReader().read();
+      controller.abort();
+
+      const timeout = <T>(value: T) => new Promise<T>((r) => setTimeout(() => r(value), 500));
+      expect(await Promise.race([destroyed, timeout(false)])).toBe(true);
+      expect(await Promise.race([disposed, timeout(false)])).toBe(true);
+    },
+  );
+
   it("set headers via event.res + Response (mutable)", async () => {
     t.app.use((event) => {
       event.res.headers.set("x-from-event", "1");
@@ -447,5 +486,35 @@ describeMatrix("app", (t, { it, expect }) => {
       expect(res.status, path).toBe(401);
       expect(res.headers.get("access-control-allow-origin"), path).toBe("*");
     }
+  });
+  it("does not mutate a handler-returned Response when merging prepared headers", async () => {
+    // A reused Response (module constant, memoized fallback, ...) must not accumulate
+    // request-scoped headers: appended `set-cookie` values would leak across requests.
+    const shared = new Response(null, { status: 302, headers: { location: "/login" } });
+    let user = 0;
+    t.app.get("/shared", (event) => {
+      setCookie(event, "sid", `user${++user}`);
+      return shared;
+    });
+
+    for (const expected of ["user1", "user2", "user3"]) {
+      const res = await t.fetch("/shared");
+      expect(res.headers.getSetCookie()).toEqual([`sid=${expected}; Path=/`]);
+      expect(res.headers.get("location")).toBe("/login");
+    }
+
+    expect([...shared.headers.keys()]).toEqual(["location"]);
+  });
+
+  it("keeps a handler-returned Response's own set-cookie values when merging", async () => {
+    t.app.get("/multi", (event) => {
+      setCookie(event, "staged", "s");
+      const headers = new Headers();
+      headers.append("set-cookie", "a=1; Path=/");
+      headers.append("set-cookie", "b=2; Path=/");
+      return new Response(null, { status: 204, headers });
+    });
+    const res = await t.fetch("/multi");
+    expect(res.headers.getSetCookie()).toEqual(["a=1; Path=/", "b=2; Path=/", "staged=s; Path=/"]);
   });
 });

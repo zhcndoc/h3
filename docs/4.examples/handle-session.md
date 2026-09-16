@@ -10,10 +10,10 @@ icon: ph:arrow-right
 
 H3 提供了许多用于处理会话的工具：
 
-- `useSession` 初始化一个会话并返回一个用于控制会话的包装器。
-- `getSession` 初始化或获取当前用户会话。
-- `updateSession` 更新当前会话的数据。
-- `clearSession` 清除当前会话。
+- `useSession` 初始化一个会话，并返回一个用于控制它的包装器
+- `getSession` 获取当前用户会话，但不会启动会话
+- `updateSession` 更新当前会话的数据
+- `clearSession` 清除当前会话
 
 大多数情况下，您将使用 `useSession` 来操作会话。
 
@@ -147,6 +147,45 @@ app.use(async (event) => {
 
 > [!NOTE]
 > `secure: true` 选项会告知浏览器仅通过 HTTPS 存储和发送 cookie。在使用普通 HTTP 进行本地开发时，符合规范的浏览器（尤其是 Safari 和 iOS，以及某些本地域名下的 Chrome）会静默丢弃 cookie，因此会话将无法持久化。要解决此问题，请在本地开发期间设置 `cookie: { secure: false }`。
+
+## 过期
+
+会话有两个独立的过期控制选项，您可以单独使用其中一个，也可以同时使用两个：
+
+- `maxAge` 是一个**绝对**生命周期，从会话创建时开始计算。无论用户多么活跃，达到该时限后都会过期
+- `idleTimeout` 是一个**滑动**生命周期，从上一次请求开始计算。活跃用户会保持登录状态；闲置用户会退出登录
+
+```js
+const session = await useSession(event, {
+  password: "80d42cfb-1cd2-462c-8f17-e3237d9027e9",
+  idleTimeout: 60 * 30, // signed out after 30 minutes of inactivity...
+  maxAge: 60 * 60 * 24 * 7, // ...and after 7 days regardless
+});
+```
+
+设置 `idleTimeout` 后，H3 会通过重新密封会话 cookie 来向后延长闲置窗口，并将重新密封的时间戳写入其中。`createdAt` 保持不变，这使得 `maxAge` 仍然可以作为上层的硬性上限。cookie 的 `Expires` 会设置为最先到期的那个限制。
+
+如果您使用过 `express-session` 或 `koa-session`，`idleTimeout` 就是它们的 `rolling` 选项。不同之处在于，它使用自身的持续时间，而不是重新解释 `maxAge`，因此启用它不会牺牲绝对时限。
+
+重新密封是会话中开销较大的部分，因此 H3 不会在每次请求时都进行重新密封：只有在窗口使用时间超过一半后才会再次重新密封，而更新会话也会被视为一次重新密封。因此，活跃用户永远不会退出登录，但记录的最后访问时间可能会比实际时间最多滞后半个窗口：
+
+```js
+// idleTimeout: 60 * 30
+// Sign-out happens 15 to 30 minutes after the last request, never later.
+```
+
+如果您需要将该范围中较短的一端作为实际限制，请将 `idleTimeout` 减半。
+
+> [!NOTE]
+> 只有 cookie 会话会滑动延长。通过 `x-{name}-session` 头发送的会话无法重新密封，因此会在其密封签发后的 `idleTimeout` 时间过期。
+
+> [!IMPORTANT]
+> 由于会话存在于 cookie 中，仅读取会话的请求在滑动窗口时也会将其写回。如果此类请求与写入会话的请求发生重叠，则浏览器最后应用哪个响应，哪个响应就会生效，因此写入操作可能会丢失。不使用 `idleTimeout` 时，只读请求不会设置 cookie，也不会覆盖并发写入。
+
+> [!NOTE]
+> 滑动窗口的请求需要额外进行一次密封，并会在其响应中添加 `Set-Cookie` 头——共享缓存和 CDN 通常会拒绝存储此类响应。在节流窗口内仅读取会话的请求完全不会设置 cookie。
+
+会话 cookie 也会应用于错误响应，因此抛出错误的请求仍会滑动窗口，并且仍会持久化在该请求期间创建的会话。
 
 ## 使用多个会话
 

@@ -82,6 +82,17 @@ export function toError(value: unknown): unknown {
   return error;
 }
 
+/**
+ * Brand for {@link HTTPResponse}, checked instead of `constructor.name`.
+ *
+ * A duck-typed name check is forgeable from untrusted input: `JSON.parse` creates an *own*
+ * `constructor` property, so a request body like `{"constructor":{"name":"HTTPResponse"}}` echoed
+ * back by a handler would be accepted as a response descriptor and get to pick the response body,
+ * headers and status. A registry symbol cannot appear in JSON while still matching across
+ * duplicate module instances (multiple h3 copies, realms).
+ */
+const kHTTPResponse: unique symbol = /* @__PURE__ */ Symbol.for("h3.HTTPResponse");
+
 export class HTTPResponse {
   #headers?: Headers;
   #init?: Pick<ResponseInit, "status" | "statusText" | "headers"> | undefined;
@@ -111,6 +122,9 @@ export class HTTPResponse {
     return (this.#headers ||= new Headers(this.#init?.headers));
   }
 }
+
+// Assigned on the prototype (not as a class field) to keep it out of the public type surface.
+(HTTPResponse.prototype as any)[kHTTPResponse] = true;
 
 function prepareResponse(
   val: unknown,
@@ -144,12 +158,19 @@ function prepareResponse(
     }
     const { onError } = config;
     const errHeaders: Headers | undefined = (event as any)[kEventRes]?.[kEventResErrHeaders];
-    return onError && !nested
-      ? Promise.resolve()
-          .then(() => onError(error, event))
-          .catch((error) => error)
-          .then((newVal) => prepareResponse(newVal ?? val, event, config, true))
-      : errorResponse(error, config.debug, errHeaders);
+    if (onError && !nested) {
+      return Promise.resolve()
+        .then(() => onError(error, event))
+        .catch(toError)
+        .then((newVal) => prepareResponse(newVal ?? val, event, config, true));
+    }
+    // `errorResponse` merges `errHeaders` into the response it builds, so clear the
+    // prepared response before rendering. With `onError` configured the rendered
+    // Response is passed back through `prepareResponse`, which would otherwise merge
+    // `errHeaders` a second time — harmless for single-valued headers (`set`), but
+    // `set-cookie` is appended and would be duplicated.
+    (event as any)[kEventRes] = undefined;
+    return errorResponse(error, config.debug, errHeaders);
   }
 
   // Only set if event.res.headers is accessed
@@ -192,18 +213,19 @@ function prepareResponse(
   }
 
   // Merge prepared headers unless there is nothing to merge or a custom error
-  // render is returned from `onError`.
-  if (preparedHeaders && !nested) {
-    try {
-      mergeHeaders(val.headers, preparedHeaders, val.headers);
-    } catch {
-      // Headers are immutable
-      return new FastResponse(nullBody(event.req.method, val.status) ? null : val.body, {
-        status: val.status,
-        statusText: val.statusText,
-        headers: mergeHeaders(val.headers, preparedHeaders),
-      }) as Response;
-    }
+  // render is returned from `onError`. `event.res.headers` is created lazily on first
+  // access, so it can be present but empty -- nothing to merge then either.
+  if (preparedHeaders && !nested && !preparedHeaders.keys().next().done) {
+    // Never merge *into* `val.headers`: the handler owns that `Response` and may reuse it
+    // (module-level constant, memoized fallback, ...). Merging in place makes
+    // request-scoped headers stick to it permanently, and because `set-cookie` is
+    // appended rather than set, one request's session cookie would then be re-emitted to
+    // every later client receiving that same object. Build a new response instead.
+    return new FastResponse(nullBody(event.req.method, val.status) ? null : val.body, {
+      status: val.status,
+      statusText: val.statusText,
+      headers: mergeHeaders(val.headers, preparedHeaders),
+    }) as Response;
   }
 
   // Strip the body for HEAD requests (runtimes usually do this, but keep
@@ -279,7 +301,7 @@ function prepareResponseBody(
   }
 
   // Partial Response
-  if (val instanceof HTTPResponse || val?.constructor?.name === "HTTPResponse") {
+  if (val instanceof HTTPResponse || (val as any)?.[kHTTPResponse] === true) {
     return val;
   }
 

@@ -1,4 +1,13 @@
-import type { H3Event, RouteRules, WebSocketResponse } from "../../src/index.ts";
+import type {
+  EventHandler,
+  EventHandlerRequest,
+  HTTPHandler,
+  H3Event,
+  RouteRules,
+  TypedHeaders,
+  WebSocketResponse,
+} from "../../src/index.ts";
+import { H3 } from "../../src/index.ts";
 import { describe, it, expectTypeOf } from "vitest";
 import {
   defineHandler,
@@ -8,6 +17,9 @@ import {
   getValidatedQuery,
   defineValidatedHandler,
   defineWebSocketHandler,
+  defineLazyEventHandler,
+  toEventHandler,
+  withBase,
 } from "../../src/index.ts";
 import {
   appendHeaders,
@@ -18,6 +30,20 @@ import {
 import { z } from "zod";
 
 describe("types", () => {
+  it("exports TypedHeaders", () => {
+    type RequestHeaders = TypedHeaders<{ authorization: string }>;
+    const getAuthorization = (headers: RequestHeaders) => headers.get("authorization");
+    expectTypeOf(getAuthorization).returns.toEqualTypeOf<string | null>();
+  });
+
+  it("event.req.headers uses request header names", () => {
+    type HeaderName = Parameters<H3Event["req"]["headers"]["delete"]>[0];
+    expectTypeOf<Extract<HeaderName, "Authorization">>().toEqualTypeOf<"Authorization">();
+    expectTypeOf<Extract<HeaderName, "X-Powered-By">>().toBeNever();
+  });
+
+  type ReqOf<H> = H extends (event: H3Event<infer R>) => any ? R : never;
+
   describe("eventHandler", () => {
     it("return type (inferred)", () => {
       const handler = defineHandler(() => {
@@ -93,6 +119,123 @@ describe("types", () => {
           expectTypeOf(body).toEqualTypeOf<{ id: string } | undefined>();
         },
       });
+    });
+  });
+
+  describe("defineValidatedHandler", () => {
+    it("returned handler exposes validated body, query and headers", () => {
+      const handler = defineValidatedHandler({
+        validate: {
+          body: z.object({ title: z.string(), count: z.number() }),
+          headers: z.object({ "x-thing": z.string() }),
+          query: z.object({ page: z.string().optional() }),
+        },
+        handler: () => "ok",
+      });
+
+      type Req = ReqOf<typeof handler>;
+
+      expectTypeOf<Req["body"]>().toEqualTypeOf<{ title: string; count: number }>();
+      expectTypeOf<Req["query"]>().toEqualTypeOf<{ page?: string | undefined }>();
+      expectTypeOf<Req["headers"]>().toEqualTypeOf<{ "x-thing": string }>();
+    });
+
+    it("leaves unvalidated parts of the request empty", () => {
+      const bodyOnly = defineValidatedHandler({
+        validate: { body: z.object({ title: z.string() }) },
+        handler: () => "ok",
+      });
+      type BodyOnlyReq = ReqOf<typeof bodyOnly>;
+
+      expectTypeOf<BodyOnlyReq["body"]>().toEqualTypeOf<{ title: string }>();
+      expectTypeOf<BodyOnlyReq["query"]>().toEqualTypeOf<{}>();
+      expectTypeOf<BodyOnlyReq["headers"]>().toEqualTypeOf<{}>();
+    });
+
+    it("types the request as unvalidated when no schema is given", () => {
+      const unvalidated = defineValidatedHandler({ handler: () => "ok" });
+      type UnvalidatedReq = ReqOf<typeof unvalidated>;
+
+      expectTypeOf<UnvalidatedReq["body"]>().toBeUnknown();
+      expectTypeOf<UnvalidatedReq["query"]>().toEqualTypeOf<{}>();
+      expectTypeOf<UnvalidatedReq["headers"]>().toEqualTypeOf<{}>();
+    });
+
+    it("handlers with a concrete request type can be registered on an app", () => {
+      const validated = defineValidatedHandler({
+        validate: { body: z.object({ title: z.string() }) },
+        handler: () => "ok",
+      });
+      const typed = defineHandler<{ body: { id: string } }, string>(() => "ok");
+
+      new H3().get("/validated", validated).post("/typed", typed).all("/all", validated);
+
+      // @ts-expect-error not an event handler
+      new H3().get("/bad", (n: number) => n);
+    });
+  });
+
+  describe("routes", () => {
+    it("types the event of an inline method handler", () => {
+      new H3().get("/", (event) => {
+        expectTypeOf(event).toEqualTypeOf<H3Event<EventHandlerRequest>>();
+        return "ok";
+      });
+    });
+
+    it("types the event of an inline `on` handler", () => {
+      new H3().on("GET", "/", (event) => {
+        expectTypeOf(event).toEqualTypeOf<H3Event<EventHandlerRequest>>();
+        return "ok";
+      });
+    });
+
+    it("accepts a handler with a concrete request type in an untyped slot", () => {
+      expectTypeOf<EventHandler<{ body: { id: string } }>>().toExtend<HTTPHandler>();
+    });
+  });
+
+  describe("handler passthrough", () => {
+    const handler = defineValidatedHandler({
+      validate: { body: z.object({ title: z.string() }) },
+      handler: () => "ok",
+    });
+
+    it("keeps the request type through toEventHandler", () => {
+      const normalized = toEventHandler(handler)!;
+      expectTypeOf<ReqOf<typeof normalized>["body"]>().toEqualTypeOf<{ title: string }>();
+    });
+
+    it("keeps the request type through withBase", () => {
+      const based = withBase("/api", handler);
+      expectTypeOf<ReqOf<typeof based>["body"]>().toEqualTypeOf<{ title: string }>();
+    });
+
+    it("keeps the request type through defineLazyEventHandler", () => {
+      const lazy = defineLazyEventHandler(() => handler);
+      expectTypeOf<ReqOf<typeof lazy>["body"]>().toEqualTypeOf<{ title: string }>();
+    });
+
+    it("does not leak any for a plain HTTPHandler", () => {
+      const plain = handler as HTTPHandler;
+
+      const normalized = toEventHandler(plain)!;
+      expectTypeOf<ReqOf<typeof normalized>>().not.toBeAny();
+      expectTypeOf<ReqOf<typeof normalized>>().toEqualTypeOf<EventHandlerRequest>();
+
+      const based = withBase("/api", plain);
+      expectTypeOf<ReqOf<typeof based>>().not.toBeAny();
+      expectTypeOf<ReqOf<typeof based>>().toEqualTypeOf<EventHandlerRequest>();
+
+      const lazy = defineLazyEventHandler(() => plain);
+      expectTypeOf<ReqOf<typeof lazy>>().not.toBeAny();
+      expectTypeOf<ReqOf<typeof lazy>>().toEqualTypeOf<EventHandlerRequest>();
+    });
+
+    it("uses the default request type for an H3 instance", () => {
+      const normalized = toEventHandler(new H3())!;
+      expectTypeOf<ReqOf<typeof normalized>>().not.toBeAny();
+      expectTypeOf<ReqOf<typeof normalized>>().toEqualTypeOf<EventHandlerRequest>();
     });
   });
 

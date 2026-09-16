@@ -1,0 +1,58 @@
+name: publish
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency: { group: publish, cancel-in-progress: false }
+    permissions: { id-token: write, contents: read }
+    if: >-
+      github.repository == 'h3js/h3' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_sha == github.sha
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: "${{ github.event.workflow_run.head_sha }}"
+      - uses: unjs/setup-jup@85aa1e9e4cd2995fba3bee414cde74bf88637a2c # v1.0.0
+        with:
+          cache: false
+          cache-dependencies: false
+          package-managers: pnpm
+      - run: pnpm changelogen --bump -r 2.0.0 --canary nightly
+      # The runner's npm (10.9.8) is below the OIDC floor and jup's `npm` shim
+      # refuses while pnpm is pinned. `11.5.1` below is that floor, not the pin.
+      - run: npm i -g npm@11.19.1
+      - run: printf '11.5.1\n%s\n' "$(npm --version)" | sort -VC
+      - run: npm publish --tag latest
+
+  report-skipped:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    if: >-
+      github.repository == 'h3js/h3' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_sha != github.sha
+    steps:
+      - run: |
+          echo "::warning title=Nightly skipped::${SKIPPED_SHA} passed ci but is no longer the tip of main (${TIP_SHA}); no nightly was published for it."
+        env:
+          SKIPPED_SHA: "${{ github.event.workflow_run.head_sha }}"
+          TIP_SHA: "${{ github.sha }}"

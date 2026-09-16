@@ -1,4 +1,4 @@
-import { H3, setCookie } from "../../src/index.ts";
+import { H3, defineHandler, setCookie } from "../../src/index.ts";
 import type { EventHandler } from "../../src/index.ts";
 import { describe, expect, it, vi } from "vitest";
 import { routeRules } from "../../src/rules/middleware.ts";
@@ -869,6 +869,32 @@ describe("cache rule (core defineCachedHandler injection)", () => {
     expect(seen).toEqual(["downstream:/uncached"]);
   });
 
+  it("passes bypassed requests to the rest of the chain (`shouldBypass`)", async () => {
+    // The generic factory has no cache policy of its own: an implementation
+    // declares what it never caches, and those requests keep going instead of
+    // being dispatched from inside the rule.
+    const seen: string[] = [];
+    const defineCachedHandler = vi.fn((handler: EventHandler): EventHandler => handler);
+    const app = createInjectedApp(
+      { "/cached-bypass/**": { cache: { maxAge: 60 } } },
+      { defineCachedHandler, shouldBypass: (event) => event.req.method === "POST" },
+    );
+    app.use((event, next) => {
+      seen.push(`downstream:${event.req.method}`);
+      return next();
+    });
+    app.get("/cached-bypass/x", () => "get");
+    app.post("/cached-bypass/x", () => "post");
+
+    expect(await (await app.fetch(new Request("http://test/cached-bypass/x"))).text()).toBe("get");
+    const post = await app.fetch(new Request("http://test/cached-bypass/x", { method: "POST" }));
+    expect(await post.text()).toBe("post");
+    // Only the bypassed request reached the middleware after `routeRules()`,
+    // and it was never wrapped.
+    expect(seen).toEqual(["downstream:POST"]);
+    expect(defineCachedHandler).toHaveBeenCalledTimes(1);
+  });
+
   it("wraps same-path routes of different methods separately (F3)", async () => {
     const defineCachedHandler = vi.fn((handler: EventHandler): EventHandler => handler);
     const app = createInjectedApp(
@@ -924,5 +950,164 @@ describe("cache rule (core defineCachedHandler injection)", () => {
     // each matcher instance wraps independently (no shared/global map)
     expect(wrap1).toHaveBeenCalledTimes(1);
     expect(wrap2).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("cache rule (re-entrancy)", () => {
+  // `routeRules()` is documented as global middleware, but nothing stops it from
+  // being registered as *route* middleware — and then the cache rule sits inside
+  // the very `~composed` pair it dispatches. Left unguarded the dispatched pair
+  // re-enters the rule, which dispatches it again: ocache dedupes the in-flight
+  // key, so the re-entry awaits the resolution it is itself supposed to produce
+  // and the request hangs forever (no stack overflow, no timeout, no error).
+  const rules = (): ReturnType<typeof routeRules> =>
+    routeRules({ "/reenter/**": { swr: 60 } }, { handlers: { cache } });
+
+  it("route-level `routeRules()` middleware does not deadlock the request", async () => {
+    const app = new H3();
+    const handler = vi.fn(() => "ok");
+    app.get("/reenter/a", handler, { middleware: [rules()] });
+
+    const res = await app.fetch(new Request("http://test/reenter/a"));
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("ok");
+    // Dispatched once: the re-entrant pass falls through to the route handler
+    // that the outer, caching dispatch is already driving.
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("`defineHandler({ middleware: [routeRules()] })` does not deadlock the request", async () => {
+    // No route-level middleware, so `~composed` is unset and the rule dispatches
+    // `matchedRoute.handler` — which is itself the composed pair. Same cycle.
+    const app = new H3();
+    const handler = vi.fn(() => "ok");
+    app.get("/reenter/b", defineHandler({ middleware: [rules()], handler }));
+
+    const res = await app.fetch(new Request("http://test/reenter/b"));
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("ok");
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("a re-entrant dispatch with no cache dedupe does not recurse without bound", async () => {
+    // The injected path has no in-flight dedupe to stall on, so the same cycle
+    // shows up as unbounded recursion instead of a hang.
+    const app = new H3();
+    const handler = vi.fn(() => "ok");
+    app.get("/reenter/c", handler, {
+      middleware: [
+        routeRules(
+          { "/reenter/**": { swr: 60 } },
+          {
+            handlers: {
+              cache: createCacheRuleHandler({ defineCachedHandler: (h) => h }),
+            },
+          },
+        ),
+      ],
+    });
+
+    const res = await app.fetch(new Request("http://test/reenter/c"));
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("ok");
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("still caches across requests when registered as route middleware", async () => {
+    const app = new H3();
+    const handler = vi.fn(() => ({ n: handler.mock.calls.length }));
+    app.get("/reenter/d", handler, { middleware: [rules()] });
+
+    const first = await app.fetch(new Request("http://test/reenter/d"));
+    expect(await first.json()).toEqual({ n: 1 });
+    const second = await app.fetch(new Request("http://test/reenter/d"));
+    expect(await second.json()).toEqual({ n: 1 });
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("a nested app's own matched route is still cached on the same event", async () => {
+    // Guarding by event alone would silently disable caching here: a second,
+    // *different* route handler legitimately reaches the rule on one event.
+    const inner = new H3();
+    const innerHandler = vi.fn(() => "inner");
+    inner.use(routeRules({ "/nested/**": { swr: 60 } }, { handlers: { cache } }));
+    inner.get("/nested/x", innerHandler);
+
+    const outer = new H3();
+    const outerHandler = vi.fn((event) => inner.handler(event));
+    outer.use(routeRules({ "/nested/**": { swr: 60 } }, { handlers: { cache } }));
+    outer.get("/nested/x", outerHandler);
+
+    const res = await outer.fetch(new Request("http://test/nested/x"));
+    expect(await res.text()).toBe("inner");
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("cache rule (uncacheable requests pass through)", () => {
+  // ocache runs the handler live for anything it will not store — every method
+  // but GET/HEAD, and any `Range` request. Terminating the middleware chain for
+  // those buys nothing: the rule must pass them through, the way a CDN sends an
+  // uncacheable request to its origin.
+  const createPassthroughApp = () => {
+    const seen: string[] = [];
+    let calls = 0;
+    const app = createApp({ "/pass/**": { cache: { maxAge: 300 } } }, cache);
+    app.use((event, next) => {
+      seen.push(`${event.req.method} ${event.url.pathname}`);
+      return next();
+    });
+    const body = (event: { req: Request }) => ({
+      calls: ++calls,
+      auth: event.req.headers.get("authorization"),
+    });
+    app.get("/pass/res", body);
+    app.post("/pass/res", body);
+    return { app, seen };
+  };
+
+  it("a non-GET request reaches middleware registered after routeRules()", async () => {
+    const { app, seen } = createPassthroughApp();
+    const first = await app.fetch(new Request("http://test/pass/res", { method: "POST" }));
+    expect(await first.json()).toMatchObject({ calls: 1 });
+    const second = await app.fetch(new Request("http://test/pass/res", { method: "POST" }));
+    // Never cached, so the handler runs every time — and so does the chain.
+    expect(await second.json()).toMatchObject({ calls: 2 });
+    expect(seen).toEqual(["POST /pass/res", "POST /pass/res"]);
+  });
+
+  it("a `Range` GET passes through with its credentials intact", async () => {
+    // Stripping unkeyed credentials protects a *shared entry*; a bypassed
+    // request has none, so the handler must still see the caller's own header.
+    const { app, seen } = createPassthroughApp();
+    const res = await app.fetch(
+      new Request("http://test/pass/res", {
+        headers: { range: "bytes=0-1", authorization: "Bearer secret" },
+      }),
+    );
+    expect(await res.json()).toEqual({ calls: 1, auth: "Bearer secret" });
+    expect(seen).toEqual(["GET /pass/res"]);
+  });
+
+  it("a plain GET is still cached with the chain short-circuited", async () => {
+    const { app, seen } = createPassthroughApp();
+    const first = await app.fetch(new Request("http://test/pass/res"));
+    expect(await first.json()).toEqual({ calls: 1, auth: null });
+    const second = await app.fetch(new Request("http://test/pass/res"));
+    expect(await second.json()).toEqual({ calls: 1, auth: null });
+    // Cached, so the rule dispatches the route itself and the middleware
+    // registered after `routeRules()` never runs — miss included.
+    expect(seen).toEqual([]);
+  });
+
+  it("a HEAD request is cached and short-circuits like a GET", async () => {
+    const { app, seen } = createPassthroughApp();
+    expect((await app.fetch(new Request("http://test/pass/res", { method: "HEAD" }))).status).toBe(
+      200,
+    );
+    expect((await app.fetch(new Request("http://test/pass/res", { method: "HEAD" }))).status).toBe(
+      200,
+    );
+    expect(seen).toEqual([]);
   });
 });

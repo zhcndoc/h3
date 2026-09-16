@@ -4,45 +4,40 @@ on:
   push: { branches: [main] }
   pull_request: { branches: [main] }
 
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions: { contents: read }
     steps:
-      - uses: actions/checkout@v5
-      - run: npm i -g --force corepack && corepack enable
-      - uses: actions/setup-node@v5
-        with: { node-version: lts/*, cache: pnpm }
-      - run: pnpm install
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: unjs/setup-jup@85aa1e9e4cd2995fba3bee414cde74bf88637a2c # v1.0.0
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm vitest --coverage
-      - uses: codecov/codecov-action@v3
-        with: { token: "${{ secrets.CODECOV_TOKEN }}" }
-  publish:
-    runs-on: ubuntu-latest
-    permissions: { id-token: write, contents: read }
-    needs: tests
-    if: contains('refs/heads/main', github.ref) && github.event_name == 'push'
-    steps:
-      - uses: actions/checkout@v5
-        with: { fetch-depth: 0 }
-      - run: npm i -fg corepack && corepack enable
-      - uses: actions/setup-node@v5
-        with: { node-version: lts/*, cache: "pnpm" }
-      - run: pnpm install
-      - run: pnpm changelogen --bump -r 2.0.0 --canary nightly
-      - run: npm i -g npm@latest && npm publish --tag latest
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: "${{ secrets.CODECOV_TOKEN }}"
+          files: ./coverage/clover.xml
+          version: v11.3.1
   publish-pkg-pr-new:
     runs-on: ubuntu-latest
+    permissions: { contents: read }
     timeout-minutes: 10
     needs: tests
+    if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@v6
-        with: { fetch-depth: 0 }
-      - run: npm i -fg corepack && corepack enable
-      - uses: actions/setup-node@v6
-        with: { node-version: lts/*, cache: "pnpm" }
-      - run: pnpm install
-      - run: pnpm build
-      - run: pnpm dlx pkg-pr-new publish || true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: unjs/setup-jup@85aa1e9e4cd2995fba3bee414cde74bf88637a2c # v1.0.0
+        # `pkg-pr-new` runs `npm pack`; a shimmed `npm` refuses while pnpm is pinned.
+        with: { package-managers: pnpm }
+      - run: pnpm exec pkg-pr-new publish

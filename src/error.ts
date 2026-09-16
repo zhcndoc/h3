@@ -119,12 +119,17 @@ export class HTTPError<DataT = unknown> extends Error implements ErrorBody<DataT
   readonly unhandled: boolean | undefined;
 
   /**
-   * Check if the input is an instance of HTTPError using its constructor name.
+   * Check if the input is an instance of HTTPError using its constructor name and status.
    *
    * It is safer than using `instanceof` because it works across different contexts (e.g., if the error was thrown in a different module).
+   *
+   * Requiring a `status` rejects unrelated errors named `HTTPError` (e.g. from fetch clients like `ky` or `got`), while
+   * still accepting HTTPError-shaped errors from other packages (e.g. srvx `BodyTooLargeError`).
    */
   static override isError(input: any): input is HTTPError {
-    return input instanceof Error && input?.name === "HTTPError";
+    return (
+      input instanceof Error && input?.name === "HTTPError" && (input as HTTPError).status > 99
+    );
   }
 
   /**

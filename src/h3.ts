@@ -106,10 +106,8 @@ export class H3Core implements H3CoreType {
   }
 
   // Overriding `~getMiddleware` opts out of the precomposed fast path (see `createDispatcher`)
-  "~getMiddleware"(_event: H3Event, route: MatchedRoute<H3Route> | undefined): Middleware[] {
-    const routeMiddleware = route?.data.middleware;
-    const globalMiddleware = this["~middleware"];
-    return routeMiddleware ? [...globalMiddleware, ...routeMiddleware] : globalMiddleware;
+  "~getMiddleware"(_event: H3Event, _route?: MatchedRoute<H3Route>): Middleware[] {
+    return this["~middleware"];
   }
 }
 
@@ -120,14 +118,10 @@ export class H3Core implements H3CoreType {
  */
 function createDispatcher(app: H3Core): NonNullable<H3Core["~dispatch"]> {
   if (app["~getMiddleware"] !== H3Core.prototype["~getMiddleware"]) {
-    // Compat: a custom `~getMiddleware` (subclass or instance override, e.g. nitro)
+    // Compat: a custom `~getMiddleware` (subclass or instance override)
     // can return per-event middleware, which cannot be precomposed.
     return (event, route) =>
-      callMiddleware(
-        event,
-        app["~getMiddleware"](event, route as unknown as undefined),
-        route?.data.handler || NoHandler,
-      );
+      callMiddleware(event, app["~getMiddleware"](event, route || undefined), routeHandler(route));
   }
   const middleware = app["~middleware"];
   if (middleware.length === 0) {
@@ -247,7 +241,7 @@ export const H3 = /* @__PURE__ */ (() => {
       return this;
     }
 
-    all(route: string, handler: EventHandler, opts?: RouteOptions) {
+    all(route: string, handler: HTTPHandler, opts?: RouteOptions) {
       return this.on("", route, handler, opts);
     }
 
@@ -292,7 +286,7 @@ export const H3 = /* @__PURE__ */ (() => {
     (H3Core as any).prototype[method.toLowerCase()] = function (
       this: H3Type,
       route: string,
-      handler: EventHandler,
+      handler: HTTPHandler,
       opts?: RouteOptions,
     ) {
       return this.on(method, route, handler, opts);

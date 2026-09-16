@@ -1,6 +1,6 @@
 {
   "name": "h3",
-  "version": "2.0.1-rc.26",
+  "version": "2.0.1-rc.32",
   "description": "Minimal H(TTP) framework built for high performance and portability.",
   "homepage": "https://h3.dev",
   "license": "MIT",
@@ -42,63 +42,64 @@
     "bench:node": "node --expose-gc --allow-natives-syntax ./test/bench/bench.ts",
     "build": "obuild",
     "dev": "vitest",
-    "lint": "oxlint . && oxfmt --check .",
     "fmt": "automd && oxlint --fix . && oxfmt .",
+    "lint": "oxlint . && oxfmt --check .",
     "prepack": "pnpm build",
     "play:bun": "bun ./test/fixture/bun.ts",
     "play:node": "pnpm test/fixture/node.ts",
     "play:plain": "pnpm test/fixture/plain.ts",
     "play:web": "pnpm test/fixture/web.ts",
-    "release": "pnpm build && pnpm test && changelogen --release --prerelease && npm publish --tag latest && git push --follow-tags",
+    "release": "pnpm build && pnpm test && changelogen --release --prerelease && pnpm publish --tag latest && git push --follow-tags",
     "test": "pnpm lint && pnpm typecheck && vitest --run --coverage",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "rou3": "^0.9.2",
-    "srvx": "^0.12.5"
+    "srvx": "^1.0.5"
   },
   "devDependencies": {
-    "@happy-dom/global-registrator": "^20.11.2",
+    "@happy-dom/global-registrator": "^20.14.5",
     "@mitata/counters": "^0.0.8",
     "@types/connect": "^3.4.38",
     "@types/express": "^5.0.6",
-    "@types/node": "^26.2.0",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
+    "@types/node": "^26.5.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@typescript/native-preview": "latest",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/coverage-v8": "^5.0.0",
     "automd": "^0.4.3",
     "changelogen": "^0.6.2",
     "connect": "^3.7.0",
     "cookie-es": "^3.1.1",
-    "crossws": "^0.4.10",
-    "elysia": "^1.4.29",
+    "crossws": "^0.4.12",
+    "elysia": "^1.4.30",
     "esbuild": "^0.28.2",
     "express": "^5.2.1",
-    "fetchdts": "^0.1.7",
+    "fetchdts": "^0.2.0",
     "get-port-please": "^3.2.0",
     "h3": "workspace:*",
     "h3-nightly": "latest",
-    "happy-dom": "^20.11.2",
-    "hono": "^4.13.2",
-    "magic-string": "^1.2.0",
+    "happy-dom": "^20.14.5",
+    "hono": "^4.13.7",
+    "magic-string": "^1.3.1",
     "mdzilla": "^0.2.1",
     "memoirist": "^1.2.2",
     "mitata": "^1.0.34",
-    "obuild": "^0.4.38",
+    "obuild": "^0.4.40",
     "ocache": "^0.3.0",
-    "oxc-parser": "^0.144.0",
-    "oxfmt": "^0.63.0",
-    "oxlint": "^1.78.0",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
+    "oxc-parser": "^0.149.0",
+    "oxfmt": "^0.67.0",
+    "oxlint": "^1.82.0",
+    "pkg-pr-new": "^0.0.88",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "typescript": "^7.0.2",
-    "vite": "^8.2.1",
-    "vitest": "^4.1.10",
-    "zod": "^4.4.3"
+    "vite": "^8.3.0",
+    "vitest": "^5.0.0",
+    "zod": "^4.6.4"
   },
   "peerDependencies": {
-    "crossws": "^0.4.9",
+    "crossws": "^0.4.12",
     "ocache": ">=0.3.0"
   },
   "peerDependenciesMeta": {
@@ -113,8 +114,18 @@
     "h3": "link:.",
     "h3-nightly": "latest"
   },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.3.4",
+      "onFail": "warn"
+    },
+    "runtime": {
+      "name": "node",
+      "version": "^24"
+    }
+  },
   "engines": {
     "node": ">=20.11.1"
-  },
-  "packageManager": "pnpm@11.15.1"
+  }
 }

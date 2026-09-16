@@ -2,6 +2,253 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.0.1-rc.32
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.30...v2.0.1-rc.32)
+
+### 🚀 Enhancements
+
+- **rules:** Support non-trailing `**` in redirect/proxy targets ([228bca3](https://github.com/h3js/h3/commit/228bca3))
+- Export `normalizeRoute` as a public path utility ([#1549](https://github.com/h3js/h3/pull/1549))
+
+### 🔥 Performance
+
+- **rules:** Evict memoized matches with SIEVE instead of FIFO ([#1543](https://github.com/h3js/h3/pull/1543))
+
+### 🩹 Fixes
+
+- **route-rules:** Pass uncacheable requests through the cache rule ([b6c7d08](https://github.com/h3js/h3/commit/b6c7d08))
+- Handle srvx body limit errors as 413 ([b5d20d5](https://github.com/h3js/h3/commit/b5d20d5))
+- **error:** Require `status` in `HTTPError.isError` ([e6b726b](https://github.com/h3js/h3/commit/e6b726b))
+
+### 📦 Build
+
+- Export `TypedHeaders` type ([#1547](https://github.com/h3js/h3/pull/1547))
+
+### 🌊 Types
+
+- **handler:** Infer route handler request type instead of any ([#1546](https://github.com/h3js/h3/pull/1546))
+- **handler:** Use request header names for `req.headers` ([ae529f1](https://github.com/h3js/h3/commit/ae529f1))
+
+### 🏡 Chore
+
+- Apply automated updates ([c460ebe](https://github.com/h3js/h3/commit/c460ebe))
+- Update deps ([1316ffb](https://github.com/h3js/h3/commit/1316ffb))
+- Apply automated updates ([21a26d9](https://github.com/h3js/h3/commit/21a26d9))
+- Update lockfile ([00c0d3f](https://github.com/h3js/h3/commit/00c0d3f))
+- Apply automated updates ([6075f8a](https://github.com/h3js/h3/commit/6075f8a))
+- **release:** V2.0.1-rc.31 ([df811cd](https://github.com/h3js/h3/commit/df811cd))
+- Update lockfile ([bae31f3](https://github.com/h3js/h3/commit/bae31f3))
+- Apply automated updates ([7f5f106](https://github.com/h3js/h3/commit/7f5f106))
+- Update deps ([a5fdc86](https://github.com/h3js/h3/commit/a5fdc86))
+- Update deps ([60d883f](https://github.com/h3js/h3/commit/60d883f))
+
+### 🤖 CI
+
+- Replace setup-node and corepack with setup-jup ([#1544](https://github.com/h3js/h3/pull/1544))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Pi0x <x@pi0.io>
+- Rith Banerjee ([@Rithb898](https://github.com/Rithb898))
+- Lazizbek Ergashev ([@lazerg](https://github.com/lazerg))
+
+## v2.0.1-rc.31
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.30...v2.0.1-rc.31)
+
+### 🚀 Enhancements
+
+- **rules:** Support non-trailing `**` in redirect/proxy targets ([228bca3](https://github.com/h3js/h3/commit/228bca3))
+
+### 🔥 Performance
+
+- **rules:** Evict memoized matches with SIEVE instead of FIFO ([#1543](https://github.com/h3js/h3/pull/1543))
+
+### 🏡 Chore
+
+- Apply automated updates ([c460ebe](https://github.com/h3js/h3/commit/c460ebe))
+- Update deps ([1316ffb](https://github.com/h3js/h3/commit/1316ffb))
+- Apply automated updates ([21a26d9](https://github.com/h3js/h3/commit/21a26d9))
+- Update lockfile ([00c0d3f](https://github.com/h3js/h3/commit/00c0d3f))
+
+### 🤖 CI
+
+- Replace setup-node and corepack with setup-jup ([#1544](https://github.com/h3js/h3/pull/1544))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Pi0x <x@pi0.io>
+
+## v2.0.1-rc.30
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.29...v2.0.1-rc.30)
+
+### 🩹 Fixes
+
+- **cli:** Resolve docs directory to file system path with fileURLToPath ([#1540](https://github.com/h3js/h3/pull/1540))
+- **cli:** Spawn docs command without a shell ([04a78a0](https://github.com/h3js/h3/commit/04a78a0))
+- **session:** Do not persist a session that is only read ([#1541](https://github.com/h3js/h3/pull/1541))
+
+### 💅 Refactors
+
+- **core:** Compose route middleware in the dispatcher ([#1533](https://github.com/h3js/h3/pull/1533))
+
+### 🌊 Types
+
+- **handler:** Expose validated query/headers on validated hander type ([#1538](https://github.com/h3js/h3/pull/1538))
+
+### 🏡 Chore
+
+- Fix docs link ([1892ee9](https://github.com/h3js/h3/commit/1892ee9))
+- Update srvx to v1 ([81440ec](https://github.com/h3js/h3/commit/81440ec))
+- Update deps ([2364d46](https://github.com/h3js/h3/commit/2364d46))
+- Pin node to 24 ([5797f6d](https://github.com/h3js/h3/commit/5797f6d))
+- Update release script ([2c9b2f9](https://github.com/h3js/h3/commit/2c9b2f9))
+
+### ✅ Tests
+
+- **cli:** Assert docs command spawns without a shell ([07273db](https://github.com/h3js/h3/commit/07273db))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Dương Ngọc Anh <duongngocanh2k03@gmail.com>
+- Pi0x <x@pi0.io>
+- Liang Xu <755674130@qq.com>
+- Daniel Roe ([@danielroe](https://github.com/danielroe))
+
+## v2.0.1-rc.29
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.28...v2.0.1-rc.29)
+
+### 🩹 Fixes
+
+- **ws:** Keep WebSocket hooks reachable when the response is rebuilt ([3a57939](https://github.com/h3js/h3/commit/3a57939))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+
+## v2.0.1-rc.28
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.27...v2.0.1-rc.28)
+
+### 🩹 Fixes
+
+- **static:** Keep a leading separator run from bypassing a route guard ([f3e4c46](https://github.com/h3js/h3/commit/f3e4c46))
+- **proxy:** Strip tab/LF/CR from internal proxy targets ([ffd9620](https://github.com/h3js/h3/commit/ffd9620))
+- **proxy:** Do not include upstream failure message in gateway error ([936f14b](https://github.com/h3js/h3/commit/936f14b))
+- **response:** Normalize values thrown from the onError hook ([2d6a10a](https://github.com/h3js/h3/commit/2d6a10a))
+- **response:** Detect `HTTPResponse` by brand instead of `constructor.name` ([0bbcbc4](https://github.com/h3js/h3/commit/0bbcbc4))
+- **fromNodeHandler:** Don't hang the event when a piped client disconnects ([373e32a](https://github.com/h3js/h3/commit/373e32a))
+- **handler:** Run middleware for object syntax with fetch ([cf7e585](https://github.com/h3js/h3/commit/cf7e585))
+- **response:** Call the `onError` hook again ([f176b35](https://github.com/h3js/h3/commit/f176b35))
+- **static:** Refuse a non-canonical pathname instead of resolving it ([baef4b9](https://github.com/h3js/h3/commit/baef4b9))
+
+### 📖 Documentation
+
+- Rewrite route rules ([abd4d77](https://github.com/h3js/h3/commit/abd4d77))
+- **request:** Add security caveat for getRequestIP xForwardedFor ([b09eda1](https://github.com/h3js/h3/commit/b09eda1))
+
+### 🏡 Chore
+
+- Apply automated updates ([a98d6d6](https://github.com/h3js/h3/commit/a98d6d6))
+- Apply automated updates ([449aa7f](https://github.com/h3js/h3/commit/449aa7f))
+- Update deps ([75fd2de](https://github.com/h3js/h3/commit/75fd2de))
+- Lint ([f05b374](https://github.com/h3js/h3/commit/f05b374))
+- Update deps ([71715ce](https://github.com/h3js/h3/commit/71715ce))
+
+### ✅ Tests
+
+- Bump bundle size ([bd5cd6a](https://github.com/h3js/h3/commit/bd5cd6a))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+
+## v2.0.1-rc.27
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.26...v2.0.1-rc.27)
+
+### 🚀 Enhancements
+
+- Route rules ([#1524](https://github.com/h3js/h3/pull/1524))
+- **session:** Add opt-in `idleTimeout` for sliding expiration ([#1513](https://github.com/h3js/h3/pull/1513))
+
+### 🩹 Fixes
+
+- **session:** Encode large payloads outside node-compatible runtimes ([#1515](https://github.com/h3js/h3/pull/1515))
+- **event:** ⚠️ Decode only needless escapes in the pathname ([#1526](https://github.com/h3js/h3/pull/1526))
+- **middleware:** Match use() route filters with rou3 ([d9d3124](https://github.com/h3js/h3/commit/d9d3124))
+- **response:** Sanitize status and statusText ([8e69593](https://github.com/h3js/h3/commit/8e69593))
+- Normalize route patterns as pathnames ([cbd5c73](https://github.com/h3js/h3/commit/cbd5c73))
+- **middleware:** Compare method scopes case-insensitively ([850f25c](https://github.com/h3js/h3/commit/850f25c))
+- **request:** Compare methods case-insensitively in isMethod ([#1528](https://github.com/h3js/h3/pull/1528))
+- **proxy:** Keep internal targets on the app origin ([07d22ec](https://github.com/h3js/h3/commit/07d22ec))
+- **json-rpc:** ⚠️ Require JSON content-type, validate origin and cap batch size ([72d8e05](https://github.com/h3js/h3/commit/72d8e05))
+- **fingerprint:** ⚠️ Default to SHA-256 and disambiguate components ([51e68cd](https://github.com/h3js/h3/commit/51e68cd))
+- **cookie:** Keep unparseable set-cookie headers when merging ([175ba5c](https://github.com/h3js/h3/commit/175ba5c))
+- **static:** Keep encoded backslashes opaque in the asset id ([ab3f23c](https://github.com/h3js/h3/commit/ab3f23c))
+- **request:** Keep the request proxy cache from shadowing real properties ([c71f5c0](https://github.com/h3js/h3/commit/c71f5c0))
+- **proxy:** ⚠️ Xfwd must not let client `x-forwarded-*` headers win ([0c7429e](https://github.com/h3js/h3/commit/0c7429e))
+- **response:** Keep prepared headers from accumulating on reused Responses ([9f766d9](https://github.com/h3js/h3/commit/9f766d9))
+- **request:** Keep a malformed x-forwarded-host from stripping the real port ([429b994](https://github.com/h3js/h3/commit/429b994))
+- **request:** ⚠️ Keep the host header from steering the synthesized URL ([2b59a3a](https://github.com/h3js/h3/commit/2b59a3a))
+- **rules:** Keep a route-scoped cache rule from deadlocking the request ([484ec58](https://github.com/h3js/h3/commit/484ec58))
+- **route:** Keep removeRoute from unregistering sibling routes ([94d0edd](https://github.com/h3js/h3/commit/94d0edd))
+
+### 📖 Documentation
+
+- Clarify getRouterParams decode is a single pass ([44621f3](https://github.com/h3js/h3/commit/44621f3))
+- **rules:** Cache rule ends the global middleware chain on misses too ([9f3eea3](https://github.com/h3js/h3/commit/9f3eea3))
+
+### 📦 Build
+
+- Prevent malformed pathname guard from being tree-shaken ([fa00775](https://github.com/h3js/h3/commit/fa00775))
+
+### 🏡 Chore
+
+- Apply automated updates ([cbb3063](https://github.com/h3js/h3/commit/cbb3063))
+- Update undocs ([502c59f](https://github.com/h3js/h3/commit/502c59f))
+- Fix types ([2dbb9f3](https://github.com/h3js/h3/commit/2dbb9f3))
+- Update undocs ([176e507](https://github.com/h3js/h3/commit/176e507))
+- Update undocs ([dd993c4](https://github.com/h3js/h3/commit/dd993c4))
+- Update undocs ([7ab53b2](https://github.com/h3js/h3/commit/7ab53b2))
+- Update undocs ([d60b5e0](https://github.com/h3js/h3/commit/d60b5e0))
+- Update undocs ([9ef8ec2](https://github.com/h3js/h3/commit/9ef8ec2))
+- Update undocs ([0f987dd](https://github.com/h3js/h3/commit/0f987dd))
+- Update docs lock ([c040817](https://github.com/h3js/h3/commit/c040817))
+- Update undocs ([50b00d2](https://github.com/h3js/h3/commit/50b00d2))
+- Update undocs ([5e8a317](https://github.com/h3js/h3/commit/5e8a317))
+- Update gitignore ([7e4ce44](https://github.com/h3js/h3/commit/7e4ce44))
+- Update deps ([516444b](https://github.com/h3js/h3/commit/516444b))
+- Apply automated updates ([55335c5](https://github.com/h3js/h3/commit/55335c5))
+- Apply automated updates ([0da4bf0](https://github.com/h3js/h3/commit/0da4bf0))
+- Bump bundle ([957dbe6](https://github.com/h3js/h3/commit/957dbe6))
+
+### 🤖 CI
+
+- Harden workflows ([#1529](https://github.com/h3js/h3/pull/1529))
+
+#### ⚠️ Breaking Changes
+
+- **event:** ⚠️ Decode only needless escapes in the pathname ([#1526](https://github.com/h3js/h3/pull/1526))
+- **json-rpc:** ⚠️ Require JSON content-type, validate origin and cap batch size ([72d8e05](https://github.com/h3js/h3/commit/72d8e05))
+- **fingerprint:** ⚠️ Default to SHA-256 and disambiguate components ([51e68cd](https://github.com/h3js/h3/commit/51e68cd))
+- **proxy:** ⚠️ Xfwd must not let client `x-forwarded-*` headers win ([0c7429e](https://github.com/h3js/h3/commit/0c7429e))
+- **request:** ⚠️ Keep the host header from steering the synthesized URL ([2b59a3a](https://github.com/h3js/h3/commit/2b59a3a))
+
+### ❤️ Contributors
+
+- Shree Bohara ([@ShreeBohara](https://github.com/ShreeBohara))
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Pi0x <x@pi0.io>
+- Vijay Misal ([@vjymisal0](https://github.com/vjymisal0))
+- Jayesh Bhade ([@Jaybhade](https://github.com/Jaybhade))
+
 ## v2.0.1-rc.26
 
 [compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.25...v2.0.1-rc.26)

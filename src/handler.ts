@@ -12,9 +12,9 @@ import type {
   EventHandlerWithFetch,
   FetchableObject,
   HTTPHandler,
+  ResolvedRequest,
 } from "./types/handler.ts";
 import type { StandardSchemaV1, InferOutput } from "./utils/internal/standard-schema.ts";
-import type { TypedRequest } from "fetchdts";
 import { NoHandler, type H3Core } from "./h3.ts";
 import { validatedRequest, validatedURL, type OnValidateError } from "./utils/internal/validate.ts";
 
@@ -42,16 +42,26 @@ export function defineHandler(input: EventHandler | EventHandlerObject): EventHa
         }
       : NoHandler);
 
-  return Object.assign(
-    handlerWithFetch(
-      input.middleware?.length ? composeHandler(input.middleware, handler) : handler,
-    ),
-    input,
-  );
+  const composed = input.middleware?.length && composeHandler(input.middleware, handler);
+  const eventHandler = handlerWithFetch(composed || handler);
+
+  // When middleware is composed, `.fetch` must stay the composed one: assigning `input` would
+  // restore the raw `input.fetch` and requests made through it would bypass the middleware
+  return Object.assign(eventHandler, input, composed && { fetch: eventHandler.fetch });
 }
 
 type StringHeaders<T> = {
   [K in keyof T]: Extract<T[K], string>;
+};
+
+type ValidatedRequest<
+  RequestBody extends StandardSchemaV1,
+  RequestHeaders extends StandardSchemaV1,
+  RequestQuery extends StandardSchemaV1,
+> = {
+  body: InferOutput<RequestBody>;
+  headers: StringHeaders<InferOutput<RequestHeaders>>;
+  query: StringHeaders<InferOutput<RequestQuery>>;
 };
 
 /**
@@ -70,15 +80,9 @@ export function defineValidatedHandler<
       query?: RequestQuery;
       onError?: OnValidateError;
     };
-    handler: EventHandler<
-      {
-        body: InferOutput<RequestBody>;
-        query: StringHeaders<InferOutput<RequestQuery>>;
-      },
-      Res
-    >;
+    handler: EventHandler<ValidatedRequest<RequestBody, RequestHeaders, RequestQuery>, Res>;
   },
-): EventHandlerWithFetch<TypedRequest<InferOutput<RequestBody>, InferOutput<RequestHeaders>>, Res> {
+): EventHandlerWithFetch<ValidatedRequest<RequestBody, RequestHeaders, RequestQuery>, Res> {
   if (!def.validate) {
     return defineHandler(def) as any;
   }
@@ -139,9 +143,9 @@ export function dynamicEventHandler(initial?: EventHandler | FetchableObject): D
 
 type MaybePromise<T> = T | Promise<T>;
 
-export function defineLazyEventHandler(
-  loader: () => MaybePromise<HTTPHandler>,
-): EventHandlerWithFetch {
+export function defineLazyEventHandler<_RequestT extends EventHandlerRequest = EventHandlerRequest>(
+  loader: () => MaybePromise<HTTPHandler<_RequestT>>,
+): EventHandlerWithFetch<ResolvedRequest<_RequestT>> {
   let handler: EventHandler | undefined;
   let promise: Promise<EventHandler> | undefined;
   return defineHandler(function lazyHandler(event) {
@@ -159,12 +163,14 @@ export function defineLazyEventHandler(
 
 // --- normalization utils ---
 
-export function toEventHandler(handler: HTTPHandler | undefined): EventHandler | undefined {
+export function toEventHandler<_RequestT extends EventHandlerRequest = EventHandlerRequest>(
+  handler: HTTPHandler<_RequestT> | undefined,
+): EventHandler<ResolvedRequest<_RequestT>> | undefined {
   if (typeof handler === "function") {
-    return handler;
+    return handler as EventHandler<ResolvedRequest<_RequestT>>;
   }
   if (typeof (handler as H3Core)?.handler === "function" && (handler as any).constructor?.["~h3"]) {
-    return (handler as H3Core).handler;
+    return (handler as H3Core).handler as EventHandler<ResolvedRequest<_RequestT>>;
   }
   if (typeof (handler as FetchableObject)?.fetch === "function") {
     return function _fetchHandler(event: H3Event) {

@@ -8,6 +8,7 @@ export type {
   HTTPMethod,
   PreparedResponse,
   RouteOptions,
+  RouteRegistrar,
   MiddlewareOptions,
   RouterContext,
   MatchedRoute,
@@ -44,6 +45,7 @@ export type {
   HTTPHandler,
   TypedServerRequest,
 } from "./types/handler.ts";
+export type { TypedHeaders } from "fetchdts";
 
 export {
   defineHandler,
@@ -182,6 +184,7 @@ export { type CacheConditions, handleCacheHeaders } from "./utils/cache.ts";
 export {
   type ResolveDotSegmentsOptions,
   isCanonicalPath,
+  normalizeRoute,
   resolveDotSegments,
 } from "./utils/path.ts";
 

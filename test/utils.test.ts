@@ -329,6 +329,36 @@ describeMatrix("utils", (t, { it, describe, expect }) => {
       expect(res).toBe("http://[2001:db8::1]:8080/test");
     });
 
+    it("ignores malformed x-forwarded-host and keeps the real authority", async () => {
+      const real = await t.fetch("/test").then((r) => r.text());
+      for (const host of ["bad host", "foo|bar", "user@evil.com", "example.com%"]) {
+        const res = await t
+          .fetch("/test", {
+            headers: { host: "localhost", "x-forwarded-host": host },
+          })
+          .then((r) => r.text());
+        expect(res, host).toBe(real);
+      }
+    });
+
+    it("x-forwarded-host clears the port when only the port differs", async () => {
+      const res = await t
+        .fetch("http://localhost:3000/test", {
+          headers: { "x-forwarded-host": "localhost" },
+        })
+        .then((r) => r.text());
+      expect(res).toBe("http://localhost/test");
+    });
+
+    it("x-forwarded-host with an invalid port drops the real port", async () => {
+      const res = await t
+        .fetch("http://localhost:3000/test", {
+          headers: { "x-forwarded-host": "example.com:99999" },
+        })
+        .then((r) => r.text());
+      expect(res).toBe("http://example.com/test");
+    });
+
     it('x-forwarded-proto: "https"', async () => {
       expect(
         await t
@@ -437,10 +467,24 @@ describeMatrix("utils", (t, { it, describe, expect }) => {
       });
       const fingerprint = await res.text();
 
-      // sha1 is 40 chars long
-      expect(fingerprint).toHaveLength(40);
+      // sha256 (default) is 64 chars long
+      expect(fingerprint).toHaveLength(64);
 
       // and only uses hex chars
+      expect(fingerprint).toMatch(/^[\dA-Fa-f]+$/);
+    });
+
+    it("supports stronger hash algorithms", async () => {
+      t.app.use((event) => getRequestFingerprint(event, { hash: "SHA-512", xForwardedFor: true }));
+
+      const res = await t.fetch("/", {
+        headers: {
+          "x-forwarded-for": "client-ip",
+        },
+      });
+      const fingerprint = await res.text();
+
+      expect(fingerprint).toHaveLength(128);
       expect(fingerprint).toMatch(/^[\dA-Fa-f]+$/);
     });
 
@@ -493,6 +537,40 @@ describeMatrix("utils", (t, { it, describe, expect }) => {
       });
 
       expect(await res.text()).toBe("client-ip|test-user-agent");
+    });
+
+    it("keeps an empty slot for undeterminable components", async () => {
+      t.app.use((event) =>
+        getRequestFingerprint(event, {
+          hash: false,
+          ip: false,
+          method: true,
+          userAgent: true,
+        }),
+      );
+
+      // Empty `user-agent`: the slot stays empty instead of being dropped.
+      const res = await t.fetch("/", { headers: { "user-agent": "" } });
+
+      expect(await res.text()).toBe("GET|");
+    });
+
+    it("escapes the component separator", async () => {
+      t.app.use((event) =>
+        getRequestFingerprint(event, {
+          hash: false,
+          ip: false,
+          method: true,
+          userAgent: true,
+        }),
+      );
+
+      // A `|` inside a component cannot forge the slot structure of another request.
+      const res = await t.fetch("/", {
+        headers: { "user-agent": "a|b%c" },
+      });
+
+      expect(await res.text()).toBe("GET|a%7Cb%25c");
     });
 
     it("uses x-forwarded-for ip when header set", async () => {
