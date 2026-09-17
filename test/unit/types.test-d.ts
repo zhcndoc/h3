@@ -20,6 +20,7 @@ import {
   defineLazyEventHandler,
   toEventHandler,
   withBase,
+  requireBasicAuth,
 } from "../../src/index.ts";
 import {
   appendHeaders,
@@ -397,5 +398,31 @@ describe("deprecated v1 signatures", () => {
   // v1 defaulted to 302 and the delegated `redirect()` still does, so the status is optional.
   it("sendRedirect leaves the status code optional", () => {
     expectTypeOf(sendRedirect).toBeCallableWith({} as H3Event, "/target");
+  });
+});
+
+describe("basicAuth context", () => {
+  // `requireBasicAuth` has a single write site and it always assigns `username`
+  // (a `slice` result) and `realm` (`opts.realm ?? "auth"`) as strings, so
+  // reading them back must not require a redundant `undefined` check.
+  // `password` stays optional so it can be dropped from the context later
+  // without a breaking type change.
+  it("exposes username and realm as strings once set", () => {
+    defineHandler(async (event) => {
+      await requireBasicAuth(event, { password: "test" });
+      const auth = event.context.basicAuth!;
+      expectTypeOf(auth.username).toEqualTypeOf<string>();
+      expectTypeOf(auth.password).toEqualTypeOf<string | undefined>();
+      expectTypeOf(auth.realm).toEqualTypeOf<string>();
+    });
+  });
+
+  // The property itself stays optional: it is absent until a request authenticates.
+  it("stays optional until a request is authenticated", () => {
+    defineHandler((event) => {
+      expectTypeOf(event.context.basicAuth).toEqualTypeOf<
+        { username: string; password?: string; realm: string } | undefined
+      >();
+    });
   });
 });
