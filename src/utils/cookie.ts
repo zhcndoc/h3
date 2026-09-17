@@ -262,13 +262,18 @@ export function deleteChunkedCookie(
 
 /**
  * Cookies are unique by "cookie-name, domain-value, and path-value".
+ * Partitioned (CHIPS) cookies live in a separate jar, so `partitioned` is part of the identity too.
  *
  * @see https://httpwg.org/specs/rfc6265.html#rfc.section.4.1.2
+ * @see https://developer.mozilla.org/en-US/docs/Web/Privacy/Guides/Privacy_sandbox/Partitioned_cookies
  */
-function _getDistinctCookieKey(name: string, options: { domain?: string; path?: string }) {
+function _getDistinctCookieKey(
+  name: string,
+  options: { domain?: string; path?: string; partitioned?: boolean },
+) {
   // Domain is case-insensitive and a leading "." is ignored (RFC 6265).
   const domain = (options.domain || "").replace(/^\./, "").toLowerCase();
-  return [name, domain, options.path || "/"].join(";");
+  return [name, domain, options.path || "/", options.partitioned ? "1" : "0"].join(";");
 }
 
 // Maximum number of chunks allowed for chunked cookies.
