@@ -29,9 +29,8 @@ const LITERAL_PREFIX_ROUTE_RE = /^((?:\/[^/:*(){}\\]+)*)\/\*\*\/?$/;
  * *is* the router, and the fast paths are exact reimplementations of it for
  * patterns with no dynamic segments.
  *
- * Trailing slashes follow rou3: `findRoute` drops one from the path and
- * `splitPath` then drops one empty trailing segment, so a literal `/api` is
- * also reached by `/api/` and `/api//` (but not `/api///`).
+ * Trailing slashes follow rou3: `findRoute` drops at most one from the path,
+ * so a literal `/api` is also reached by `/api/` (but not `/api//`).
  */
 export function createRouteMatcher(route: string): RouteMatcher {
   if (route.charCodeAt(0) !== 47 /* / */) {
@@ -45,7 +44,7 @@ export function createRouteMatcher(route: string): RouteMatcher {
     const prefix = `${base}/`;
     return (pathname) =>
       pathname.startsWith(prefix)
-        ? { _: trimTrailingSlashes(pathname.slice(prefix.length)) }
+        ? { _: trimTrailingSlash(pathname.slice(prefix.length)) }
         : pathname === base
           ? { _: "" }
           : false;
@@ -54,8 +53,7 @@ export function createRouteMatcher(route: string): RouteMatcher {
   if (LITERAL_ROUTE_RE.test(route)) {
     // `/api`: no params to bind, so a match reports `undefined`.
     const base = route.endsWith("/") ? route.slice(0, -1) : route;
-    return (pathname) =>
-      pathname === base || pathname === `${base}/` || pathname === `${base}//` ? undefined : false;
+    return (pathname) => (pathname === base || pathname === `${base}/` ? undefined : false);
   }
 
   const router = createRouter<true>();
@@ -69,15 +67,9 @@ export function createRouteMatcher(route: string): RouteMatcher {
 }
 
 /**
- * Drop the trailing slashes rou3 drops before it binds a `**` param: one in
- * `findRoute`, then one empty trailing segment in `splitPath`.
+ * Drop the one trailing slash rou3's `findRoute` drops before it binds a `**`
+ * param.
  */
-function trimTrailingSlashes(rest: string): string {
-  if (rest.endsWith("/")) {
-    rest = rest.slice(0, -1);
-    if (rest.endsWith("/")) {
-      rest = rest.slice(0, -1);
-    }
-  }
-  return rest;
+function trimTrailingSlash(rest: string): string {
+  return rest.endsWith("/") ? rest.slice(0, -1) : rest;
 }

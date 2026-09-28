@@ -371,8 +371,6 @@ describe("redirect rule", () => {
     // and pointing a proxy at a different upstream resource. Reject instead.
     const cases: [string, string[]][] = [
       ["/:lang?/old/**", ["/en/old/a/b", "/old/a/b"]],
-      ["/x/:seg*/old/**", ["/x/old/a", "/x/a/old/b", "/x/a/b/old/c"]],
-      ["/x/:seg+/old/**", ["/x/a/old/b", "/x/a/b/old/c"]],
       // A group that spans a separator varies the count the same way.
       ["/x{/a}?/:id/old/**", ["/x/1/old/b", "/x/a/1/old/b"]],
     ];
@@ -382,6 +380,15 @@ describe("redirect rule", () => {
         const res = await app.fetch(new Request("http://test" + path));
         expect(`${key} ${path} -> ${res.status}`).toBe(`${key} ${path} -> 400`);
       }
+    }
+  });
+
+  it("rejects a key with more than one multi-segment wildcard", () => {
+    // `:name*` / `:name+` count as a `**`, and rou3 allows only one per route.
+    for (const key of ["/x/:seg*/old/**", "/x/:seg+/old/**"]) {
+      expect(() => createApp({ [key]: { redirect: "/new/**" } })).toThrow(
+        `rou3: a route can have only one \`**\`, \`:name+\` or \`:name*\` (${key})`,
+      );
     }
   });
 

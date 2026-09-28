@@ -352,7 +352,7 @@ function nullBody(method: string, status: number | undefined): boolean | 0 | und
   return (method === "HEAD" ||
     status === 100 || status === 101 || status === 102 ||
     status === 204 || status === 205 || status === 304
-  )
+  );
 }
 
 function errorResponse(error: HTTPError, debug?: boolean, errHeaders?: Headers): Response {

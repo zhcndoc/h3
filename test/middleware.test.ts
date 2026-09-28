@@ -236,18 +236,18 @@ describeMatrix("middleware", (t, { it, expect }) => {
 // filter while the router matched with rou3, and the two disagreed — so a
 // request could reach a handler with the guard registered for it skipped.
 // A `:param` regex was `[^/]+`, rejecting the empty segment rou3's trie accepts
-// (`/admin/7//` reached `/admin/:id` unguarded), and the `/**` regex made the
+// (`/admin//` reaches `/admin/:id` with `id: ""`), and the `/**` regex made the
 // separator optional (`/admin/**` also fired on `/adminx`). Both matchers are
 // now rou3, so the scope of a `use()` is the match-set of the same pattern.
 describeMatrix("middleware route scope", (t, { it, expect }) => {
   // Every path here is routed by its own pattern, so its guard must fire.
   const scopes = [
-    { route: "/admin/:id", paths: ["/admin/7", "/admin/7/", "/admin/7//"] },
+    { route: "/admin/:id", paths: ["/admin/7", "/admin/7/", "/admin//"] },
     { route: "/admin/**", paths: ["/admin", "/admin/", "/admin//", "/admin/x", "/admin/x/y"] },
     // A named `**` needs at least one segment, so `/files` itself is not routed.
     { route: "/files/**:rest", paths: ["/files/a", "/files/a/b", "/files/a/b/"] },
     { route: "/a/*", paths: ["/a", "/a/", "/a/x", "/a/x/"] },
-    { route: "/api", paths: ["/api", "/api/", "/api//"] },
+    { route: "/api", paths: ["/api", "/api/"] },
   ];
 
   for (const { route, paths } of scopes) {
