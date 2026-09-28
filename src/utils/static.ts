@@ -189,8 +189,13 @@ export async function serveStatic(
     options.encodings,
   );
 
-  if (acceptEncodings.length > 1) {
-    event.res.headers.set("vary", "accept-encoding");
+  // The chosen variant depends on `accept-encoding` whenever encodings are
+  // configured, including when the unencoded file is served.
+  if (options.encodings && Object.keys(options.encodings).length > 0) {
+    const vary = event.res.headers.get("vary") || "";
+    if (!/(?:^|,)\s*(?:\*|accept-encoding)\s*(?:,|$)/i.test(vary)) {
+      event.res.headers.append("vary", "accept-encoding");
+    }
   }
 
   let id = originalId;

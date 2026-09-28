@@ -70,6 +70,68 @@ describeMatrix("serve static", (t, { it, expect }) => {
     expect(headRes.headers.get("content-length")).toBe("18");
   });
 
+  it("Sets vary when a single encoding is accepted", async () => {
+    const res = await t.fetch("/test.png", {
+      headers: { "accept-encoding": "gzip" },
+    });
+    expect(await res.text()).toBe("asset:/test.png.gz");
+    expect(res.headers.get("vary")).toBe("accept-encoding");
+  });
+
+  it("Keeps existing vary values", async () => {
+    t.app.all("/cors/**", (event) => {
+      event.res.headers.set("vary", "origin");
+      return serveStatic(event, {
+        getContents: (id) => `asset:${id}`,
+        getMeta: (id) => ({ type: "text/plain", path: id }),
+        encodings: { gzip: ".gz" },
+      });
+    });
+    const res = await t.fetch("/cors/test.png", {
+      headers: { "accept-encoding": "gzip" },
+    });
+    expect(res.headers.get("vary")).toBe("origin, accept-encoding");
+  });
+
+  it("Sets vary when no encoding is accepted", async () => {
+    // Explicit `identity`: node's fetch adds `accept-encoding: gzip, deflate` when unset.
+    const res = await t.fetch("/test.png", {
+      headers: { "accept-encoding": "identity" },
+    });
+    expect(await res.text()).toBe("asset:/test.png");
+    expect(res.headers.get("vary")).toBe("accept-encoding");
+  });
+
+  it("Does not set vary without configured encodings", async () => {
+    t.app.all("/plain/**", (event) => {
+      return serveStatic(event, {
+        getContents: (id) => `asset:${id}`,
+        getMeta: (id) => ({ type: "text/plain", path: id }),
+      });
+    });
+    const res = await t.fetch("/plain/test.png", {
+      headers: { "accept-encoding": "gzip" },
+    });
+    expect(res.headers.get("vary")).toBeNull();
+  });
+
+  it("Does not duplicate vary values", async () => {
+    for (const [i, vary] of ["Accept-Encoding", "origin,accept-encoding", "*"].entries()) {
+      t.app.all(`/dedupe${i}/**`, (event) => {
+        event.res.headers.set("vary", vary);
+        return serveStatic(event, {
+          getContents: (id) => `asset:${id}`,
+          getMeta: (id) => ({ type: "text/plain", path: id }),
+          encodings: { gzip: ".gz" },
+        });
+      });
+      const res = await t.fetch(`/dedupe${i}/test.png`, {
+        headers: { "accept-encoding": "gzip" },
+      });
+      expect(res.headers.get("vary")).toBe(vary);
+    }
+  });
+
   it("Handles cache (if-none-match)", async () => {
     const res = await t.fetch("/test.png", {
       headers: { "if-none-match": "w/123" },
