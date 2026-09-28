@@ -189,15 +189,6 @@ export async function serveStatic(
     options.encodings,
   );
 
-  // The chosen variant depends on `accept-encoding` whenever encodings are
-  // configured, including when the unencoded file is served.
-  if (options.encodings && Object.keys(options.encodings).length > 0) {
-    const vary = event.res.headers.get("vary") || "";
-    if (!/(?:^|,)\s*(?:\*|accept-encoding)\s*(?:,|$)/i.test(vary)) {
-      event.res.headers.append("vary", "accept-encoding");
-    }
-  }
-
   let id = originalId;
   let meta: StaticAssetMeta | undefined;
 
@@ -217,6 +208,16 @@ export async function serveStatic(
       return;
     }
     throw new HTTPError({ statusCode: 404 });
+  }
+
+  // The chosen variant depends on `accept-encoding` whenever encodings are
+  // configured, including when the unencoded file is served. Set only once an
+  // asset is found so a fallthrough does not leak it to the next handler.
+  if (options.encodings && Object.keys(options.encodings).length > 0) {
+    const vary = event.res.headers.get("vary") || "";
+    if (!/(?:^|,)\s*(?:\*|accept-encoding)\s*(?:,|$)/i.test(vary)) {
+      event.res.headers.append("vary", "accept-encoding");
+    }
   }
 
   let mtimeDate: Date | undefined;
@@ -272,14 +273,62 @@ export async function serveStatic(
 
 // --- Internal Utils ---
 
+// `qvalue` grammar (RFC 9110 section 12.4.2).
+const WEIGHT_RE = /^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/;
+
+/**
+ * Resolve the configured encoding extensions a request accepts, most preferred first.
+ *
+ * Coding names are case-insensitive, `q=0` means "not acceptable", `*` matches
+ * any coding not listed explicitly and equal weights keep header order, with
+ * explicitly listed codings ahead of `*` matches (RFC 9110 section 12.5.3).
+ */
 function parseAcceptEncoding(header?: string, encodingMap?: Record<string, string>): string[] {
   if (!encodingMap || !header) {
     return [];
   }
-  return String(header || "")
-    .split(",")
-    .map((e) => encodingMap[e.trim()])
-    .filter(Boolean);
+  const extensions = new Map<string, string>();
+  for (const [name, ext] of Object.entries(encodingMap)) {
+    extensions.set(normalizeCoding(name), ext);
+  }
+  // Coding -> weight, in header order. The first occurrence of a coding wins.
+  const weights = new Map<string, number>();
+  let wildcard: number | undefined;
+  for (const part of header.split(",")) {
+    const [rawName = "", ...params] = part.split(";");
+    const name = normalizeCoding(rawName);
+    if (name !== "*" && !extensions.has(name)) {
+      continue;
+    }
+    const qParam = params.find((p) => /^\s*q\s*=/i.test(p));
+    const qValue = qParam?.slice(qParam.indexOf("=") + 1).trim();
+    // An unparsable weight drops the coding: identity is always a safe fallback,
+    // while guessing `1` could force a coding the client tried to refuse.
+    const q = qValue === undefined ? 1 : WEIGHT_RE.test(qValue) ? Number(qValue) : 0;
+    if (name === "*") {
+      wildcard ??= q;
+    } else if (!weights.has(name)) {
+      weights.set(name, q);
+    }
+  }
+  if (wildcard) {
+    for (const name of extensions.keys()) {
+      if (!weights.has(name)) {
+        weights.set(name, wildcard);
+      }
+    }
+  }
+  const accepted = [...weights]
+    .filter(([, q]) => q > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([name]) => extensions.get(name)!);
+  return [...new Set(accepted)];
+}
+
+/** Lowercase a coding name and resolve the `x-gzip` / `x-compress` aliases (RFC 9110 section 8.4.1). */
+function normalizeCoding(name: string): string {
+  const coding = name.trim().toLowerCase();
+  return coding === "x-gzip" || coding === "x-compress" ? coding.slice(2) : coding;
 }
 
 function idSearchPaths(id: string, encodings: string[], indexNames: string[]) {
