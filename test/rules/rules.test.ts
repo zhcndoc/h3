@@ -961,8 +961,8 @@ describe("method-scoped rules (end-to-end)", () => {
 
   it("a method-scoped rule is not bypassable with a lowercase/mixed-case method", async () => {
     // Rule keys are uppercased at parse time (internal/key.ts), so the lookup
-    // method must be too: rou3 resolves `methods[method] || methods[""]` and a
-    // method-scoped rule never populates `methods[""]`, making a case mismatch a
+    // method must be too: rou3 looks up `methods[method]` (plus `methods[""]`)
+    // and a method-scoped rule never populates `methods[""]`, making a case mismatch a
     // *total* miss that fails OPEN over a method-agnostic route (`app.all`, and
     // every `app.mount()` base, which registers `all(base + "/**")`).
     //

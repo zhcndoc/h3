@@ -103,7 +103,7 @@ src/
 │   ├── compiler.ts       # h3/rules/compiler — build-time codegen
 │   ├── handlers/         # Built-in rule handlers (headers, redirect, cors, cache)
 │   ├── compiler/         # Codegen internals (compile, codegen, runtime-rules, options)
-│   └── internal/         # key parsing, scope checks, node-key bucketing, pre-merge analysis
+│   └── internal/         # key parsing, scope checks, pre-merge analysis
 ├── _entries/             # Platform-specific entry points
 │   ├── generic.ts        # Web Worker / Browser
 │   ├── node.ts           # Node.js (adds toNodeHandler)

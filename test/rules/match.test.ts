@@ -174,9 +174,10 @@ describe("createMatcherFromFind override guard", () => {
 // rou3 buckets registrations by *node*, not by pattern text: `*`, `:id` and
 // `:userId` all collapse onto `node.param`, `**`/`**:rest` onto `node.wildcard`,
 // and `/admin`/`/admin/` onto the same terminal node — and lookup resolves
-// `node.methods[method] || node.methods[""]`. So a method-scoped rule spelled
-// differently from a method-agnostic one on the same node used to hide it
-// outright: the agnostic gate was never returned for that method.
+// `node.methods[method] || node.methods[""]` (before rou3 0.11). So a
+// method-scoped rule spelled differently from a method-agnostic one on the same
+// node used to hide it outright: the agnostic gate was never returned for that
+// method. rou3 now pools both buckets; these pin that the gate survives.
 //
 // Each pair below is [agnostic rule, method-scoped sibling, probe path]. The
 // agnostic rule must survive on *every* method; the scoped one appears only on
@@ -310,40 +311,40 @@ describe("method-agnostic rules vs node-aliased method-scoped siblings", () => {
   });
 
   it("does not register agnostic-only rule sets per method", () => {
-    // No method-scoped key anywhere → no materialization, byte-identical output.
+    // No method-scoped key anywhere → no method guard in the output.
     const before = compileFindRouteRules({ "/a/**": { headers: { "x-a": "1" } } });
     expect(before).not.toContain('m==="GET"');
   });
 
-  it("materializes an agnostic rule only onto methods scoped on a node it shares", () => {
-    // `/a/**` and `/b/**` land on different radix nodes, so the POST-scoped key
-    // cannot hide the agnostic one and must not buy it a POST copy. Only the
-    // `/b/**` branch may be method-guarded.
+  it("registers an agnostic rule once, never per method", () => {
+    // `/a/**` and `/b/**` land on different radix nodes: only the `/b/**`
+    // branch is method-guarded, and the agnostic entry array `$0` is pushed once.
     const code = compileFindRouteRules({
       "/a/**": { headers: { "x-a": "1" } },
       "POST /b/**": { headers: { "x-b": "1" } },
     });
     expect(code.match(/m===/g)).toHaveLength(1);
     expect(code).toContain('m==="POST"');
-    // `$0` is the agnostic pattern's entry array: declared once, pushed once —
-    // no second, method-scoped registration of it.
     expect(code.match(/data:\$0/g)).toHaveLength(1);
-    // …while a shared node does buy that copy (`/a/*` aliasing `/a/:id`): the
-    // agnostic layer is pushed from the POST branch as well as the fallback one.
-    const shared = compileFindRouteRules({
-      "/a/*": { headers: { "x-a": "1" } },
-      "POST /a/:id": { headers: { "x-b": "1" } },
-    });
-    expect(shared.match(/data:\$0/g)).toHaveLength(2);
+    // On a shared node (`/a/*` aliasing `/a/:id`) rou3 returns the agnostic layer
+    // alongside the POST one — exactly once, with no per-method copy of it.
+    const find = new Function(
+      "__ruleHandlers__$headers",
+      `return (${compileFindRouteRules({
+        "/a/*": { headers: { "x-a": "1" } },
+        "POST /a/:id": { headers: { "x-b": "1" } },
+      })});`,
+    )(undefined) as FindRouteRules;
+    expect(
+      find("POST", "/a/b").map((layer) => (layer.data as { route: string }[])[0]!.route),
+    ).toEqual(["/a/*", "/a/:id"]);
+    expect(find("GET", "/a/b")).toHaveLength(1);
   });
 
   it("keeps agnostic rules on every node an optional pattern spans", () => {
     // `/a/:x?` registers on *two* nodes (`/a` and `/a/*`), and `GET /a/:id`
-    // scopes GET on the second — so the agnostic layers on **both** nodes need
-    // a GET copy: `/a/:x?`'s own (or `GET /a/:id` hides it on `/a/*`) and
-    // `/a`'s (because `/a/:x?`'s GET copy lands on `/a` too and would hide the
-    // rule there). Grouping shared nodes transitively is what covers both; a
-    // per-node grouping drops one or the other, fail-open either way.
+    // scopes GET on the second — so a scoped registration must hide neither
+    // `/a/:x?` on `/a/*` nor `/a` on `/a`, on any method.
     const config: Record<string, RouteRuleConfig> = {
       "/a": { cors: { origin: ["https://admin.example"] } },
       "/a/:x?": { headers: { "x-opt": "1" } },

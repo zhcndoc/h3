@@ -54,7 +54,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "rou3": "^0.10.2",
+    "rou3": "^0.11.0",
     "srvx": "^1.0.5"
   },
   "devDependencies": {

@@ -151,7 +151,7 @@ function resolveCompileCtx(
  */
 function emitFindRouteRules(ctx: CompileCtx): string {
   const router = ctx.router ?? createRulesRouter(ctx.rules, {}, ctx.baseURL, ctx.preMerge);
-  return compileRouterToString(router, undefined, {
+  return compileRouterToString(router, {
     matchAll: true,
     serialize: (data) =>
       Array.isArray(data)

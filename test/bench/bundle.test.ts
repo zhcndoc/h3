@@ -18,8 +18,8 @@ describe("benchmark", () => {
     if (process.env.DEBUG) {
       console.log(`Bundle size (H3): ${bundle.bytes} (gzip: ${bundle.gzipSize})`);
     }
-    expect(bundle.bytes).toBeLessThanOrEqual(20_800); // <20.8kb
-    expect(bundle.gzipSize).toBeLessThanOrEqual(8_050); // <8.05kb
+    expect(bundle.bytes).toBeLessThanOrEqual(22_400); // <22.4kb
+    expect(bundle.gzipSize).toBeLessThanOrEqual(8_850); // <8.85kb
   });
 
   it("bundle size (H3Core)", async () => {

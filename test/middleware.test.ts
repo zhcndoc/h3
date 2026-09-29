@@ -235,18 +235,19 @@ describeMatrix("middleware", (t, { it, expect }) => {
 // Regression: `use(route, ...)` used to compile its own regex for the route
 // filter while the router matched with rou3, and the two disagreed — so a
 // request could reach a handler with the guard registered for it skipped.
-// A `:param` regex was `[^/]+`, rejecting the empty segment rou3's trie accepts
-// (`/admin//` reaches `/admin/:id` with `id: ""`), and the `/**` regex made the
+// A `:param` regex was `[^/]+`, rejecting the empty segment rou3's trie accepted
+// (`/admin//` reached `/admin/:id` with `id: ""`), and the `/**` regex made the
 // separator optional (`/admin/**` also fired on `/adminx`). Both matchers are
 // now rou3, so the scope of a `use()` is the match-set of the same pattern.
 describeMatrix("middleware route scope", (t, { it, expect }) => {
   // Every path here is routed by its own pattern, so its guard must fire.
   const scopes = [
-    { route: "/admin/:id", paths: ["/admin/7", "/admin/7/", "/admin//"] },
+    // `:id` needs a value, so `/admin//` is not routed; `*` accepts an empty one.
+    { route: "/admin/:id", paths: ["/admin/7", "/admin/7/"] },
     { route: "/admin/**", paths: ["/admin", "/admin/", "/admin//", "/admin/x", "/admin/x/y"] },
     // A named `**` needs at least one segment, so `/files` itself is not routed.
     { route: "/files/**:rest", paths: ["/files/a", "/files/a/b", "/files/a/b/"] },
-    { route: "/a/*", paths: ["/a", "/a/", "/a/x", "/a/x/"] },
+    { route: "/a/*", paths: ["/a", "/a/", "/a//", "/a/x", "/a/x/"] },
     { route: "/api", paths: ["/api", "/api/"] },
   ];
 
@@ -280,8 +281,8 @@ describeMatrix("middleware route scope", (t, { it, expect }) => {
   // A leading empty segment is only reachable in web mode: the node test client
   // resolves `//admin/...` against its base URL as a protocol-relative URL.
   it.skipIf(t.target === "node")("guards a path with an empty leading segment", async () => {
-    t.app.use("/:tenant/admin/**", () => "DENIED");
-    t.app.get("/:tenant/admin/users", () => "ALLOWED");
+    t.app.use("/*/admin/**", () => "DENIED");
+    t.app.get("/*/admin/users", () => "ALLOWED");
 
     const res = await t.app.request(new Request("http://localhost//admin/users"));
     expect(await res.text()).toBe("DENIED");

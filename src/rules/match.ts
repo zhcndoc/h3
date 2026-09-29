@@ -3,7 +3,6 @@ import type { RouterContext } from "rou3";
 import { parseRouteKey } from "./internal/key.ts";
 import { mergeMatchedRouteRules } from "./merge.ts";
 import type { RouteOverridePredicate, RouteRuleEntry, RouteRuleLayer } from "./merge.ts";
-import { sharedNodeMethods } from "./internal/nodes.ts";
 import { preMergeRuleLayers, routeContainmentRanks } from "./internal/premerge.ts";
 import type { PreMergedRouteRules } from "./internal/premerge.ts";
 import { ruleHandlers } from "./handlers/index.ts";
@@ -115,7 +114,7 @@ export function createRulesRouter(
   if (preMerge) {
     for (const [path, methods] of preMergeRuleLayers(byPath)) {
       for (const [method, data] of methods) {
-        addRoute(router, method, base + path, data);
+        addRuleRoute(router, method, base + path, data);
       }
     }
     return router;
@@ -123,12 +122,9 @@ export function createRulesRouter(
   // Specificity rank of each pattern, stamped onto its entries so `resolveLayers`
   // can merge matched layers broad → narrow without asking rou3 (or any
   // containment predicate) anything per request (see `RouteRuleEntry.rank`).
-  // Stamped per pattern (not per registration) so it survives the duplication
-  // below: the agnostic array is registered by reference under `""` and each
-  // method materialized for it, and the HEAD materialization above shares the
-  // GET entries — every copy is a registration *of the same pattern* under
-  // another method, never of another pattern, so the rank a copy carries is
-  // still its own pattern's containment depth.
+  // Stamped per pattern (not per registration): the HEAD materialization above
+  // shares the GET entries, a registration *of the same pattern* under another
+  // method, so the rank it carries is still its own pattern's containment depth.
   // preMerge returned above: there the chain is resolved at build time and the
   // rank lives on the pre-merged layer (`PreMergedRouteRules.rank`) instead.
   for (const [path, rank] of routeContainmentRanks([...byPath.keys()])) {
@@ -141,35 +137,12 @@ export function createRulesRouter(
       }
     }
   }
-  // Per pattern, the methods scoped on a node it shares — the only methods for
-  // which a registration could hide its agnostic entries (HEAD included, having
-  // been materialized above).
-  const sharedMethods = sharedNodeMethods(byPath);
-  // Pass 1 — agnostic entries, on `""` (the fallback for every method with no
-  // registration on the node) and on each of those methods. Registering them
-  // first keeps them ahead of the method-scoped layers of *any* pattern that
-  // shares their node: rou3 pushes same-node/same-method registrations in
-  // insertion order and its specificity sort is stable, so an equally-specific
-  // method-scoped rule still overrides. Between *differently*-specific spellings
-  // on one node (`/a/*` vs `/a/:id`) rou3's own sort decides, exactly as it does
-  // for two agnostic patterns — method scope does not re-rank patterns, it only
-  // selects which are matched.
-  for (const [path, methods] of byPath) {
-    const agnostic = methods.get("");
-    if (!agnostic) {
-      continue;
-    }
-    addRoute(router, "", base + path, agnostic);
-    for (const method of sharedMethods.get(path) || []) {
-      addRoute(router, method, base + path, agnostic);
-    }
-  }
-  // Pass 2 — method-scoped entries.
+  // rou3 pools a node's `""` and method-scoped registrations: a lookup for a
+  // method sees both, ordered by specificity, with the method-scoped layer last
+  // (so it overrides) between equally-specific ones.
   for (const [path, methods] of byPath) {
     for (const [method, entries] of methods) {
-      if (method) {
-        addRoute(router, method, base + path, entries);
-      }
+      addRuleRoute(router, method, base + path, entries);
     }
   }
   return router;
@@ -550,4 +523,19 @@ function withScopeBase(name: string, options: unknown, baseURL: string): unknown
     return { ...options, base: baseURL + (options as { base: string }).base };
   }
   return options;
+}
+
+/**
+ * `addRoute`, with rou3's parse errors re-thrown in h3's own voice, so an
+ * unparseable rule key surfaces as an h3 rules error rather than a bare `rou3:`
+ * (or raw `RegExp`) throw.
+ */
+function addRuleRoute<T>(router: RouterContext<T>, method: string, path: string, data: T): void {
+  try {
+    addRoute(router, method, path, data);
+  } catch (error) {
+    throw new Error(`[h3] rules: invalid route pattern \`${path}\`: ${(error as Error).message}`, {
+      cause: error,
+    });
+  }
 }
