@@ -35,7 +35,7 @@ export const FIXTURE: Record<string, RouteRuleConfig> = {
   "/policy-nested/**": { cors: { origin: ["https://broad.example"] } },
   "/policy-nested/admin/**": { cors: { origin: ["https://admin.example"] } },
   "/policy-off/**": { cors: { origin: ["https://off.example"] } },
-  "/policy-off/*": { cors: false },
+  "/policy-off/:seg": { cors: false },
   // Reserved character in the pattern: matched through the decoded reading when
   // the request spells it `%40` (see encoding.test.ts).
   "/@handles/**": { cors: { origin: ["https://handles.example"] } },
@@ -46,16 +46,16 @@ export const FIXTURE: Record<string, RouteRuleConfig> = {
   "/params/:section/:id": { custom: { b: 2 } },
   // Modifier params: rou3 returns these layers out of containment order —
   // `/mod/opt/:page?` subsumes `/mod/opt` yet comes back after it, and
-  // `/mod/rep/*/:path*` subsumes `/mod/rep/*/**`. The narrower pattern's rule is
+  // `/mod/rep/:id/**` subsumes `/mod/rep/:path+`. The narrower pattern's rule is
   // the one a layer-order regression drops, so that is where it sits.
   "/mod/opt": { cors: { origin: ["https://opt.example"] } },
   "/mod/opt/:page?": { headers: { "x-mod-opt": "1" } },
-  "/mod/rep/*/**": { cors: { origin: ["https://rep.example"] } },
-  "/mod/rep/*/:path*": { headers: { "x-mod-rep": "1" } },
+  "/mod/rep/:path+": { cors: { origin: ["https://rep.example"] } },
+  "/mod/rep/:id/**": { headers: { "x-mod-rep": "1" } },
   // …and the shape that decides a reset: a broader modifier pattern resetting
   // the narrower pattern's rule.
-  "/mod/reset/*/**": { cors: { origin: ["https://reset.example"] } },
-  "/mod/reset/*/:path*": { cors: false },
+  "/mod/reset/:path+": { cors: { origin: ["https://reset.example"] } },
+  "/mod/reset/:id/**": { cors: false },
   "/**": { headers: { "x-catch": "all" } },
 };
 

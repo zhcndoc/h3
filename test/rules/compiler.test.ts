@@ -205,10 +205,10 @@ describe("generated code shape", () => {
     // that merged layers in `findAllRoutes` order would lose gates the runtime
     // matcher keeps. `0` is the default and stays implicit.
     const code = compileFindRouteRules({
-      "/mod/reset/*/**": { cors: { origin: ["https://admin.example"] } },
-      "/mod/reset/*/:path*": { cors: false },
+      "/mod/reset/:path+": { cors: { origin: ["https://admin.example"] } },
+      "/mod/reset/:id/**": { cors: false },
     });
-    expect(code).toContain("rank:1"); // `/mod/reset/*/**`, subsumed by the `:path*` one
+    expect(code).toContain("rank:1"); // `/mod/reset/:path+`, subsumed by the `:id/**` one
     expect([...code.matchAll(/rank:/g)]).toHaveLength(1);
     expect(compileFindRouteRules({ "/a/**": { headers: { a: "1" } } })).not.toContain("rank:");
   });
@@ -216,15 +216,15 @@ describe("generated code shape", () => {
   it("a compiled matcher with no override predicate still keeps a subsumed rule", () => {
     // The divergence this pins: `createMatcherFromFind`'s dependency-free default
     // predicate (`canOverrideRouteShape`) is not exact for modifier params — it
-    // cannot prove either direction between `/mod/reset/*/**` and the
-    // `/mod/reset/*/:path*` that actually subsumes it. Ordering matched layers
+    // cannot prove either direction between `/mod/reset/:path+` and the
+    // `/mod/reset/:id/**` that actually subsumes it. Ordering matched layers
     // must therefore never consult a predicate, or the compiled default falls
     // back on arrival order and fails open: the broader pattern's `cors: false`
     // lands last and deletes the narrower rule. `evaluateCompiled` builds
     // exactly that predicate-less matcher.
     const config: Record<string, RouteRuleConfig> = {
-      "/mod/reset/*/**": { cors: { origin: ["https://admin.example"] } },
-      "/mod/reset/*/:path*": { cors: false },
+      "/mod/reset/:path+": { cors: { origin: ["https://admin.example"] } },
+      "/mod/reset/:id/**": { cors: false },
     };
     const compiled = evaluateCompiled(config);
     const runtime = createRouteRulesMatcher(normalizeRouteRules(config));

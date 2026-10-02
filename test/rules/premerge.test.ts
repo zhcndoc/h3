@@ -103,13 +103,13 @@ describe("preMerge layer selection (findAllRoutes order is not containment order
   } satisfies Record<string, RouteRuleConfig>;
 
   const REPEAT = {
-    "/api/*/**": { cors: { origin: ["https://admin.example"] } },
-    "/api/*/:path*": { headers: { "x-a": "1" } },
+    "/api/:path+": { cors: { origin: ["https://admin.example"] } },
+    "/api/:id/**": { headers: { "x-a": "1" } },
   } satisfies Record<string, RouteRuleConfig>;
 
   const CASES: Array<[string, Record<string, RouteRuleConfig>, string]> = [
     ["optional param (`:page?`)", OPTIONAL, "/admin"],
-    ["repeat param (`:path*`)", REPEAT, "/api/v1/x"],
+    ["repeat param (`:path+`)", REPEAT, "/api/v1/x"],
   ];
 
   it.each(CASES)("rou3 returns the broader %s layer last", (_label, config, pathname) => {
@@ -265,7 +265,6 @@ describe("compareRoutes verdicts preMerge relies on", () => {
     expect(sub("/**", "/a/b/c")).toBe(true);
     expect(sub("/a/**", "/a/b/**")).toBe(true);
     expect(sub("/a/**", "/a/:x")).toBe(true);
-    expect(sub("/a/**", "/a/*")).toBe(true);
     expect(sub("/a/**", "/a")).toBe(true);
     expect(sub("/a/b/**", "/a/**")).toBe(false);
   });
@@ -276,8 +275,10 @@ describe("compareRoutes verdicts preMerge relies on", () => {
     expect(sub("/a/:x", "/b/:x")).toBe(false);
   });
 
-  it("optional star spans two depths", () => {
+  it("a trailing star is a catch-all", () => {
+    expect(compareRoutes("/a/**", "/a/*")).toBe("equal");
     expect(sub("/a/*", "/a/:x")).toBe(true);
+    expect(sub("/a/*", "/a/b/c")).toBe(true);
     expect(sub("/a/:x", "/a/*")).toBe(false); // `*` also matches `/a`
     expect(sub("/a/*", "/a")).toBe(true);
   });

@@ -10,14 +10,17 @@ export type RouteMatchResult = false | undefined | Record<string, string>;
 export type RouteMatcher = (pathname: string) => RouteMatchResult;
 
 // A route pattern whose every segment is a plain literal. rou3's group (`{}`),
-// escape (`\`), regex (`()`), param (`:`) and wildcard (`*`) syntax each key off
-// one of these characters, and an empty segment (`//`) makes rou3's trailing
-// slash handling non-obvious — so a pattern matching this is a plain string
-// comparison away from a verdict, and anything else goes to rou3 itself.
-const LITERAL_ROUTE_RE = /^(?:\/[^/:*(){}\\]+)*\/?$/;
+// escape (`\`), regex (`()`), param (`:`), optional (`?`) and wildcard (`*`)
+// syntax each key off one of these characters, and rou3 percent-encodes the
+// rest of the excluded set (controls, space, `"#<>^\``, non-ASCII) in literal
+// text — so a pattern matching this is spelled exactly as rou3 stores it. An
+// empty segment (`//`) makes rou3's trailing slash handling non-obvious too.
+// Such a pattern is a plain string comparison away from a verdict, and
+// anything else goes to rou3 itself.
+const LITERAL_ROUTE_RE = /^(?:\/[^/:*(){}\\?^\0- "#<>`\x7F-\uFFFF]+)*\/?$/;
 
 // The same, followed by a trailing catch-all: `/api/**`.
-const LITERAL_PREFIX_ROUTE_RE = /^((?:\/[^/:*(){}\\]+)*)\/\*\*\/?$/;
+const LITERAL_PREFIX_ROUTE_RE = /^((?:\/[^/:*(){}\\?^\0- "#<>`\x7F-\uFFFF]+)*)\/\*\*\/?$/;
 
 /**
  * Compile a rou3 route pattern into a matcher over `event.url.pathname`.
@@ -39,15 +42,21 @@ export function createRouteMatcher(route: string): RouteMatcher {
 
   const prefixMatch = LITERAL_PREFIX_ROUTE_RE.exec(route);
   if (prefixMatch) {
-    // `/api/**`: everything at or below the prefix, on a segment boundary.
+    // `/api/**`: everything at or below the prefix, on a segment boundary. A
+    // `**` that takes no segment binds nothing; otherwise it is keyed `0` (plus
+    // the deprecated `_` alias rou3 still sets).
     const base = prefixMatch[1];
     const prefix = `${base}/`;
-    return (pathname) =>
-      pathname.startsWith(prefix)
-        ? { _: trimTrailingSlash(pathname.slice(prefix.length)) }
-        : pathname === base
-          ? { _: "" }
-          : false;
+    return (pathname) => {
+      if (pathname === base || pathname === prefix) {
+        return undefined;
+      }
+      if (!pathname.startsWith(prefix)) {
+        return false;
+      }
+      const rest = trimTrailingSlash(pathname.slice(prefix.length));
+      return { 0: rest, _: rest };
+    };
   }
 
   if (LITERAL_ROUTE_RE.test(route)) {

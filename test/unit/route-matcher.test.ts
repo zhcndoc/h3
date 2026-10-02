@@ -39,6 +39,12 @@ const PATTERNS = [
   "/x.json",
   "/%40admin/**",
   "/a/**/b",
+  // rou3 percent-encodes these in literal text.
+  "/a^b",
+  "/a^b/**",
+  "/a b/**",
+  "/café",
+  "/a%5Eb",
 ];
 
 const PATHS = [
@@ -92,6 +98,12 @@ const PATHS = [
   "/%40admin/x",
   "/a/1/b",
   "/a/1/2/b",
+  "/a^b",
+  "/a%5Eb",
+  "/a%5Eb/x",
+  "/a%20b/x",
+  "/a b/x",
+  "/caf%C3%A9",
 ];
 
 describe("createRouteMatcher", () => {
@@ -114,9 +126,9 @@ describe("createRouteMatcher", () => {
 
   it("binds `**` params", () => {
     const match = createRouteMatcher("/api/**");
-    expect(match("/api")).toEqual({ _: "" });
-    expect(match("/api/")).toEqual({ _: "" });
-    expect(match("/api/x/y")).toEqual({ _: "x/y" });
+    expect(match("/api")).toBeUndefined();
+    expect(match("/api/")).toBeUndefined();
+    expect(match("/api/x/y")).toEqual({ 0: "x/y", _: "x/y" });
     expect(match("/apix")).toBe(false);
   });
 

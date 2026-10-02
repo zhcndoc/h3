@@ -100,6 +100,16 @@ describe("encoded reserved characters cannot dodge a rule", () => {
     },
   );
 
+  it("matches a regex constraint written with non-ASCII text end to end", async () => {
+    // rou3 encodes a pattern's literal text but not a regex constraint, so the
+    // rule keeps a raw `é` that only the raw decoded reading can match.
+    const app = new H3();
+    app.use(routeRules({ "/(café|tea)/**": RULE }));
+    app.get("/(café|tea)/**", () => "from the handler");
+    const res = await app.fetch(new Request("http://test/caf%C3%A9/x"));
+    expect(res.status).toBe(307);
+  });
+
   it("matches a `%25`-nested spelling end to end", async () => {
     // `%2520` survives canonicalization (`%25` is never decoded), and only
     // `decodedPath`'s fixpoint unwraps it to the space the pattern is written with.

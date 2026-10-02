@@ -9,6 +9,7 @@ import { ruleHandlers } from "./handlers/index.ts";
 import {
   canonicalPath,
   decodedPath,
+  encodedReading,
   mergedCanonicalPath,
   needsCanonicalPasses,
 } from "./internal/scope.ts";
@@ -216,10 +217,8 @@ const OPAQUE_SEGMENT_RE = /[()\\]/;
 // `:param` does not, making it partial rather than contained.
 const CONCRETE_SEGMENT_RE = /^[^:*(){}\\]+$/;
 
-// A param that can match *zero* segments (`:x?`, `:x*`). rou3 reads such a
-// pattern as broader than the `**` that appears to absorb it (`/a/*/:path*`
-// matches `/a/x`, which `/a/*/**` does not), so it must never be absorbed.
-const ZERO_MATCHABLE_SEGMENT_RE = /^:.*[?*]$/;
+// Group syntax anywhere in a pattern — see `canOverrideRouteShape`.
+const GROUP_RE = /[{}]/;
 
 /**
  * Conservatively test route containment without importing rou3. Ambiguous
@@ -230,6 +229,12 @@ export const canOverrideRouteShape: RouteOverridePredicate = (currentRoute, inco
   if (currentRoute === incomingRoute) {
     return true;
   }
+  // A group (`{b}?`) keeps its own `/` when empty, so even an identical group
+  // segment is not a reliable anchor: `/a/{b}?/:x?` matches `/a`, which
+  // `/a/{b}?/**` does not. Fail closed on any group.
+  if (GROUP_RE.test(currentRoute) || GROUP_RE.test(incomingRoute)) {
+    return false;
+  }
   const current = currentRoute.split("/");
   const incoming = incomingRoute.split("/");
   for (let i = 0; i < current.length; i++) {
@@ -237,14 +242,8 @@ export const canOverrideRouteShape: RouteOverridePredicate = (currentRoute, inco
     if (cur === "**") {
       // A trailing catch-all absorbs every remaining incoming segment — but
       // only when there is at least one to absorb (rou3 does not consistently
-      // treat `x/**` as containing `x` itself, so that pair fails closed), and
-      // only when none of them can match zero segments (which would make the
-      // incoming pattern the broader one).
-      return (
-        i === current.length - 1 &&
-        incoming.length > i &&
-        !incoming.slice(i).some((segment) => ZERO_MATCHABLE_SEGMENT_RE.test(segment))
-      );
+      // treat `x/**` as containing `x` itself, so that pair fails closed).
+      return i === current.length - 1 && incoming.length > i;
     }
     const inc = incoming[i];
     if (inc === undefined) {
@@ -253,8 +252,9 @@ export const canOverrideRouteShape: RouteOverridePredicate = (currentRoute, inco
     if (cur === inc) {
       continue;
     }
-    // A single-segment param contains any concrete segment; anything else
-    // (another param, an empty segment, a catch-all) may be broader.
+    // A param (or a `*`, which spans one segment or more) contains any concrete
+    // segment; anything else (another param, an empty segment, a catch-all)
+    // may be broader.
     if (
       (cur === "*" || (cur.startsWith(":") && !OPAQUE_SEGMENT_RE.test(cur))) &&
       CONCRETE_SEGMENT_RE.test(inc)
@@ -460,12 +460,22 @@ export function memoizeRouteRulesMatcher(
  * every extra lookup.
  */
 function alternateReadings(pathname: string): string[] | undefined {
+  // rou3 stores pattern literals percent-encoded but leaves regex constraints
+  // as written, so the decoded reading is looked up in both spellings:
+  // re-encoded for `/a b/**` (stored `/a%20b/**`), raw for `/(café|tea)/**`.
   const decoded = decodedPath(pathname);
-  if (decoded === pathname && !needsCanonicalPasses(pathname)) {
+  const encoded = encodedReading(decoded);
+  if (decoded === pathname && encoded === pathname && !needsCanonicalPasses(pathname)) {
     return;
   }
+  const spellings = [pathname];
+  for (const spelling of [encoded, decoded]) {
+    if (!spellings.includes(spelling)) {
+      spellings.push(spelling);
+    }
+  }
   const readings: string[] = [];
-  for (const spelling of decoded === pathname ? [pathname] : [pathname, decoded]) {
+  for (const spelling of spellings) {
     if (!needsCanonicalPasses(spelling)) {
       pushReading(readings, pathname, spelling);
       continue;

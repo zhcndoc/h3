@@ -384,10 +384,10 @@ describe("redirect rule", () => {
   });
 
   it("rejects a key with more than one multi-segment wildcard", () => {
-    // `:name*` / `:name+` count as a `**`, and rou3 allows only one per route.
-    for (const key of ["/x/:seg*/old/**", "/x/:seg+/old/**"]) {
+    // `*`, `:name*` and `:name+` count as a `**`, and rou3 allows only one per route.
+    for (const key of ["/x/*/old/**", "/x/:seg*/old/**", "/x/:seg+/old/**"]) {
       expect(() => createApp({ [key]: { redirect: "/new/**" } })).toThrow(
-        `rou3: a route can have only one \`**\`, \`:name+\` or \`:name*\` (${key})`,
+        `rou3: a route can have only one \`*\`, \`**\`, \`:name+\` or \`:name*\` (${key})`,
       );
     }
   });
@@ -397,7 +397,7 @@ describe("redirect rule", () => {
     // count is exact and the tail is forwarded as authored.
     const cases: [string, string, string][] = [
       ["/:lang/old/**", "/en/old/a/b", "/new/a/b"],
-      ["/x/*/old/**", "/x/y/old/a", "/new/a"],
+      [String.raw`/x/([^\x2f]*)/old/**`, "/x/y/old/a", "/new/a"],
       [String.raw`/x/:id(\d+)/old/**`, "/x/12/old/a", "/new/a"],
       // An *intra*-segment group leaves the segment count alone.
       ["/blog{-:title}?/old/**", "/blog-post/old/a", "/new/a"],
@@ -699,9 +699,9 @@ describe("encoded-separator hardening", () => {
 
   it("a single-wildcard rule is not bypassed by an encoded separator", async () => {
     // h3 routes on the raw path, so `/enc-single/a%2fb` is a single opaque
-    // segment there and matches the `/enc-single/*` rule — even though it
-    // canonicalizes to the two-segment `/enc-single/a/b`.
-    const app = createApp({ "/enc-single/*": { redirect: "/elsewhere" } });
+    // segment there and matches the `/enc-single/:id` rule — even though it
+    // canonicalizes to the two-segment `/enc-single/a/b`, which it does not.
+    const app = createApp({ "/enc-single/:id": { redirect: "/elsewhere" } });
     app.get("/enc-single/:id", () => "ok");
     const res = await app.fetch(new Request("http://test/enc-single/a%2fb"));
     expect(res.status).toBe(307);
@@ -750,7 +750,7 @@ describe("encoded-separator hardening", () => {
   });
 
   it("a single-wildcard headers rule still applies to an encoded separator", async () => {
-    const app = createApp({ "/single-headers/*": { headers: { "x-single": "single" } } });
+    const app = createApp({ "/single-headers/:id": { headers: { "x-single": "single" } } });
     app.get("/single-headers/:id", () => "ok");
     const res = await app.fetch(new Request("http://test/single-headers/a%2fb"));
     expect(res.status).toBe(200);

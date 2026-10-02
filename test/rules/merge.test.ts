@@ -27,12 +27,12 @@ describe("merge algorithm", () => {
   // pattern's, and its `false` reset deletes the narrower pattern's rule outright.
   // This is the default (no `preMerge`, no compiler) path.
   describe("matched layers are merged in containment order, not findAllRoutes order", () => {
-    // Two distinct upstream shapes: `/api/*/:path*` subsumes `/api/*/**` and comes
+    // Two distinct upstream shapes: `/api/:id/**` subsumes `/api/:path+` and comes
     // back last in BOTH registration orders (rou3 sorts it there), while
     // `/admin/:page?` subsumes `/admin` and gets no specificity sort at all (both
     // weigh 0 in `pushSorted`, so config order survives) — hence both orders below.
     const SHAPES: Array<[string, string, string, string]> = [
-      ["stable inversion", "/api/*/**", "/api/*/:path*", "/api/v1/x"],
+      ["stable inversion", "/api/:path+", "/api/:id/**", "/api/v1/x"],
       ["unsorted (config order)", "/admin", "/admin/:page?", "/admin"],
     ];
 
@@ -512,7 +512,7 @@ describe("dual-path union (Nitro #4396)", () => {
     const match = createRouteRulesMatcher(
       normalizeRouteRules({
         "/app/r/**": { restricted: { label: "strict" } },
-        "/app/r/*": { restricted: false },
+        "/app/r/:seg": { restricted: false },
       }),
       { handlers: { restricted } },
     );
@@ -564,10 +564,10 @@ describe("dual-path union (Nitro #4396)", () => {
   });
 
   it("a single-wildcard rule still applies to a raw path with an encoded separator", () => {
-    // Mirrors `/single-headers/*`: h3 serves the raw single-segment path, so
+    // Mirrors `/single-headers/:id`: h3 serves the raw single-segment path, so
     // rules matched there must not be dropped by canonicalization.
     const match = matcher({
-      "/single-headers/*": { headers: { "x-single": "single" } },
+      "/single-headers/:id": { headers: { "x-single": "single" } },
     });
     const { routeRules } = match("GET", "/single-headers/a%2fb");
     expect(routeRules.headers).toEqual({ "x-single": "single" });
@@ -627,17 +627,17 @@ describe("mergeMatchedRouteRules (pure)", () => {
     // Layer ordering must be decided by the build-time rank alone: the only
     // predicate a compiled matcher has by default is `canOverrideRouteShape`,
     // which is conservative but *not* exact for modifier params (it cannot see
-    // that `/api/*/:path*` subsumes the `/api/*/**` it appears to sit under, so
+    // that `/api/:id/**` subsumes the `/api/:path+` it appears to sit under, so
     // it decides neither direction), leaving a predicate-driven order to fall
     // back on arrival order — which fails open exactly here. No `canOverride`
     // is passed below.
     const narrow = {
-      data: [{ name: "cors", route: "/api/*/**", options: { origin: ["https://a"] }, rank: 1 }],
+      data: [{ name: "cors", route: "/api/:path+", options: { origin: ["https://a"] }, rank: 1 }],
     };
     const reset = {
-      data: [{ name: "cors", route: "/api/*/:path*", options: false, rank: 0 }],
+      data: [{ name: "cors", route: "/api/:id/**", options: false, rank: 0 }],
     };
-    // Either arrival order — rou3 hands the broader `:path*` layer over last.
+    // Either arrival order — rou3 hands the broader `:id/**` layer over last.
     for (const layers of [
       [narrow, reset],
       [reset, narrow],
@@ -646,10 +646,10 @@ describe("mergeMatchedRouteRules (pure)", () => {
     }
     // The legitimate direction is untouched: a *narrower* `false` still resets.
     const broad = {
-      data: [{ name: "cors", route: "/api/*/:path*", options: { origin: ["https://a"] }, rank: 0 }],
+      data: [{ name: "cors", route: "/api/:id/**", options: { origin: ["https://a"] }, rank: 0 }],
     };
     const narrowReset = {
-      data: [{ name: "cors", route: "/api/*/**", options: false, rank: 1 }],
+      data: [{ name: "cors", route: "/api/:path+", options: false, rank: 1 }],
     };
     expect(mergeMatchedRouteRules([narrowReset, broad]).cors).toBeUndefined();
   });

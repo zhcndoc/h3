@@ -281,8 +281,8 @@ describeMatrix("middleware route scope", (t, { it, expect }) => {
   // A leading empty segment is only reachable in web mode: the node test client
   // resolves `//admin/...` against its base URL as a protocol-relative URL.
   it.skipIf(t.target === "node")("guards a path with an empty leading segment", async () => {
-    t.app.use("/*/admin/**", () => "DENIED");
-    t.app.get("/*/admin/users", () => "ALLOWED");
+    t.app.use(String.raw`/([^\x2f]*)/admin/**`, () => "DENIED");
+    t.app.get(String.raw`/([^\x2f]*)/admin/users`, () => "ALLOWED");
 
     const res = await t.app.request(new Request("http://localhost//admin/users"));
     expect(await res.text()).toBe("DENIED");
@@ -295,6 +295,9 @@ describeMatrix("middleware route scope", (t, { it, expect }) => {
   const unencodedScopes = [
     { route: "/café/secret", guard: "/café/**", path: "/caf%C3%A9/secret" },
     { route: "/a b/secret", guard: "/a b/**", path: "/a%20b/secret" },
+    // h3 leaves `^` as written (a regex operator), but rou3 encodes it in literal text.
+    { route: "/a^b/secret", guard: "/a^b/**", path: "/a%5Eb/secret" },
+    { route: "/a^b", guard: "/a^b", path: "/a%5Eb" },
   ];
 
   for (const { route, guard, path } of unencodedScopes) {
@@ -308,7 +311,7 @@ describeMatrix("middleware route scope", (t, { it, expect }) => {
 
   it("exposes rou3 param names in middlewareParams", async () => {
     let params: Record<string, string> | undefined;
-    t.app.use("/mix/*/:id/**:rest", (event) => {
+    t.app.use("/mix/(\\w+)/:id/**:rest", (event) => {
       params = event.context.middlewareParams;
     });
     t.app.get("/**", () => "ok");
