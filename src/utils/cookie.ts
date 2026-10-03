@@ -192,7 +192,14 @@ export function setChunkedCookie(
   options?: CookieSerializeOptions & { chunkMaxLength?: number },
 ): void {
   const chunkMaxLength = options?.chunkMaxLength || CHUNKS_MAX_LENGTH;
-  const chunkCount = Math.ceil(value.length / chunkMaxLength);
+  const chunks = splitCookieValue(value, chunkMaxLength, options?.encode || encodeURIComponent);
+  if (!chunks) {
+    throw new HTTPError({
+      status: 500,
+      message: `Cannot set chunked cookie "${name}": a single character does not fit in chunkMaxLength (${chunkMaxLength}) once encoded.`,
+    });
+  }
+  const chunkCount = chunks.length;
 
   // Reject values that would need more chunks than the reader (`getChunkedCookie`)
   // supports. Beyond this the reader returns `undefined`, so the write would be
@@ -201,7 +208,7 @@ export function setChunkedCookie(
   if (chunkCount > MAX_CHUNKED_COOKIE_COUNT) {
     throw new HTTPError({
       status: 500,
-      message: `Cannot set chunked cookie "${name}": value needs ${chunkCount} chunks, exceeding the maximum of ${MAX_CHUNKED_COOKIE_COUNT}.`,
+      message: `Cannot set chunked cookie "${name}": value needs more than ${MAX_CHUNKED_COOKIE_COUNT} chunks.`,
     });
   }
 
@@ -228,10 +235,7 @@ export function setChunkedCookie(
   setCookie(event, name, mainCookieValue, options);
 
   for (let i = 1; i <= chunkCount; i++) {
-    const start = (i - 1) * chunkMaxLength;
-    const end = start + chunkMaxLength;
-    const chunkValue = value.slice(start, end);
-    setCookie(event, chunkCookieName(name, i), chunkValue, options);
+    setCookie(event, chunkCookieName(name, i), chunks[i - 1]!, options);
   }
 }
 
@@ -289,6 +293,59 @@ function getChunkedCookieCount(cookie: string | undefined): number {
     return Number.NaN;
   }
   return count;
+}
+
+/**
+ * Split `value` so that each chunk *as serialized* (after `encode`) fits in
+ * `maxLength`: percent-encoding can triple (or, for non-ASCII, multiply by
+ * up to nine) the stored size. Splits on code point boundaries, since a lone
+ * surrogate cannot be encoded, and measures whole candidate chunks so custom
+ * encoders whose output length is not per-character additive (e.g. base64)
+ * are sized correctly. Returns `undefined` when a single code point cannot fit.
+ * Stops once the chunk cap is exceeded.
+ */
+function splitCookieValue(
+  value: string,
+  maxLength: number,
+  encode: (value: string) => string,
+): string[] | undefined {
+  const chars = Array.from(value);
+  const slice = (start: number, end: number) => chars.slice(start, end).join("");
+  const fits = (start: number, end: number) => encode(slice(start, end)).length <= maxLength;
+  const chunks: string[] = [];
+  let start = 0;
+  while (start < chars.length) {
+    if (!fits(start, start + 1)) {
+      return undefined;
+    }
+    // Largest `end` whose chunk still fits: `lo` fits, `hi` does not (or is
+    // past the end). Gallop from `maxLength` code points, then bisect.
+    let lo = start + 1;
+    let hi = chars.length + 1;
+    let probe = Math.min(start + maxLength, chars.length);
+    while (probe > lo) {
+      if (!fits(start, probe)) {
+        hi = probe;
+        break;
+      }
+      lo = probe;
+      probe = Math.min(start + (probe - start) * 2, chars.length);
+    }
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >>> 1;
+      if (fits(start, mid)) {
+        lo = mid;
+      } else {
+        hi = mid;
+      }
+    }
+    chunks.push(slice(start, lo));
+    if (chunks.length > MAX_CHUNKED_COOKIE_COUNT) {
+      return chunks;
+    }
+    start = lo;
+  }
+  return chunks;
 }
 
 function chunkCookieName(name: string, chunkNumber: number): string {
