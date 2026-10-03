@@ -2,6 +2,60 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.0.1-rc.33
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.32...v2.0.1-rc.33)
+
+### 🚀 Enhancements
+
+- **rules:** Skip `redirect` when the request is already at the target ([#1559](https://github.com/h3js/h3/pull/1559))
+
+### 🩹 Fixes
+
+- **cookie:** Include partitioned in the distinct-cookie key ([#1553](https://github.com/h3js/h3/pull/1553))
+- **sse:** Preserve buffered events during overlapping flushes ([#1555](https://github.com/h3js/h3/pull/1555))
+- **static:** Set vary header when a single encoding is accepted ([#1556](https://github.com/h3js/h3/pull/1556))
+- **static:** Honor q-values and case in accept-encoding ([#1560](https://github.com/h3js/h3/pull/1560))
+- **mime:** Add .mjs and .cjs to COMMON_MIME_TYPES ([#1566](https://github.com/h3js/h3/pull/1566))
+- **rules:** Normalize rule keys like routes and tighten the shape guard ([7cbf21c](https://github.com/h3js/h3/commit/7cbf21c))
+- **rules:** Let a narrower pattern reinstate a rule reset on another reading ([3f1c9e5](https://github.com/h3js/h3/commit/3f1c9e5))
+- **rules:** Allow `headers: false` in RouteRuleConfig ([edcc329](https://github.com/h3js/h3/commit/edcc329))
+- **validate:** Preserve repeated query values in defineValidatedHandler ([#1562](https://github.com/h3js/h3/pull/1562))
+- **cookie:** Size cookie chunks by their encoded length ([#1565](https://github.com/h3js/h3/pull/1565))
+- **static:** Resolve the MIME type of a precompressed variant from the requested asset ([#1564](https://github.com/h3js/h3/pull/1564))
+- **mount:** Reject `//` after base ([1161eb7](https://github.com/h3js/h3/commit/1161eb7))
+- **session:** Keep loaded session data prototype-free ([46bc1a2](https://github.com/h3js/h3/commit/46bc1a2))
+
+### 💅 Refactors
+
+- Update rou3 to v0.10 ([3cfd749](https://github.com/h3js/h3/commit/3cfd749))
+
+### 📖 Documentation
+
+- Document raw query access via event.url.search ([#1551](https://github.com/h3js/h3/pull/1551))
+
+### 🌊 Types
+
+- **auth:** BasicAuth context fields are always set ([#1550](https://github.com/h3js/h3/pull/1550))
+
+### 🏡 Chore
+
+- Udate deps ([8f21c71](https://github.com/h3js/h3/commit/8f21c71))
+- Update rou3 to v1 ([6d59f61](https://github.com/h3js/h3/commit/6d59f61))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Breken <support@brekfuz.com>
+- 00200200 ([@00200200](https://github.com/00200200))
+- Okxint ([@okxint](https://github.com/okxint))
+- Pi0x <x@pi0.io>
+- Alexandre Kohler ([@kwy404](https://github.com/kwy404))
+- Maxim Gagiev <maximgagievv@gmail.com>
+- Kauê Leivingson ([@Kaue-TecsaGroup](https://github.com/Kaue-TecsaGroup))
+- Geonseok ([@hxperl](https://github.com/hxperl))
+- Oskar Lebuda ([@OskarLebuda](https://github.com/OskarLebuda))
+
 ## v2.0.1-rc.32
 
 [compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.30...v2.0.1-rc.32)
