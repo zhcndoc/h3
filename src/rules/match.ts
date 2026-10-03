@@ -277,9 +277,11 @@ export const canOverrideRouteShape: RouteOverridePredicate = (currentRoute, inco
       // A trailing catch-all absorbs every remaining incoming segment — but
       // only when there is at least one to absorb (rou3 does not consistently
       // treat `x/**` as containing `x` itself, so that pair fails closed).
-      // Nor right after an interior empty segment, where rou3 matches neither
-      // `//` itself nor an empty optional param (`//**` vs `//:y?`).
-      return i === current.length - 1 && incoming.length > i && (i === 1 || current[i - 1] !== "");
+      // Nor after any interior empty segment, where rou3 matches neither `//`
+      // itself nor an empty optional param (`//**` vs `//:y?`), and a later
+      // optional param can vanish too (`/a//:q?/**` vs `/a//:q?/:s*`, which
+      // matches `/a`).
+      return i === current.length - 1 && incoming.length > i && !current.slice(1, i).includes("");
     }
     const inc = incoming[i];
     if (inc === undefined) {

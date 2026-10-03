@@ -1,10 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
+import { H3 } from "../../src/index.ts";
+import { compileFindRouteRules } from "../../src/rules/compiler.ts";
 import {
   canOverrideRouteShape,
   createMatcherFromFind,
   createRouteRulesMatcher,
 } from "../../src/rules/match.ts";
+import type { FindRouteRules, RouteRulesMatcher } from "../../src/rules/match.ts";
 import { mergeMatchedRouteRules } from "../../src/rules/merge.ts";
+import { routeRules } from "../../src/rules/middleware.ts";
 import type { RouteRuleLayer } from "../../src/rules/merge.ts";
 import { normalizeRouteRules } from "../../src/rules/normalize.ts";
 import type { RouteRuleConfig, RuleHandler } from "../../src/rules/types.ts";
@@ -524,11 +528,10 @@ describe("dual-path union (Nitro #4396)", () => {
     expect(match("GET", "/app/r/a%2fb").routeRules.restricted).toMatchObject({ label: "strict" });
   });
 
-  // Pin: passes on HEAD too — guards HEAD's union-only reset semantics.
-  it("an alternate reading never reinstates a permission, even from a narrower pattern", () => {
-    // Resets are only *subtracted* within the served path (and its hex
-    // recasings, resolved with it); a decoded or canonical reading can add a
-    // rule but never bring back one the served path reset.
+  it("an alternate reading reinstates a permission only from a pattern inside the reset", () => {
+    // A reset is route-aware: `/private/x` is contained in the `/private/**`
+    // that reset `cors`, so it wins over the reset exactly as it would on one
+    // path. The broader `/**` (the RESURRECTS test above) never does.
     const layer = (route: string, options: unknown): RouteRuleLayer => ({
       data: [{ name: "cors", route, options }],
     });
@@ -537,7 +540,14 @@ describe("dual-path union (Nitro #4396)", () => {
       [[layer("/private/x", { origin: "x" })]],
       canOverrideRouteShape,
     );
-    expect(merged.cors).toBeUndefined();
+    expect(merged.cors?.options).toEqual({ origin: "x" });
+    // Without a predicate there is no way to prove containment: stays reset.
+    expect(
+      mergeMatchedRouteRules(
+        [layer("/**", { origin: "*" }), layer("/private/**", false)],
+        [[layer("/private/x", { origin: "x" })]],
+      ).cors,
+    ).toBeUndefined();
   });
 
   it("a reset re-resolved later in the same reading is not treated as a reset", () => {
@@ -605,6 +615,162 @@ describe("dual-path union (Nitro #4396)", () => {
     expect(findRouteRules).toHaveBeenCalledTimes(3);
     expect(findRouteRules).toHaveBeenNthCalledWith(2, "GET", "/enc%2Foded");
     expect(findRouteRules).toHaveBeenNthCalledWith(3, "GET", "/enc/oded");
+  });
+});
+
+// A reset is route-aware across readings: a later reading may bring a reset
+// permission back only from a pattern equal to, or more specific than, every
+// pattern that reset it — the same thing a narrower pattern does on one path.
+describe("resets across readings are route-aware", () => {
+  const CSP = { "content-security-policy": "default-src 'self'" };
+  const DOCS: Record<string, RouteRuleConfig> = {
+    // `headers` is not typed to accept `false`, but resets it like any rule.
+    "/docs/**": { headers: false as never },
+    "/docs/x/**": { headers: CSP },
+  };
+  const PUBLIC_CORS = { origin: ["https://public.example"] };
+  const API: Record<string, RouteRuleConfig> = {
+    "/api/**": { cors: false },
+    "/api/public/:f": { cors: PUBLIC_CORS },
+  };
+
+  // Every matcher flavor: runtime (exact guard), preMerge, and compiled with the
+  // default dependency-free shape guard, plain and pre-merged.
+  const compiled = (config: Record<string, RouteRuleConfig>, preMerge: boolean) => {
+    const params = Object.keys(FIXTURE_HANDLERS).map((name) => `__ruleHandlers__$${name}`);
+    const code = compileFindRouteRules(config, { preMerge });
+    // eslint-disable-next-line no-new-func
+    const find = new Function(...params, `return (${code});`)(
+      ...Object.values(FIXTURE_HANDLERS),
+    ) as FindRouteRules;
+    return createMatcherFromFind(find);
+  };
+  const flavors = (
+    config: Record<string, RouteRuleConfig>,
+    preMerge = true,
+  ): [string, RouteRulesMatcher][] => {
+    const rules = normalizeRouteRules(config);
+    const plain: [string, RouteRulesMatcher][] = [
+      ["runtime", createRouteRulesMatcher(rules, { handlers: FIXTURE_HANDLERS })],
+      ["compiled", compiled(config, false)],
+    ];
+    return preMerge
+      ? [
+          ...plain,
+          ["preMerge", createRouteRulesMatcher(rules, { handlers: FIXTURE_HANDLERS, preMerge })],
+          ["compiled preMerge", compiled(config, true)],
+        ]
+      : plain;
+  };
+
+  it("an encoded separator cannot strip a header a narrower pattern sets", () => {
+    for (const [flavor, match] of flavors(DOCS)) {
+      // `/docs/x%2fy` is one opaque segment, so the served path matches only the
+      // `/docs/**` reset; its canonical reading `/docs/x/y` matches `/docs/x/**`.
+      expect(match("GET", "/docs/x%2fy").routeRules.headers, flavor).toEqual(CSP);
+      expect(match("GET", "/docs/x%2Fy").routeRules.headers, flavor).toEqual(CSP);
+      // Served nothing at all — the canonical reading's own narrower re-add wins.
+      expect(match("GET", "/docs%2fx%2fy").routeRules.headers, flavor).toEqual(CSP);
+      // Controls: the uncrafted path, and readings that stay outside `/docs/x/**`.
+      expect(match("GET", "/docs/x/y").routeRules.headers, flavor).toEqual(CSP);
+      expect(match("GET", "/docs/y").routeRules.headers, flavor).toBeUndefined();
+      expect(match("GET", "/docs/a%2fb").routeRules.headers, flavor).toBeUndefined();
+    }
+  });
+
+  it("through the app: the CSP header survives a `%2f` request", async () => {
+    const app = new H3();
+    app.use(routeRules(DOCS));
+    app.all("/**", () => "ok");
+    for (const path of ["/docs/x/y", "/docs/x%2fy", "/docs/x%2Fy"]) {
+      const res = await app.fetch(new Request("http://localhost" + path));
+      expect(await res.text(), path).toBe("ok");
+      expect(res.headers.get("content-security-policy"), path).toBe("default-src 'self'");
+    }
+    const res = await app.fetch(new Request("http://localhost/docs/a%2fb"));
+    expect(res.headers.get("content-security-policy")).toBeNull();
+  });
+
+  it("a narrower permission is reinstated on the reading a decoding downstream sees", () => {
+    // Deliberate: `/api/public%2fsecret` dispatches as one segment, but its
+    // canonical reading is `/api/public/secret`, which `/api/public/:f` grants.
+    for (const [flavor, match] of flavors(API)) {
+      expect(match("GET", "/api/public%2fsecret").routeRules.cors, flavor).toEqual(PUBLIC_CORS);
+      expect(match("GET", "/api/public/secret").routeRules.cors, flavor).toEqual(PUBLIC_CORS);
+      // Controls: readings `/api/public/:f` does not contain stay reset.
+      expect(match("GET", "/api/private%2fsecret").routeRules.cors, flavor).toBeUndefined();
+      expect(match("GET", "/api/public%2fa%2fb").routeRules.cors, flavor).toBeUndefined();
+      expect(match("GET", "/api/x").routeRules.cors, flavor).toBeUndefined();
+    }
+  });
+
+  // Pin: passes on HEAD too.
+  it("a broader or partially-overlapping pattern never reinstates a narrower reset", () => {
+    const config: Record<string, RouteRuleConfig> = {
+      "/**": { cors: { origin: "*" } },
+      "/app/:page": { cors: false },
+      "/:x/a/**": { cors: { origin: ["https://partial.example"] } },
+    };
+    // Partially overlapping keys: preMerge rejects this rule set.
+    for (const [flavor, match] of flavors(config, false)) {
+      // Canonical `/app/a/b` matches `/**` and `/:x/a/**`, neither of which is
+      // contained in the `/app/:page` that reset `cors` on the served path.
+      expect(match("GET", "/app/a%2fb").routeRules.cors, flavor).toBeUndefined();
+    }
+  });
+
+  // Pin: passes on HEAD too.
+  it("a re-add that won a reading only by layer order does not reinstate a reset", () => {
+    // `/:x/b/**` and `/a/(b|c)/**` partially overlap, so on `/a/b/c` the
+    // permission wins by layer order alone, not by being inside the reset.
+    // The served `/a%2fb/c` matches neither, and its canonical reading is not
+    // allowed to bring the permission back on that basis.
+    const config: Record<string, RouteRuleConfig> = {
+      "/:x/b/**": { cors: false },
+      "/a/(b|c)/**": { cors: { origin: ["https://partial.example"] } },
+    };
+    for (const [flavor, match] of flavors(config, false)) {
+      expect(match("GET", "/a/b/c").routeRules.cors, flavor).toBeDefined();
+      expect(match("GET", "/a%2fb/c").routeRules.cors, flavor).toBeUndefined();
+    }
+  });
+
+  // Pin: passes on HEAD too (HEAD never reinstates).
+  it("a compiled matcher's shape guard never reinstates what runtime keeps reset", () => {
+    // `/a//:q?/:s*` matches `/a` and `/a/`, which `/a//:q?/**` does not (rou3
+    // matches no empty segment there), so the shape guard must not call it
+    // contained — or the compiled matcher alone brings `cors` back.
+    const config: Record<string, RouteRuleConfig> = {
+      "/a//:q?/**": { cors: false },
+      "/a//:q?/:s*": { cors: { origin: "*" } },
+    };
+    const [[, runtime], ...rest] = flavors(config, false);
+    for (const path of ["/a//", "/a///", "/a/%2fb/c"]) {
+      expect(runtime("GET", path).routeRules.cors, path).toBeUndefined();
+      for (const [flavor, match] of rest) {
+        expect(match("GET", path).routeRules.cors, `${flavor} ${path}`).toBeUndefined();
+      }
+    }
+  });
+
+  it("does not depend on reading order: every reading's resets are known first", () => {
+    const layer = (route: string, options: unknown): RouteRuleLayer => ({
+      data: [{ name: "cors", route, options }],
+    });
+    const served = [layer("/a/**", false)];
+    // One reading re-adds under `/a/b/**`; another resets narrower, at `/a/b/c`.
+    const adds = [layer("/a/b/**", { origin: "x" })];
+    const resets = [layer("/a/b/**", { origin: "x" }), layer("/a/b/c", false)];
+    for (const readings of [
+      [adds, resets],
+      [resets, adds],
+    ]) {
+      expect(mergeMatchedRouteRules(served, readings, canOverrideRouteShape).cors).toBeUndefined();
+    }
+    // Control: without the narrower reset the re-add is inside `/a/**` and wins.
+    expect(mergeMatchedRouteRules(served, [adds], canOverrideRouteShape).cors?.options).toEqual({
+      origin: "x",
+    });
   });
 });
 

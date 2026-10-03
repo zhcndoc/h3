@@ -1,4 +1,4 @@
-import { compareRoutes } from "rou3";
+import { addRoute, compareRoutes, createRouter, findRoute } from "rou3";
 import { describe, expect, it } from "vitest";
 import { H3 } from "../../src/index.ts";
 import { compileFindRouteRules } from "../../src/rules/compiler.ts";
@@ -149,6 +149,9 @@ describe("createMatcherFromFind override guard", () => {
       "//x",
       "/a//**",
       "/a//x",
+      // …nor an empty segment further back: `/a//:q?/:s*` matches `/a`.
+      "/a//:q?/**",
+      "/a//:q?/:s*",
     ];
     const unsound: string[] = [];
     for (const current of routes) {
@@ -164,6 +167,45 @@ describe("createMatcherFromFind override guard", () => {
       }
     }
     expect(unsound).toEqual([]);
+    // Pin: on HEAD's routes this check passes too; the `/a//:q?` pair above is
+    // what it caught once the guard started deciding reinstatement.
+    // The guard also decides whether an alternate reading may *reinstate* a
+    // reset permission (`current` is then the pattern that reset it), which is
+    // sound only if every path `incoming` matches is one `current` matches too —
+    // so the reset applies on that reading as well. Checked against rou3's own
+    // matching, not just `compareRoutes`.
+    const SEGMENTS = ["", "a", "b", "c", "x", "1", "12", "admin", "panel", "params", "files"];
+    const LEAVES = ["report", "a.b", "x.png", "pre-x", "x-post", "file-1", "b-x", "x-b", "lang"];
+    const probes = new Set(["/"]);
+    for (const s1 of [...SEGMENTS, ...LEAVES]) {
+      probes.add(`/${s1}`);
+      for (const s2 of [...SEGMENTS, ...LEAVES]) {
+        probes.add(`/${s1}/${s2}`);
+        for (const s3 of ["", "a", "b", "c", "x", ...LEAVES]) {
+          probes.add(`/${s1}/${s2}/${s3}`);
+          probes.add(`/${s1}/${s2}/${s3}/b`);
+        }
+      }
+    }
+    const matched = new Map<string, Set<string>>();
+    for (const route of routes) {
+      const router = createRouter<true>();
+      addRoute(router, "", route, true);
+      matched.set(route, new Set([...probes].filter((p) => findRoute(router, "GET", p))));
+    }
+    const escapes: string[] = [];
+    for (const current of routes) {
+      for (const incoming of routes) {
+        if (!canOverrideRouteShape(current, incoming)) {
+          continue;
+        }
+        const outside = [...matched.get(incoming)!].find((p) => !matched.get(current)!.has(p));
+        if (outside !== undefined) {
+          escapes.push(`${current} -> ${incoming} (${outside})`);
+        }
+      }
+    }
+    expect(escapes).toEqual([]);
     // …and it is not vacuously strict: the containment cases that matter resolve.
     expect(canOverrideRouteShape("/**", "/admin/**")).toBe(true);
     expect(canOverrideRouteShape("/admin/**", "/admin/panel/**")).toBe(true);
