@@ -35,9 +35,8 @@ export function normalizeRouteRules(
       );
     }
     const { method, path: rawPath } = parseRouteKey(key);
-    // A pattern's literal characters are matched against a decoded reading of
-    // the request path, so an escaped one (`/%40admin/**`) has to decode here or
-    // it would cover only the encoded spelling (see `decodeRoutePattern`).
+    // The same pattern h3 registers for this string as a route, so the rule
+    // matches every request that route serves (see `decodeRoutePattern`).
     const path = decodeRoutePattern(rawPath);
     const canonicalKey = formatRouteKey(method, path);
 

@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { createMatcherFromFind, createRouteRulesMatcher } from "../../src/rules/match.ts";
+import {
+  canOverrideRouteShape,
+  createMatcherFromFind,
+  createRouteRulesMatcher,
+} from "../../src/rules/match.ts";
 import { mergeMatchedRouteRules } from "../../src/rules/merge.ts";
 import type { RouteRuleLayer } from "../../src/rules/merge.ts";
 import { normalizeRouteRules } from "../../src/rules/normalize.ts";
@@ -520,6 +524,22 @@ describe("dual-path union (Nitro #4396)", () => {
     expect(match("GET", "/app/r/a%2fb").routeRules.restricted).toMatchObject({ label: "strict" });
   });
 
+  // Pin: passes on HEAD too — guards HEAD's union-only reset semantics.
+  it("an alternate reading never reinstates a permission, even from a narrower pattern", () => {
+    // Resets are only *subtracted* within the served path (and its hex
+    // recasings, resolved with it); a decoded or canonical reading can add a
+    // rule but never bring back one the served path reset.
+    const layer = (route: string, options: unknown): RouteRuleLayer => ({
+      data: [{ name: "cors", route, options }],
+    });
+    const merged = mergeMatchedRouteRules(
+      [layer("/**", { origin: "*" }), layer("/private/**", false)],
+      [[layer("/private/x", { origin: "x" })]],
+      canOverrideRouteShape,
+    );
+    expect(merged.cors).toBeUndefined();
+  });
+
   it("a reset re-resolved later in the same reading is not treated as a reset", () => {
     // `false` then a narrower re-enable: the rule is present, so the union takes
     // the ordinary override path and the reset must not linger as a veto.
@@ -580,8 +600,11 @@ describe("dual-path union (Nitro #4396)", () => {
     expect(findRouteRules).toHaveBeenCalledTimes(1);
     findRouteRules.mockClear();
     match("GET", "/enc%2foded");
-    expect(findRouteRules).toHaveBeenCalledTimes(2);
-    expect(findRouteRules).toHaveBeenNthCalledWith(2, "GET", "/enc/oded");
+    // The served path recased to the other hex case (a key keeps the case it
+    // is written in), then the canonical reading.
+    expect(findRouteRules).toHaveBeenCalledTimes(3);
+    expect(findRouteRules).toHaveBeenNthCalledWith(2, "GET", "/enc%2Foded");
+    expect(findRouteRules).toHaveBeenNthCalledWith(3, "GET", "/enc/oded");
   });
 });
 

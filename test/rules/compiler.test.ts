@@ -74,6 +74,33 @@ describe("compiler parity", () => {
     expect(snapshotResult(compiledResult)).toEqual(snapshotResult(runtimeResult));
   });
 
+  // Pin: passes on HEAD too — guards runtime/compiled parity for recased readings.
+  it("compiled === runtime for a lowercase-escape constraint key, across spellings", () => {
+    // Recased readings come from the matcher, not the lookup, so the compiled
+    // lookup gets them too.
+    const config = {
+      "/(caf%c3%a9|tea)/**": { headers: { "x-a": "1" } },
+      "/b/caf%C3%A9/**": { headers: { "x-b": "1" } },
+    };
+    const runtime = createRouteRulesMatcher(normalizeRouteRules(config), {
+      handlers: FIXTURE_HANDLERS,
+    });
+    const compiled = evaluateCompiled(config);
+    for (const path of [
+      "/caf%c3%a9/x",
+      "/caf%C3%A9/x",
+      "/caf%25C3%25A9/x",
+      "/b/caf%c3%a9/x",
+      "/b/caf%C3%A9/x",
+      "/tea/x",
+    ]) {
+      expect(runtime("GET", path).routeRules.headers, path).toBeDefined();
+      expect(snapshotResult(compiled("GET", path)), path).toEqual(
+        snapshotResult(runtime("GET", path)),
+      );
+    }
+  });
+
   it("compiled method-scoped overrides match runtime (agnostic fallback)", () => {
     // Regression (rou3#190): compiled matchAll used to push BOTH the
     // method-scoped and the agnostic registration of a pattern, letting the
@@ -187,6 +214,41 @@ describe("compiler parity", () => {
       expect(snapshotResult(compiledBase("GET", path))).toEqual(
         snapshotResult(runtimeBase("GET", path)),
       );
+    }
+  });
+});
+
+describe("plain apps compile exactly as before", () => {
+  // A rule set with no escapes in its keys, base or requests must not be
+  // touched by the encoding handling: the codegen is byte-identical to the
+  // stored output of the previous release, and `params` survive `preMerge`
+  // under a `baseURL`.
+  const config: Record<string, RouteRuleConfig> = {
+    "/users/:id": { headers: { "x-user": "1" } },
+    "/users/**": { cors: { origin: "*" } },
+    "/admin/**": { redirect: "/login" },
+  };
+
+  // Pin: passes on HEAD too — guards byte-identical output for plain apps.
+  it("emits byte-identical code for a plain baseURL + preMerge rule set", () => {
+    expect(compileFindRouteRules(config, { baseURL: "/api", preMerge: true })).toBe(
+      '/* @__PURE__ */ (() => { const $0={route:"/users/:id",rank:1,rules:[{name:"cors",route:"/users/**",handler:__ruleHandlers__$cors,options:{"origin":"*"}},{name:"headers",route:"/users/:id",handler:__ruleHandlers__$headers,options:{"x-user":"1"}}]},$1={route:"/users/**",rank:0,rules:[{name:"cors",route:"/users/**",handler:__ruleHandlers__$cors,options:{"origin":"*"}}]},$2={route:"/admin/**",rank:0,rules:[{name:"redirect",route:"/admin/**",handler:__ruleHandlers__$redirect,options:{"to":"/login","status":307,"base":"/api/admin"}}]}; return (m,p)=>{let r=[];if(p.charCodeAt(p.length-1)===47)p=p.slice(0,-1);let s=p.split("/");let l=s.length;let _w;if(l>1){if(s[1]==="api"){if(l>2){if(s[2]==="users"){if(l===4){if(s[3])r.push({data:$0,params:{"id":s[3],}});}r.push(l>3?{data:$1,params:{"0":_w=p.slice(11),_:_w,}}:{data:$1,params:{}});}else if(s[2]==="admin"){r.push(l>3?{data:$2,params:{"0":_w=p.slice(11),_:_w,}}:{data:$2,params:{}});}}}}return r.reverse();}})()',
+    );
+  });
+
+  // Pin: passes on HEAD too — regression guard (params were lost in an earlier iteration).
+  it("keeps params under preMerge + baseURL (runtime and compiled)", () => {
+    const rules = { "/users/:id": { headers: { "x-user": "1" } } };
+    const runtime = createRouteRulesMatcher(normalizeRouteRules(rules), {
+      handlers: FIXTURE_HANDLERS,
+      baseURL: "/api",
+      preMerge: true,
+    });
+    const compiled = createMatcherFromFind(
+      evaluateFind(compileFindRouteRules(rules, { baseURL: "/api", preMerge: true })),
+    );
+    for (const match of [runtime, compiled]) {
+      expect(match("GET", "/api/users/42").matchedRules.headers?.params).toEqual({ id: "42" });
     }
   });
 });

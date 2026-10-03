@@ -129,6 +129,26 @@ describe("createMatcherFromFind override guard", () => {
       "/a/{b}?/**",
       "/a/{b}?/:x?",
       "/a/{b}?/{b}?",
+      // Partial-segment params: `:name.:ext` is *not* a whole-segment param, so
+      // it never contains an arbitrary concrete segment like `report`.
+      "/files/:name.:ext",
+      "/files/:n.png",
+      "/files/report",
+      "/files/a.b",
+      "/a/pre-:x",
+      "/a/:x-post",
+      "/a/pre-x",
+      "/a/x-post",
+      "/a/:x.:y/**",
+      // Empty segments next to a catch-all: `//**` does not contain `//`, nor an
+      // optional / zero-or-more param after the empty segment.
+      "//**",
+      "//",
+      "//:y?",
+      "//:w*",
+      "//x",
+      "/a//**",
+      "/a//x",
     ];
     const unsound: string[] = [];
     for (const current of routes) {

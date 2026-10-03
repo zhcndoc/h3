@@ -155,7 +155,11 @@ export type RouteRuleName = Extract<keyof ResolvedRouteRules, string>;
 export interface MatchedRouteRule<K extends RouteRuleName = RouteRuleName> {
   /** The merged rule options (never `false` — a reset deletes the rule instead). */
   options: NonNullable<ResolvedRouteRules[K]>;
-  /** Most specific pattern that contributed to the rule. */
+  /**
+   * Most specific pattern that contributed to the rule, as normalized: spelled
+   * the way h3 stores the equivalent route, so `"/café/**"` reads
+   * `/caf%C3%A9/**` and `"/a b/**"` reads `/a%20b/**`.
+   */
   route: string;
   /** rou3 params from every matched pattern that contributed to this rule. */
   params?: Record<string, string>;
