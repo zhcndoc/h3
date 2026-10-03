@@ -87,7 +87,11 @@ export interface RouteRuleConfig {
    */
   cache?: CacheRuleOptions | false;
 
-  headers?: Record<string, string>;
+  /**
+   * Response headers to set. `false` disables headers inherited from a
+   * less-specific pattern.
+   */
+  headers?: Record<string, string> | false;
 
   /**
    * Server-side redirect; a plain string defaults to status `307`. When the rule

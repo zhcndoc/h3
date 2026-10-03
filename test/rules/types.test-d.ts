@@ -77,6 +77,13 @@ const known: RouteRuleConfig = {
 };
 void known;
 
+// `headers: false` resets inherited headers; the merged option type stays a record.
+const headersReset: RouteRuleConfig = { headers: false };
+void headersReset;
+expectTypeOf<RouteRuleConfig["headers"]>().toEqualTypeOf<
+  Record<string, string> | false | undefined
+>();
+
 // --- Compiler input: authored config or already-normalized rules ---
 
 // The compiler normalizes internally, so both shapes are valid input without a

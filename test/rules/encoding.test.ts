@@ -52,9 +52,6 @@ vi.mock("../../src/utils/internal/path.ts", async (importOriginal) => {
 // end to end as a 307 the route handler never got to answer.
 const RULE = { redirect: "/elsewhere" } as const;
 
-// `headers` does not type a `false` reset, but the matcher honours one.
-const HEADERS_RESET = false as unknown as Record<string, string>;
-
 // A restricting gate's options, for the gating tests below.
 const RL = { restricted: { label: "gate" } };
 
@@ -539,7 +536,7 @@ describe("decodeRoutePattern", () => {
     "a broad reset does not drop the narrower rule `%s` (all modes, and the app)",
     async (key, path) => {
       const config: Record<string, RouteRuleConfig> = {
-        "/**": { headers: HEADERS_RESET },
+        "/**": { headers: false },
         [key]: { headers: { "x-csp": "on" } },
       };
       for (const [mode, match] of Object.entries(allModes(config))) {
@@ -605,7 +602,7 @@ describe("decodeRoutePattern", () => {
     // including the compiled matcher's dependency-free shape guard.
     const modes = allModes({
       "/**": { headers: { "access-control-allow-origin": "*" } },
-      "/files/:name.:ext": { headers: HEADERS_RESET },
+      "/files/:name.:ext": { headers: false },
       "/files/report": { headers: { "x-public": "1" } },
     });
     for (const [mode, match] of Object.entries(modes)) {
@@ -771,7 +768,7 @@ describe("hex-case spellings are union-only alternate readings", () => {
     const match = createRouteRulesMatcher(
       normalizeRouteRules({
         "/**": { headers: { "x-a": "1" } },
-        "/d/:n([a-z0-9%]+)/**": { headers: HEADERS_RESET },
+        "/d/:n([a-z0-9%]+)/**": { headers: false },
         "/d/:n([A-Z0-9%]+)/**": { headers: { "x-b": "1" } },
       }),
     );

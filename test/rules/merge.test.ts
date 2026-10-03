@@ -624,8 +624,7 @@ describe("dual-path union (Nitro #4396)", () => {
 describe("resets across readings are route-aware", () => {
   const CSP = { "content-security-policy": "default-src 'self'" };
   const DOCS: Record<string, RouteRuleConfig> = {
-    // `headers` is not typed to accept `false`, but resets it like any rule.
-    "/docs/**": { headers: false as never },
+    "/docs/**": { headers: false },
     "/docs/x/**": { headers: CSP },
   };
   const PUBLIC_CORS = { origin: ["https://public.example"] };
