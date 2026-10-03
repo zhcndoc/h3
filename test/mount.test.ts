@@ -1,4 +1,5 @@
 import { H3 } from "../src/h3.ts";
+import { withBase } from "../src/utils/base.ts";
 import { HTTPError } from "../src/error.ts";
 import { describeMatrix } from "./_setup.ts";
 
@@ -55,11 +56,13 @@ describeMatrix("mount", (t, { it, expect, describe }) => {
       expect(await t.fetch("/test/123").then((r) => r.text())).toBe("/123");
     });
 
-    it("collapses leading slashes after stripping base", async () => {
-      t.app.mount("/api", (req) => new Response(new URL(req.url).pathname));
-      // A protocol-relative pathname must not survive base stripping, otherwise a
-      // downstream redirect to it becomes a `//host` open redirect.
-      expect(await t.fetch("/api//evil.com").then((r) => r.text())).toBe("/evil.com");
+    it("rejects an empty segment after base", async () => {
+      const seen: string[] = [];
+      t.app.mount("/api", (req) => (seen.push(new URL(req.url).pathname), new Response("reached")));
+      // Neither `/evil.com` (merged past `use()` guards) nor a protocol-relative
+      // `//evil.com` (a downstream open redirect) is a safe stripped form.
+      expect((await t.fetch("/api//evil.com")).status).toBe(404);
+      expect(seen).toEqual([]);
     });
   });
 
@@ -101,21 +104,69 @@ describeMatrix("mount", (t, { it, expect, describe }) => {
       expect(await interceptRes.text()).toBe("intercepted");
     });
 
-    it("collapses leading slashes for child middleware after stripping base", async () => {
-      let seenPathname = "";
+    it("rejects an empty segment after base for child middleware and routes", async () => {
+      const seen: string[] = [];
       const subApp = new H3();
       subApp.use((event) => {
-        seenPathname = event.url.pathname;
+        seen.push(event.url.pathname);
         return event.url.pathname;
       });
-      subApp.get("/**", () => "unused");
+      subApp.get("/**", () => "unprotected");
 
       t.app.mount("/api", subApp);
 
       const res = await t.fetch("/api//evil.com");
-      // Child middleware must not see a protocol-relative pathname.
-      expect(seenPathname).toBe("/evil.com");
-      expect(await res.text()).toBe("/evil.com");
+      // Rejected rather than skipped: skipping the child middleware would let
+      // the mounted `/api/**` route serve the request without it.
+      expect(res.status).toBe(404);
+      expect(seen).toEqual([]);
+    });
+  });
+
+  describe("empty segment after base", () => {
+    // `use()` scopes match the raw path, so a guard at `/api/admin/**` does not
+    // cover `/api//admin/secret`. The mounted app must not receive that request
+    // as `/admin/secret`, or the empty segment that dodged the guard is merged
+    // away and the guarded path is reached.
+    const deny = (event: { req: Request }, next: () => unknown) =>
+      event.req.headers.get("authorization") === "Bearer good"
+        ? next()
+        : new Response("unauthorized", { status: 401 });
+
+    for (const path of ["/api//admin/secret", "/api///admin/secret"]) {
+      it(`mount(fetch) does not bypass a guard below the base (${path})`, async () => {
+        t.app.use("/api/admin/**", deny);
+        t.app.mount("/api", (req) => new Response(`secret ${new URL(req.url).pathname}`));
+        expect((await t.fetch("/api/admin/secret")).status).toBe(401);
+        const res = await t.fetch(path);
+        expect(res.status).toBe(404);
+        expect(await res.text()).not.toContain("secret /admin/secret");
+      });
+
+      it(`mount(H3) middleware does not bypass a guard below the base (${path})`, async () => {
+        const subApp = new H3().use((event) => `secret ${event.url.pathname}`);
+        t.app.use("/api/admin/**", deny);
+        t.app.mount("/api", subApp);
+        expect((await t.fetch("/api/admin/secret")).status).toBe(401);
+        const res = await t.fetch(path);
+        expect(res.status).toBe(404);
+        expect(await res.text()).not.toContain("secret /admin/secret");
+      });
+
+      it(`withBase does not bypass a guard below the base (${path})`, async () => {
+        const api = new H3().get("/admin/secret", (event) => `secret ${event.url.pathname}`);
+        t.app.use("/api/admin/**", deny);
+        t.app.use("/api/**", withBase("/api", api.handler));
+        expect((await t.fetch("/api/admin/secret")).status).toBe(401);
+        const res = await t.fetch(path);
+        expect(res.status).toBe(404);
+        expect(await res.text()).not.toContain("secret /admin/secret");
+      });
+    }
+
+    it("still mounts interior empty segments verbatim", async () => {
+      t.app.mount("/api", (req) => new Response(new URL(req.url).pathname));
+      expect(await t.fetch("/api/admin//secret").then((r) => r.text())).toBe("/admin//secret");
     });
   });
 

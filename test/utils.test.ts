@@ -204,11 +204,15 @@ describeMatrix("utils", (t, { it, describe, expect }) => {
 
       expect(await result.text()).toBe("/api/test");
     });
-    it("collapses leading slashes after stripping base", async () => {
-      t.app.use(withBase("/api", (event) => Promise.resolve(event.path)));
+    it("rejects an empty segment after base", async () => {
+      // Neither `/evil.com` (merged past `use()` guards) nor a protocol-relative
+      // `//evil.com` is a safe stripped form, so the handler is never reached.
+      const seen: string[] = [];
+      t.app.use(withBase("/api", (event) => (seen.push(event.url.pathname), "reached")));
       const result = await t.fetch("/api//evil.com");
 
-      expect(await result.text()).toBe("/evil.com");
+      expect(result.status).toBe(404);
+      expect(seen).toEqual([]);
     });
   });
 

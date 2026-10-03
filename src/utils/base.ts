@@ -5,7 +5,8 @@ import type {
   ResolvedRequest,
 } from "../types/handler.ts";
 import { toEventHandler } from "../handler.ts";
-import { withoutBase, withoutTrailingSlash } from "./internal/path.ts";
+import { HTTPError } from "../error.ts";
+import { hasEmptySegmentAfterBase, withoutBase, withoutTrailingSlash } from "./internal/path.ts";
 
 /**
  * Returns a new event handler that removes the base url of the event before calling the original handler.
@@ -32,6 +33,9 @@ export function withBase<_RequestT extends EventHandlerRequest = EventHandlerReq
 
   return async function _handlerWithBase(event) {
     const _pathBefore = event.url.pathname || "/";
+    if (base !== "/" && hasEmptySegmentAfterBase(_pathBefore, base)) {
+      throw new HTTPError({ status: 404 });
+    }
     event.url.pathname = withoutBase(event.url.pathname || "/", base);
     try {
       return await handler(event);

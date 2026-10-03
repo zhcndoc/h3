@@ -58,6 +58,18 @@ export function stripBase(pathname: string, base: string): string {
   return pathname;
 }
 
+/**
+ * Whether an empty segment directly follows `base` in `pathname` (`/api//x`).
+ *
+ * Such a path has no safe mounted form: {@link stripBase} merges the run into
+ * `/x`, a path that `use()` guards scoped below the base never matched (they
+ * see the raw `/api//x`), while keeping it hands the mounted app a
+ * protocol-relative `//x`. Mount sites reject it with a 404 instead.
+ */
+export function hasEmptySegmentAfterBase(pathname: string, base: string): boolean {
+  return pathname.startsWith(base + "//");
+}
+
 /** Like {@link stripBase}, but tolerates a trailing slash in `base`. */
 export function withoutBase(input: string = "", base: string = ""): string {
   if (!base || base === "/") {
