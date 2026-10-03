@@ -122,7 +122,7 @@ export async function useSession<T extends SessionData = SessionData>(
     },
     get data() {
       const context = getEventContext<H3EventContext>(event);
-      return (context.sessions?.[sessionName]?.data || {}) as T;
+      return (context.sessions?.[sessionName]?.data || new EmptyObject()) as T;
     },
     update: async (update: SessionUpdate<T>) => {
       await updateSession<T>(event, config, update);
@@ -198,6 +198,11 @@ export async function getSession<T extends SessionData = SessionData>(
         const legacySeal = unsealed && (unsealed as any)[kLegacySeal];
         if (legacySeal) {
           delete (unsealed as any)[kLegacySeal];
+        }
+        // `JSON.parse` yields plain objects; keep live data prototype-free so a
+        // `__proto__` key in a later `updateSession` cannot swap its prototype.
+        if (unsealed?.data) {
+          unsealed.data = Object.assign(new EmptyObject(), unsealed.data);
         }
         Object.assign(session, unsealed);
         delete context.sessions![sessionName][kGetSession];

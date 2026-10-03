@@ -670,6 +670,25 @@ describeMatrix("session", (t, { it, expect }) => {
     expect(body.session.data.token).toBe(token);
   });
 
+  it("keeps loaded session data prototype-free", async () => {
+    t.app.post("/proto", async (event) => {
+      const session = await getSession(event, sessionConfig);
+      await updateSession(event, sessionConfig, (await readBody(event)) as any);
+      return {
+        isAdmin: (session.data as any).isAdmin ?? null,
+        inheritsObject: Object.prototype.isPrototypeOf(session.data),
+      };
+    });
+    const seed = await t.fetch("/");
+    const seedCookie = seed.headers.getSetCookie()[0].split(";")[0];
+    const res = await t.fetch("/proto", {
+      method: "POST",
+      headers: { Cookie: seedCookie },
+      body: '{"__proto__":{"isAdmin":true}}',
+    });
+    expect(await res.json()).toEqual({ isAdmin: null, inheritsObject: false });
+  });
+
   describe("lazy creation", () => {
     const lazyConfig: SessionConfig = {
       name: "h3-lazy",
