@@ -365,6 +365,67 @@ describeMatrix("app", (t, { it, expect }) => {
       const res = await t.fetch("/");
       expect(res.status).toBe(201);
       expect(await res.text()).toBe("item1,item2");
+      // The response is already committed, but the error hook still reports the error
+      expect(t.hooks.onError).toHaveBeenCalledTimes(1);
+      expect(t.errors[0].unhandled).toBe(true);
+      expect(t.errors[0].message).toBe("Test Error");
+      t.errors = [];
+      spy.mockRestore();
+    },
+  );
+
+  it.skipIf(t.target !== "node")(
+    "fromNodeHandler + piping (with Error) waits for an async error hook",
+    async () => {
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const calls: string[] = [];
+      t.hooks.onError.mockImplementationOnce(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        calls.push("onError");
+      });
+      t.hooks.onResponse.mockImplementation(() => {
+        calls.push("onResponse");
+      });
+      t.app.all(
+        "/*",
+        fromNodeHandler((req, res) => {
+          const iterator = (async function* () {
+            yield "item1";
+            throw new Error("Test Error");
+          })();
+          NodeStreamReadable.from(iterator).pipe(res);
+        }),
+      );
+      const res = await t.fetch("/");
+      expect(await res.text()).toBe("item1");
+      expect(calls).toEqual(["onError", "onResponse"]);
+      spy.mockRestore();
+    },
+  );
+
+  it.skipIf(t.target !== "node")(
+    "fromNodeHandler + piping (with Error) does not log a failing error hook when silent",
+    async () => {
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const hookError = new Error("Hook Error");
+      t.app.config.silent = true;
+      t.hooks.onError.mockImplementationOnce(() => {
+        throw hookError;
+      });
+      t.app.all(
+        "/*",
+        fromNodeHandler((req, res) => {
+          const iterator = (async function* () {
+            yield "item1";
+            throw new Error("Test Error");
+          })();
+          NodeStreamReadable.from(iterator).pipe(res);
+        }),
+      );
+      const res = await t.fetch("/");
+      expect(await res.text()).toBe("item1");
+      expect(t.hooks.onError).toHaveBeenCalledTimes(1);
+      expect(spy).not.toHaveBeenCalledWith(hookError);
       spy.mockRestore();
     },
   );
