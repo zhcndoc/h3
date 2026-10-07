@@ -1,16 +1,37 @@
 import type { H3Route, H3RouteMeta, HTTPMethod } from "../types/h3.ts";
-import type { EventHandler, Middleware } from "../types/handler.ts";
+import type { EventHandler, EventHandlerRequest, Middleware } from "../types/handler.ts";
 import type { H3 } from "../types/h3.ts";
 import type { H3Plugin } from "../plugin.ts";
 import type { StandardSchemaV1 } from "./internal/standard-schema.ts";
+import type { OnValidateError } from "./internal/validate.ts";
 import { addRoute, createRouter, removeRoute as _removeRoute } from "rou3";
-import { defineValidatedHandler } from "../handler.ts";
+import { defineValidatedHandler, type ValidatedRequest } from "../handler.ts";
 import { normalizeRoute } from "./internal/path.ts";
+
+/**
+ * Request type of a route handler: validated when any schema is given, the
+ * default request type otherwise (so a bare `RouteDefinition` stays untyped).
+ */
+type RouteRequest<
+  RequestBody extends StandardSchemaV1,
+  RequestHeaders extends StandardSchemaV1,
+  RequestQuery extends StandardSchemaV1,
+> = [StandardSchemaV1, StandardSchemaV1, StandardSchemaV1] extends [
+  RequestBody,
+  RequestHeaders,
+  RequestQuery,
+]
+  ? EventHandlerRequest
+  : ValidatedRequest<RequestBody, RequestHeaders, RequestQuery>;
 
 /**
  * Route definition options
  */
-export interface RouteDefinition {
+export interface RouteDefinition<
+  RequestBody extends StandardSchemaV1 = StandardSchemaV1,
+  RequestHeaders extends StandardSchemaV1 = StandardSchemaV1,
+  RequestQuery extends StandardSchemaV1 = StandardSchemaV1,
+> {
   /**
    * HTTP method for the route, e.g. 'GET', 'POST', etc.
    */
@@ -24,7 +45,7 @@ export interface RouteDefinition {
   /**
    * Handler function for the route.
    */
-  handler: EventHandler;
+  handler: EventHandler<RouteRequest<RequestBody, RequestHeaders, RequestQuery>>;
 
   /**
    * Optional middleware to run before the handler.
@@ -36,12 +57,14 @@ export interface RouteDefinition {
    */
   meta?: H3RouteMeta;
 
-  // Validation schemas
-  // TODO: Support generics for better typing `handler` input
+  /**
+   * Validation schemas for the request body, headers and query.
+   */
   validate?: {
-    body?: StandardSchemaV1;
-    headers?: StandardSchemaV1;
-    query?: StandardSchemaV1;
+    body?: RequestBody;
+    headers?: RequestHeaders;
+    query?: RequestQuery;
+    onError?: OnValidateError;
   };
 }
 
@@ -66,7 +89,11 @@ export interface RouteDefinition {
  * app.register(userRoute);
  * ```
  */
-export function defineRoute(def: RouteDefinition): H3Plugin {
+export function defineRoute<
+  RequestBody extends StandardSchemaV1 = StandardSchemaV1,
+  RequestHeaders extends StandardSchemaV1 = StandardSchemaV1,
+  RequestQuery extends StandardSchemaV1 = StandardSchemaV1,
+>(def: RouteDefinition<RequestBody, RequestHeaders, RequestQuery>): H3Plugin {
   const handler = defineValidatedHandler(def) as any;
   return (h3: H3) => {
     h3.on(def.method, def.route, handler);

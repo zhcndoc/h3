@@ -58,7 +58,7 @@ type QueryValues<T> = {
   [K in keyof T]: Extract<T[K], string | string[]>;
 };
 
-type ValidatedRequest<
+export type ValidatedRequest<
   RequestBody extends StandardSchemaV1,
   RequestHeaders extends StandardSchemaV1,
   RequestQuery extends StandardSchemaV1,
