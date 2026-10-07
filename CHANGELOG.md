@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.0.2
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1...v2.0.2)
+
+### 🩹 Fixes
+
+- **node:** Call `onError` for stream errors in Node.js handlers ([#1571](https://github.com/h3js/h3/pull/1571))
+- **response:** Use matching reason phrases in redirect and noContent ([#1570](https://github.com/h3js/h3/pull/1570))
+- **middleware:** Pass through handled responses in `onError` ([#1574](https://github.com/h3js/h3/pull/1574))
+
+### 📖 Documentation
+
+- Add v2 blog article ([9adeeee](https://github.com/h3js/h3/commit/9adeeee))
+
+### 🌊 Types
+
+- **session:** Remove `@ts-nocheck` from iron-crypto ([#1572](https://github.com/h3js/h3/pull/1572))
+- **route:** Infer `defineRoute` handler input from validation schemas ([ec527f0](https://github.com/h3js/h3/commit/ec527f0))
+
+### 🏡 Chore
+
+- **session:** Retarget legacy seal fallback removal to v3 ([#1573](https://github.com/h3js/h3/pull/1573))
+- **session:** Mark `legacySealFallback` as deprecated ([44dbfb8](https://github.com/h3js/h3/commit/44dbfb8))
+- Update deps ([ac79e5f](https://github.com/h3js/h3/commit/ac79e5f))
+- Update release script ([07d7d2c](https://github.com/h3js/h3/commit/07d7d2c))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Pi0x <x@pi0.io>
+- Bao Nguyen ([@giaBaoJS](https://github.com/giaBaoJS))
+- Kaan Çelebi ([@kaanisthatyou](https://github.com/kaanisthatyou))
+- Daniel Shafer ([@dannyshafer](https://github.com/dannyshafer))
+
 ## v2.0.1-rc.33
 
 [compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.32...v2.0.1-rc.33)
