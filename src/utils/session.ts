@@ -90,6 +90,7 @@ export interface SessionConfig {
    * Set to `false` to reject sessions sealed with the legacy default of 1
    * PBKDF2 iteration instead of unsealing and resealing them.
    *
+   * @deprecated The legacy seal fallback (and this option) will be removed in v3.
    */
   legacySealFallback?: boolean;
   crypto?: Crypto;
