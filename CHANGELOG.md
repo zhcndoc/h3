@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.0.4
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.3...v2.0.4)
+
+### 📦 Build
+
+- Remove bundled docs and open h3.dev from `h3 docs` ([#1602](https://github.com/h3js/h3/pull/1602))
+
+### 🏡 Chore
+
+- Update srvx ([1a1f488](https://github.com/h3js/h3/commit/1a1f488))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Pi0x <x@pi0.io>
+
 ## v2.0.3
 
 [compare changes](https://github.com/h3js/h3/compare/v2.0.2...v2.0.3)
