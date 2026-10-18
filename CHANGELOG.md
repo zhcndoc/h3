@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.0.5
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.4...v2.0.5)
+
+### 🩹 Fixes
+
+- **cli:** Harden `h3 docs` page handling ([7150b0e](https://github.com/h3js/h3/commit/7150b0e))
+
+### ❤️ Contributors
+
+- Pooya Parsa <pooya@pi0.io>
+
 ## v2.0.4
 
 [compare changes](https://github.com/h3js/h3/compare/v2.0.3...v2.0.4)
