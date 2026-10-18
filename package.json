@@ -55,7 +55,7 @@
   },
   "dependencies": {
     "rou3": "^1.0.0",
-    "srvx": "^1.0.5"
+    "srvx": "^1.0.6"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^21.0.3",
