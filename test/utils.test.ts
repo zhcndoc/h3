@@ -105,6 +105,35 @@ describeMatrix("utils", (t, { it, describe, expect }) => {
       expect(result.headers.get("content-type")).toBe("text/html; charset=utf-8");
     });
 
+    for (const [status, statusText] of [
+      [301, "Moved Permanently"],
+      [302, "Found"],
+      [303, "See Other"],
+      [307, "Temporary Redirect"],
+      [308, "Permanent Redirect"],
+      [300, ""],
+    ] as const) {
+      it(`uses the reason phrase of status ${status}`, async () => {
+        t.app.use(() => redirect("/target", status));
+        const result = await t.fetch("/");
+        expect(result.status).toBe(status);
+        expect(result.statusText).toBe(statusText);
+      });
+    }
+
+    it("keeps an explicit statusText", async () => {
+      t.app.use(() => redirect("/target", 307, "Moved Temporarily"));
+      const result = await t.fetch("/");
+      expect(result.statusText).toBe("Moved Temporarily");
+    });
+
+    it("keeps an explicit empty statusText", async () => {
+      t.app.use(() => redirect("/target", 307, ""));
+      const result = await t.fetch("/");
+      expect(result.status).toBe(307);
+      expect(result.statusText).toBe("");
+    });
+
     it("escapes special characters in HTML body", async () => {
       const malicious = 'https://example.com/"><script>alert(1)</script>&foo=bar';
       t.app.use(() => redirect(malicious));
@@ -204,11 +233,15 @@ describeMatrix("utils", (t, { it, describe, expect }) => {
 
       expect(await result.text()).toBe("/api/test");
     });
-    it("collapses leading slashes after stripping base", async () => {
-      t.app.use(withBase("/api", (event) => Promise.resolve(event.path)));
+    it("rejects an empty segment after base", async () => {
+      // Neither `/evil.com` (merged past `use()` guards) nor a protocol-relative
+      // `//evil.com` is a safe stripped form, so the handler is never reached.
+      const seen: string[] = [];
+      t.app.use(withBase("/api", (event) => (seen.push(event.url.pathname), "reached")));
       const result = await t.fetch("/api//evil.com");
 
-      expect(await result.text()).toBe("/evil.com");
+      expect(result.status).toBe(404);
+      expect(seen).toEqual([]);
     });
   });
 
@@ -599,7 +632,7 @@ describeMatrix("utils", (t, { it, describe, expect }) => {
       const res = await t.fetch("/");
 
       if (t.target !== "web") {
-        expect(await res.text()).toMatch(/^0\.0\.0\.0|::1$/);
+        expect(await res.text()).toMatch(/^(?:0\.0\.0\.0|127\.0\.0\.1|::1|::ffff:127\.0\.0\.1)$/);
       }
     });
   });

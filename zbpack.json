@@ -1,6 +1,6 @@
 {
   "app_dir": "/",
   "build_command": "cd docs && NITRO_PRESET=node-server pnpm run build",
-  "output_dir": "docs/.output/public",
-  "install_command": "cd docs && pnpm install"
+  "install_command": "npm install -g pnpm@11.22.0 && cd docs && pnpm install",
+  "start_command": "NITRO_HOST=0.0.0.0 node docs/.output/server/index.mjs"
 }

@@ -380,16 +380,17 @@ describe("security: canonicalization covers directly built events", () => {
 describeMatrix(
   "security: a guard cannot be bypassed by an escape serveStatic decodes",
   (ctx, { it, expect }) => {
-    for (const [guarded, encoded] of [
+    for (const [guarded, encoded, pattern = decodeURI(guarded!)] of [
       ["/a!b", "/a%21b"],
       ["/a'b", "/a%27b"],
-      ["/a*b", "/a%2Ab"],
+      // `*` is a catch-all in a pattern, so a literal one is escaped.
+      ["/a*b", "/a%2Ab", String.raw`/a\*b`],
       ["/a[0]", "/a%5B0%5D"],
       ["/a|b", "/a%7Cb"],
       ["/%61dmin", "/%61dmin"],
     ]) {
       it(`blocks ${encoded} behind a ${guarded}/** guard`, async () => {
-        ctx.app.use(`${decodeURI(guarded!)}/**`, () => new Response("blocked", { status: 403 }));
+        ctx.app.use(`${pattern}/**`, () => new Response("blocked", { status: 403 }));
         ctx.app.all("/**", (event) =>
           serveStatic(event, {
             getMeta: (id) =>

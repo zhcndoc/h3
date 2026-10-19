@@ -235,19 +235,20 @@ describeMatrix("middleware", (t, { it, expect }) => {
 // Regression: `use(route, ...)` used to compile its own regex for the route
 // filter while the router matched with rou3, and the two disagreed — so a
 // request could reach a handler with the guard registered for it skipped.
-// A `:param` regex was `[^/]+`, rejecting the empty segment rou3's trie accepts
-// (`/admin/7//` reached `/admin/:id` unguarded), and the `/**` regex made the
+// A `:param` regex was `[^/]+`, rejecting the empty segment rou3's trie accepted
+// (`/admin//` reached `/admin/:id` with `id: ""`), and the `/**` regex made the
 // separator optional (`/admin/**` also fired on `/adminx`). Both matchers are
 // now rou3, so the scope of a `use()` is the match-set of the same pattern.
 describeMatrix("middleware route scope", (t, { it, expect }) => {
   // Every path here is routed by its own pattern, so its guard must fire.
   const scopes = [
-    { route: "/admin/:id", paths: ["/admin/7", "/admin/7/", "/admin/7//"] },
+    // `:id` needs a value, so `/admin//` is not routed; `*` accepts an empty one.
+    { route: "/admin/:id", paths: ["/admin/7", "/admin/7/"] },
     { route: "/admin/**", paths: ["/admin", "/admin/", "/admin//", "/admin/x", "/admin/x/y"] },
     // A named `**` needs at least one segment, so `/files` itself is not routed.
     { route: "/files/**:rest", paths: ["/files/a", "/files/a/b", "/files/a/b/"] },
-    { route: "/a/*", paths: ["/a", "/a/", "/a/x", "/a/x/"] },
-    { route: "/api", paths: ["/api", "/api/", "/api//"] },
+    { route: "/a/*", paths: ["/a", "/a/", "/a//", "/a/x", "/a/x/"] },
+    { route: "/api", paths: ["/api", "/api/"] },
   ];
 
   for (const { route, paths } of scopes) {
@@ -280,8 +281,8 @@ describeMatrix("middleware route scope", (t, { it, expect }) => {
   // A leading empty segment is only reachable in web mode: the node test client
   // resolves `//admin/...` against its base URL as a protocol-relative URL.
   it.skipIf(t.target === "node")("guards a path with an empty leading segment", async () => {
-    t.app.use("/:tenant/admin/**", () => "DENIED");
-    t.app.get("/:tenant/admin/users", () => "ALLOWED");
+    t.app.use(String.raw`/([^\x2f]*)/admin/**`, () => "DENIED");
+    t.app.get(String.raw`/([^\x2f]*)/admin/users`, () => "ALLOWED");
 
     const res = await t.app.request(new Request("http://localhost//admin/users"));
     expect(await res.text()).toBe("DENIED");
@@ -294,6 +295,9 @@ describeMatrix("middleware route scope", (t, { it, expect }) => {
   const unencodedScopes = [
     { route: "/café/secret", guard: "/café/**", path: "/caf%C3%A9/secret" },
     { route: "/a b/secret", guard: "/a b/**", path: "/a%20b/secret" },
+    // h3 leaves `^` as written (a regex operator), but rou3 encodes it in literal text.
+    { route: "/a^b/secret", guard: "/a^b/**", path: "/a%5Eb/secret" },
+    { route: "/a^b", guard: "/a^b", path: "/a%5Eb" },
   ];
 
   for (const { route, guard, path } of unencodedScopes) {
@@ -307,7 +311,7 @@ describeMatrix("middleware route scope", (t, { it, expect }) => {
 
   it("exposes rou3 param names in middlewareParams", async () => {
     let params: Record<string, string> | undefined;
-    t.app.use("/mix/*/:id/**:rest", (event) => {
+    t.app.use("/mix/(\\w+)/:id/**:rest", (event) => {
       params = event.context.middlewareParams;
     });
     t.app.get("/**", () => "ok");

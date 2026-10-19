@@ -2,6 +2,163 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.0.5
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.4...v2.0.5)
+
+### 🩹 Fixes
+
+- **cli:** Harden `h3 docs` page handling ([7150b0e](https://github.com/h3js/h3/commit/7150b0e))
+
+### ❤️ Contributors
+
+- Pooya Parsa <pooya@pi0.io>
+
+## v2.0.4
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.3...v2.0.4)
+
+### 📦 Build
+
+- Remove bundled docs and open h3.dev from `h3 docs` ([#1602](https://github.com/h3js/h3/pull/1602))
+
+### 🏡 Chore
+
+- Update srvx ([1a1f488](https://github.com/h3js/h3/commit/1a1f488))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Pi0x <x@pi0.io>
+
+## v2.0.3
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.2...v2.0.3)
+
+### 🩹 Fixes
+
+- **body:** Match form content type case-insensitively in `readBody` ([#1601](https://github.com/h3js/h3/pull/1601))
+- **static:** Serve `.wasm` as `application/wasm` ([#1581](https://github.com/h3js/h3/pull/1581))
+- **static:** Match file extensions case-insensitively ([#1580](https://github.com/h3js/h3/pull/1580))
+- **sse:** Preserve empty event ids ([#1590](https://github.com/h3js/h3/pull/1590))
+- **query:** Decode valid escapes next to a malformed one ([#1582](https://github.com/h3js/h3/pull/1582))
+- **response:** Omit HEAD body for default errors ([#1595](https://github.com/h3js/h3/pull/1595))
+- **tracing:** Mount nested apps passed to `use()` ([#1576](https://github.com/h3js/h3/pull/1576))
+- **cors:** Make stateful origin regex checks repeatable ([#1589](https://github.com/h3js/h3/pull/1589))
+
+### 📖 Documentation
+
+- Fix code example ([#1587](https://github.com/h3js/h3/pull/1587))
+- Fix broken section anchors ([#1577](https://github.com/h3js/h3/pull/1577))
+
+### 🏡 Chore
+
+- Apply automated updates ([7b5090e](https://github.com/h3js/h3/commit/7b5090e))
+- Update deps ([d37911d](https://github.com/h3js/h3/commit/d37911d))
+
+### ✅ Tests
+
+- Accept exact loopback addresses in fingerprint checks ([#1588](https://github.com/h3js/h3/pull/1588))
+
+### ❤️ Contributors
+
+- Huanyi Xie ([@xiehuanyi](https://github.com/xiehuanyi))
+- Pooya Parsa <pooya@pi0.io>
+- Rabari Mihir ([@Mihir-Rabari](https://github.com/Mihir-Rabari))
+- Liu Jie ([@maxazure](https://github.com/maxazure))
+- Harshit Prakash ([@harshit-d3v](https://github.com/harshit-d3v))
+- Satvik Mishra
+- Otowa1
+- Paul Nguyen
+
+## v2.0.2
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1...v2.0.2)
+
+### 🩹 Fixes
+
+- **node:** Call `onError` for stream errors in Node.js handlers ([#1571](https://github.com/h3js/h3/pull/1571))
+- **response:** Use matching reason phrases in redirect and noContent ([#1570](https://github.com/h3js/h3/pull/1570))
+- **middleware:** Pass through handled responses in `onError` ([#1574](https://github.com/h3js/h3/pull/1574))
+
+### 📖 Documentation
+
+- Add v2 blog article ([9adeeee](https://github.com/h3js/h3/commit/9adeeee))
+
+### 🌊 Types
+
+- **session:** Remove `@ts-nocheck` from iron-crypto ([#1572](https://github.com/h3js/h3/pull/1572))
+- **route:** Infer `defineRoute` handler input from validation schemas ([ec527f0](https://github.com/h3js/h3/commit/ec527f0))
+
+### 🏡 Chore
+
+- **session:** Retarget legacy seal fallback removal to v3 ([#1573](https://github.com/h3js/h3/pull/1573))
+- **session:** Mark `legacySealFallback` as deprecated ([44dbfb8](https://github.com/h3js/h3/commit/44dbfb8))
+- Update deps ([ac79e5f](https://github.com/h3js/h3/commit/ac79e5f))
+- Update release script ([07d7d2c](https://github.com/h3js/h3/commit/07d7d2c))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Pi0x <x@pi0.io>
+- Bao Nguyen ([@giaBaoJS](https://github.com/giaBaoJS))
+- Kaan Çelebi ([@kaanisthatyou](https://github.com/kaanisthatyou))
+- Daniel Shafer ([@dannyshafer](https://github.com/dannyshafer))
+
+## v2.0.1-rc.33
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.32...v2.0.1-rc.33)
+
+### 🚀 Enhancements
+
+- **rules:** Skip `redirect` when the request is already at the target ([#1559](https://github.com/h3js/h3/pull/1559))
+
+### 🩹 Fixes
+
+- **cookie:** Include partitioned in the distinct-cookie key ([#1553](https://github.com/h3js/h3/pull/1553))
+- **sse:** Preserve buffered events during overlapping flushes ([#1555](https://github.com/h3js/h3/pull/1555))
+- **static:** Set vary header when a single encoding is accepted ([#1556](https://github.com/h3js/h3/pull/1556))
+- **static:** Honor q-values and case in accept-encoding ([#1560](https://github.com/h3js/h3/pull/1560))
+- **mime:** Add .mjs and .cjs to COMMON_MIME_TYPES ([#1566](https://github.com/h3js/h3/pull/1566))
+- **rules:** Normalize rule keys like routes and tighten the shape guard ([7cbf21c](https://github.com/h3js/h3/commit/7cbf21c))
+- **rules:** Let a narrower pattern reinstate a rule reset on another reading ([3f1c9e5](https://github.com/h3js/h3/commit/3f1c9e5))
+- **rules:** Allow `headers: false` in RouteRuleConfig ([edcc329](https://github.com/h3js/h3/commit/edcc329))
+- **validate:** Preserve repeated query values in defineValidatedHandler ([#1562](https://github.com/h3js/h3/pull/1562))
+- **cookie:** Size cookie chunks by their encoded length ([#1565](https://github.com/h3js/h3/pull/1565))
+- **static:** Resolve the MIME type of a precompressed variant from the requested asset ([#1564](https://github.com/h3js/h3/pull/1564))
+- **mount:** Reject `//` after base ([1161eb7](https://github.com/h3js/h3/commit/1161eb7))
+- **session:** Keep loaded session data prototype-free ([46bc1a2](https://github.com/h3js/h3/commit/46bc1a2))
+
+### 💅 Refactors
+
+- Update rou3 to v0.10 ([3cfd749](https://github.com/h3js/h3/commit/3cfd749))
+
+### 📖 Documentation
+
+- Document raw query access via event.url.search ([#1551](https://github.com/h3js/h3/pull/1551))
+
+### 🌊 Types
+
+- **auth:** BasicAuth context fields are always set ([#1550](https://github.com/h3js/h3/pull/1550))
+
+### 🏡 Chore
+
+- Udate deps ([8f21c71](https://github.com/h3js/h3/commit/8f21c71))
+- Update rou3 to v1 ([6d59f61](https://github.com/h3js/h3/commit/6d59f61))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Breken <support@brekfuz.com>
+- 00200200 ([@00200200](https://github.com/00200200))
+- Okxint ([@okxint](https://github.com/okxint))
+- Pi0x <x@pi0.io>
+- Alexandre Kohler ([@kwy404](https://github.com/kwy404))
+- Maxim Gagiev <maximgagievv@gmail.com>
+- Kauê Leivingson ([@Kaue-TecsaGroup](https://github.com/Kaue-TecsaGroup))
+- Geonseok ([@hxperl](https://github.com/hxperl))
+- Oskar Lebuda ([@OskarLebuda](https://github.com/OskarLebuda))
+
 ## v2.0.1-rc.32
 
 [compare changes](https://github.com/h3js/h3/compare/v2.0.1-rc.30...v2.0.1-rc.32)

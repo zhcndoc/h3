@@ -3,6 +3,7 @@ import type {
   EventHandlerRequest,
   HTTPHandler,
   H3Event,
+  RouteDefinition,
   RouteRules,
   TypedHeaders,
   WebSocketResponse,
@@ -18,8 +19,10 @@ import {
   defineValidatedHandler,
   defineWebSocketHandler,
   defineLazyEventHandler,
+  defineRoute,
   toEventHandler,
   withBase,
+  requireBasicAuth,
 } from "../../src/index.ts";
 import {
   appendHeaders,
@@ -140,6 +143,22 @@ describe("types", () => {
       expectTypeOf<Req["headers"]>().toEqualTypeOf<{ "x-thing": string }>();
     });
 
+    it("keeps array query values", () => {
+      const handler = defineValidatedHandler({
+        validate: {
+          query: z.object({ tag: z.array(z.string()), page: z.string().optional() }),
+        },
+        handler: (event) => {
+          const query = getQuery(event);
+          expectTypeOf(query.tag).toEqualTypeOf<string[]>();
+          return "ok";
+        },
+      });
+
+      type Req = ReqOf<typeof handler>;
+      expectTypeOf<Req["query"]>().toEqualTypeOf<{ tag: string[]; page?: string | undefined }>();
+    });
+
     it("leaves unvalidated parts of the request empty", () => {
       const bodyOnly = defineValidatedHandler({
         validate: { body: z.object({ title: z.string() }) },
@@ -172,6 +191,103 @@ describe("types", () => {
 
       // @ts-expect-error not an event handler
       new H3().get("/bad", (n: number) => n);
+    });
+  });
+
+  describe("defineRoute", () => {
+    it("keeps the bare RouteDefinition handler untyped", () => {
+      expectTypeOf<RouteDefinition["handler"]>().toEqualTypeOf<EventHandler>();
+    });
+
+    it("types the handler event from validation schemas", () => {
+      defineRoute({
+        method: "POST",
+        route: "/",
+        validate: {
+          body: z.object({ title: z.string() }),
+          headers: z.object({ "x-thing": z.string() }),
+          query: z.object({ tag: z.array(z.string()), page: z.string().optional() }),
+        },
+        async handler(event) {
+          expectTypeOf(await event.req.json()).toEqualTypeOf<{ title: string }>();
+          expectTypeOf(await readBody(event)).toEqualTypeOf<{ title: string } | undefined>();
+          expectTypeOf(getQuery(event)).toEqualTypeOf<{
+            tag: string[];
+            page?: string | undefined;
+          }>();
+          type Req = ReqOf<(e: typeof event) => void>;
+          expectTypeOf<Req["headers"]>().toEqualTypeOf<{ "x-thing": string }>();
+          return "ok";
+        },
+      });
+    });
+
+    it("leaves unvalidated parts of the request empty", () => {
+      defineRoute({
+        method: "POST",
+        route: "/",
+        validate: { body: z.object({ title: z.string() }) },
+        handler(event) {
+          type Req = ReqOf<(e: typeof event) => void>;
+          expectTypeOf<Req["body"]>().toEqualTypeOf<{ title: string }>();
+          expectTypeOf<Req["query"]>().toEqualTypeOf<{}>();
+          expectTypeOf<Req["headers"]>().toEqualTypeOf<{}>();
+          return "ok";
+        },
+      });
+    });
+
+    it("uses the default request type without validation", () => {
+      defineRoute({
+        method: "GET",
+        route: "/",
+        handler(event) {
+          expectTypeOf(event).toEqualTypeOf<H3Event<EventHandlerRequest>>();
+          return "ok";
+        },
+      });
+    });
+
+    it("accepts handlers typed against plain H3Event", () => {
+      const plain = (event: H3Event) => event.url.pathname;
+      const untyped: EventHandler = plain;
+      const validate = { body: z.object({ title: z.string() }) };
+
+      defineRoute({ method: "POST", route: "/", validate, handler: plain });
+      defineRoute({ method: "POST", route: "/", validate, handler: untyped });
+      defineRoute({ method: "GET", route: "/", handler: untyped });
+
+      const def: RouteDefinition = { method: "GET", route: "/", handler: untyped };
+      defineRoute(def);
+    });
+
+    it("accepts validate.onError", () => {
+      defineRoute({
+        method: "POST",
+        route: "/",
+        validate: {
+          body: z.object({ title: z.string() }),
+          onError: (result) => {
+            expectTypeOf(result._source).toEqualTypeOf<string | undefined>();
+            return { status: 422, message: "Invalid", data: result.issues };
+          },
+        },
+        handler: () => "ok",
+      });
+    });
+
+    it("accepts explicit schema generics", () => {
+      const body = z.object({ title: z.string() });
+      const def: RouteDefinition<typeof body> = {
+        method: "POST",
+        route: "/",
+        validate: { body },
+        handler: async (event) => {
+          expectTypeOf(await event.req.json()).toEqualTypeOf<{ title: string }>();
+          return "ok";
+        },
+      };
+      defineRoute(def);
     });
   });
 
@@ -244,7 +360,7 @@ describe("types", () => {
       defineHandler((event) => {
         const query = getQuery(event);
         expectTypeOf(query).not.toBeAny();
-        expectTypeOf(query).toEqualTypeOf<Partial<Record<string, string>>>();
+        expectTypeOf(query).toEqualTypeOf<Partial<Record<string, string | string[]>>>();
       });
     });
 
@@ -397,5 +513,31 @@ describe("deprecated v1 signatures", () => {
   // v1 defaulted to 302 and the delegated `redirect()` still does, so the status is optional.
   it("sendRedirect leaves the status code optional", () => {
     expectTypeOf(sendRedirect).toBeCallableWith({} as H3Event, "/target");
+  });
+});
+
+describe("basicAuth context", () => {
+  // `requireBasicAuth` has a single write site and it always assigns `username`
+  // (a `slice` result) and `realm` (`opts.realm ?? "auth"`) as strings, so
+  // reading them back must not require a redundant `undefined` check.
+  // `password` stays optional so it can be dropped from the context later
+  // without a breaking type change.
+  it("exposes username and realm as strings once set", () => {
+    defineHandler(async (event) => {
+      await requireBasicAuth(event, { password: "test" });
+      const auth = event.context.basicAuth!;
+      expectTypeOf(auth.username).toEqualTypeOf<string>();
+      expectTypeOf(auth.password).toEqualTypeOf<string | undefined>();
+      expectTypeOf(auth.realm).toEqualTypeOf<string>();
+    });
+  });
+
+  // The property itself stays optional: it is absent until a request authenticates.
+  it("stays optional until a request is authenticated", () => {
+    defineHandler((event) => {
+      expectTypeOf(event.context.basicAuth).toEqualTypeOf<
+        { username: string; password?: string; realm: string } | undefined
+      >();
+    });
   });
 });

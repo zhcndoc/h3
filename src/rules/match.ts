@@ -1,15 +1,16 @@
 import { addRoute, compareRoutes, createRouter, findAllRoutes } from "rou3";
 import type { RouterContext } from "rou3";
 import { parseRouteKey } from "./internal/key.ts";
+import { isNonCanonicalPathname } from "../utils/internal/path.ts";
 import { mergeMatchedRouteRules } from "./merge.ts";
 import type { RouteOverridePredicate, RouteRuleEntry, RouteRuleLayer } from "./merge.ts";
-import { sharedNodeMethods } from "./internal/nodes.ts";
 import { preMergeRuleLayers, routeContainmentRanks } from "./internal/premerge.ts";
 import type { PreMergedRouteRules } from "./internal/premerge.ts";
 import { ruleHandlers } from "./handlers/index.ts";
 import {
   canonicalPath,
   decodedPath,
+  encodedReading,
   mergedCanonicalPath,
   needsCanonicalPasses,
 } from "./internal/scope.ts";
@@ -71,7 +72,7 @@ export function createRulesRouter(
   if (base.endsWith("/")) {
     base = base.slice(0, -1);
   }
-  const byPath = new Map<string, Map<string, RouteRuleEntry[]>>();
+  const registrations: [method: string, full: string, entries: RouteRuleEntry[]][] = [];
   for (const [key, rule] of Object.entries(rules)) {
     const { method, path } = parseRouteKey(key);
     const entries: RouteRuleEntry[] = [];
@@ -90,9 +91,29 @@ export function createRulesRouter(
           : undefined) as MatchedRouteRule["handler"],
       });
     }
-    let methods = byPath.get(path);
+    registrations.push([method, registeredPattern(base + path), entries]);
+  }
+  // Grouped (and ranked / pre-merged below) by the pattern as registered:
+  // recasing a mixed pattern (`registeredPattern`) can make keys disjoint as
+  // written overlap, or coincide, once registered. Keyed without the base — as
+  // HEAD does, so chain routes and `paramRoutes` compare against `entry.route`
+  // — whenever every pattern is registered under one base spelling, which is
+  // always the case unless the `baseURL` is written with lowercase hex (only a
+  // recased pattern then uppercases it). Otherwise patterns under different
+  // base spellings never meet in one lookup, so they are keyed by the full
+  // pattern and analyzed as the disjoint patterns they are.
+  const baseSpelling = registrations[0]?.[1].slice(0, base.length) ?? base;
+  const oneBase = registrations.every(([, full]) => full.startsWith(baseSpelling));
+  const prefix = oneBase ? baseSpelling : "";
+  const byPath = new Map<string, Map<string, RouteRuleEntry[]>>();
+  for (const [method, full, entries] of registrations) {
+    const pattern = full.slice(prefix.length);
+    for (const entry of entries) {
+      entry.route = full.slice(base.length);
+    }
+    let methods = byPath.get(pattern);
     if (!methods) {
-      byPath.set(path, (methods = new Map()));
+      byPath.set(pattern, (methods = new Map()));
     }
     methods.set(method, [...(methods.get(method) || []), ...entries]);
   }
@@ -113,9 +134,12 @@ export function createRulesRouter(
   }
   const router = createRouter<RouteRuleEntry[] | PreMergedRouteRules>();
   if (preMerge) {
-    for (const [path, methods] of preMergeRuleLayers(byPath)) {
+    for (const [pattern, methods] of preMergeRuleLayers(byPath)) {
       for (const [method, data] of methods) {
-        addRoute(router, method, base + path, data);
+        // The layer's route is compared with its rules' `route`/`paramRoutes`
+        // (the key, without the base) when params are merged.
+        data.route = (prefix + pattern).slice(base.length);
+        addRuleRoute(router, method, prefix + pattern, data);
       }
     }
     return router;
@@ -123,12 +147,9 @@ export function createRulesRouter(
   // Specificity rank of each pattern, stamped onto its entries so `resolveLayers`
   // can merge matched layers broad → narrow without asking rou3 (or any
   // containment predicate) anything per request (see `RouteRuleEntry.rank`).
-  // Stamped per pattern (not per registration) so it survives the duplication
-  // below: the agnostic array is registered by reference under `""` and each
-  // method materialized for it, and the HEAD materialization above shares the
-  // GET entries — every copy is a registration *of the same pattern* under
-  // another method, never of another pattern, so the rank a copy carries is
-  // still its own pattern's containment depth.
+  // Stamped per pattern (not per registration): the HEAD materialization above
+  // shares the GET entries, a registration *of the same pattern* under another
+  // method, so the rank it carries is still its own pattern's containment depth.
   // preMerge returned above: there the chain is resolved at build time and the
   // rank lives on the pre-merged layer (`PreMergedRouteRules.rank`) instead.
   for (const [path, rank] of routeContainmentRanks([...byPath.keys()])) {
@@ -141,35 +162,12 @@ export function createRulesRouter(
       }
     }
   }
-  // Per pattern, the methods scoped on a node it shares — the only methods for
-  // which a registration could hide its agnostic entries (HEAD included, having
-  // been materialized above).
-  const sharedMethods = sharedNodeMethods(byPath);
-  // Pass 1 — agnostic entries, on `""` (the fallback for every method with no
-  // registration on the node) and on each of those methods. Registering them
-  // first keeps them ahead of the method-scoped layers of *any* pattern that
-  // shares their node: rou3 pushes same-node/same-method registrations in
-  // insertion order and its specificity sort is stable, so an equally-specific
-  // method-scoped rule still overrides. Between *differently*-specific spellings
-  // on one node (`/a/*` vs `/a/:id`) rou3's own sort decides, exactly as it does
-  // for two agnostic patterns — method scope does not re-rank patterns, it only
-  // selects which are matched.
-  for (const [path, methods] of byPath) {
-    const agnostic = methods.get("");
-    if (!agnostic) {
-      continue;
-    }
-    addRoute(router, "", base + path, agnostic);
-    for (const method of sharedMethods.get(path) || []) {
-      addRoute(router, method, base + path, agnostic);
-    }
-  }
-  // Pass 2 — method-scoped entries.
-  for (const [path, methods] of byPath) {
+  // rou3 pools a node's `""` and method-scoped registrations: a lookup for a
+  // method sees both, ordered by specificity, with the method-scoped layer last
+  // (so it overrides) between equally-specific ones.
+  for (const [pattern, methods] of byPath) {
     for (const [method, entries] of methods) {
-      if (method) {
-        addRoute(router, method, base + path, entries);
-      }
+      addRuleRoute(router, method, prefix + pattern, entries);
     }
   }
   return router;
@@ -233,9 +231,11 @@ const canOverrideRoute: RouteOverridePredicate = (currentRoute, incomingRoute) =
   return rel === "superset" || rel === "equal";
 };
 
-// Segment syntax the shape guard below cannot reason about (regex / partial /
-// escaped params) — such a segment only ever matches itself, literally.
-const OPAQUE_SEGMENT_RE = /[()\\]/;
+// A whole-segment param in rou3's grammar (`:name`, optionally `?`/`+`/`*`):
+// it contains any concrete segment. Anything else starting with `:` — a
+// partial-segment param (`:name.:ext`, `:id-x`), a regex or an escape — matches
+// only some segments, so the shape guard cannot reason about it.
+const WHOLE_PARAM_SEGMENT_RE = /^:[A-Za-z_]\w*[?+*]?$/;
 
 // A concrete (non-pattern) segment: matches exactly itself, so any
 // single-segment param contains it. Group syntax (`{x}`) is excluded — an
@@ -243,10 +243,11 @@ const OPAQUE_SEGMENT_RE = /[()\\]/;
 // `:param` does not, making it partial rather than contained.
 const CONCRETE_SEGMENT_RE = /^[^:*(){}\\]+$/;
 
-// A param that can match *zero* segments (`:x?`, `:x*`). rou3 reads such a
-// pattern as broader than the `**` that appears to absorb it (`/a/*/:path*`
-// matches `/a/x`, which `/a/*/**` does not), so it must never be absorbed.
-const ZERO_MATCHABLE_SEGMENT_RE = /^:.*[?*]$/;
+// A `.`/`..` segment, in any spelling rou3 resolves (`%2e`).
+const DOT_SEGMENT_RE = /(?:^|\/)(?:\.|%2e){1,2}(?:\/|$)/i;
+
+// Group syntax anywhere in a pattern — see `canOverrideRouteShape`.
+const GROUP_RE = /[{}]/;
 
 /**
  * Conservatively test route containment without importing rou3. Ambiguous
@@ -254,8 +255,19 @@ const ZERO_MATCHABLE_SEGMENT_RE = /^:.*[?*]$/;
  * @internal
  */
 export const canOverrideRouteShape: RouteOverridePredicate = (currentRoute, incomingRoute) => {
+  // Rule keys resolve dot segments like routes (`decodeRoutePattern`), so the
+  // matcher never passes one; a direct caller's `.`/`..` fails closed.
+  if (DOT_SEGMENT_RE.test(currentRoute) || DOT_SEGMENT_RE.test(incomingRoute)) {
+    return false;
+  }
   if (currentRoute === incomingRoute) {
     return true;
+  }
+  // A group (`{b}?`) keeps its own `/` when empty, so even an identical group
+  // segment is not a reliable anchor: `/a/{b}?/:x?` matches `/a`, which
+  // `/a/{b}?/**` does not. Fail closed on any group.
+  if (GROUP_RE.test(currentRoute) || GROUP_RE.test(incomingRoute)) {
+    return false;
   }
   const current = currentRoute.split("/");
   const incoming = incomingRoute.split("/");
@@ -264,14 +276,12 @@ export const canOverrideRouteShape: RouteOverridePredicate = (currentRoute, inco
     if (cur === "**") {
       // A trailing catch-all absorbs every remaining incoming segment — but
       // only when there is at least one to absorb (rou3 does not consistently
-      // treat `x/**` as containing `x` itself, so that pair fails closed), and
-      // only when none of them can match zero segments (which would make the
-      // incoming pattern the broader one).
-      return (
-        i === current.length - 1 &&
-        incoming.length > i &&
-        !incoming.slice(i).some((segment) => ZERO_MATCHABLE_SEGMENT_RE.test(segment))
-      );
+      // treat `x/**` as containing `x` itself, so that pair fails closed).
+      // Nor after any interior empty segment, where rou3 matches neither `//`
+      // itself nor an empty optional param (`//**` vs `//:y?`), and a later
+      // optional param can vanish too (`/a//:q?/**` vs `/a//:q?/:s*`, which
+      // matches `/a`).
+      return i === current.length - 1 && incoming.length > i && !current.slice(1, i).includes("");
     }
     const inc = incoming[i];
     if (inc === undefined) {
@@ -280,12 +290,10 @@ export const canOverrideRouteShape: RouteOverridePredicate = (currentRoute, inco
     if (cur === inc) {
       continue;
     }
-    // A single-segment param contains any concrete segment; anything else
-    // (another param, an empty segment, a catch-all) may be broader.
-    if (
-      (cur === "*" || (cur.startsWith(":") && !OPAQUE_SEGMENT_RE.test(cur))) &&
-      CONCRETE_SEGMENT_RE.test(inc)
-    ) {
+    // A param (or a `*`, which spans one segment or more) contains any concrete
+    // segment; anything else (another param, an empty segment, a catch-all)
+    // may be broader.
+    if ((cur === "*" || WHOLE_PARAM_SEGMENT_RE.test(cur)) && CONCRETE_SEGMENT_RE.test(inc)) {
       continue;
     }
     return false;
@@ -487,12 +495,43 @@ export function memoizeRouteRulesMatcher(
  * every extra lookup.
  */
 function alternateReadings(pathname: string): string[] | undefined {
+  // Hex case is not meaningful in a URL (RFC 3986 §6.2.2.1), but a rule key
+  // keeps its escapes as written, like its route (`decodeRoutePattern`), so
+  // the served path is also looked up recased to uppercase and lowercase hex —
+  // verbatim, before a canonical pass could decode a `%2F` the key spells
+  // literally. Only for a canonical pathname (every one h3 serves): a needless
+  // escape never appears in a key, so recasing one could only repeat a lookup.
+  const recase = pathname.includes("%") && !isNonCanonicalPathname(pathname);
+  const upper = recase ? recaseEscapes(pathname, true) : pathname;
+  const lower = recase ? recaseEscapes(pathname, false) : pathname;
+  // rou3 stores pattern literals percent-encoded but leaves regex constraints
+  // as written, so the decoded reading is looked up in both spellings:
+  // re-encoded for `/a b/**` (stored `/a%20b/**`), raw for `/(café|tea)/**`.
+  // The re-encoded spelling is uppercase; its lowercase recasing reaches a key
+  // spelled in lowercase hex from a nested spelling (`%25c3%25a9`).
   const decoded = decodedPath(pathname);
-  if (decoded === pathname && !needsCanonicalPasses(pathname)) {
+  const encoded = encodedReading(decoded);
+  const lowerEncoded = recaseEscapes(encoded, false);
+  if (
+    upper === pathname &&
+    lower === pathname &&
+    decoded === pathname &&
+    encoded === pathname &&
+    lowerEncoded === pathname &&
+    !needsCanonicalPasses(pathname)
+  ) {
     return;
   }
   const readings: string[] = [];
-  for (const spelling of decoded === pathname ? [pathname] : [pathname, decoded]) {
+  pushReading(readings, pathname, upper);
+  pushReading(readings, pathname, lower);
+  const spellings = [pathname];
+  for (const spelling of [encoded, lowerEncoded, decoded]) {
+    if (!spellings.includes(spelling)) {
+      spellings.push(spelling);
+    }
+  }
+  for (const spelling of spellings) {
     if (!needsCanonicalPasses(spelling)) {
       pushReading(readings, pathname, spelling);
       continue;
@@ -505,6 +544,62 @@ function alternateReadings(pathname: string): string[] | undefined {
     }
   }
   return readings.length > 0 ? readings : undefined;
+}
+
+// A percent-escape, in either hex case.
+const ESCAPE_RE_G = /%[\da-f]{2}/gi;
+
+// Text rou3 itself percent-encodes, in uppercase, when it registers a pattern:
+// its `encodeLiteral` set (`[\0- "#<>?^`{}\x7F-\uFFFC]`) as it can appear in
+// literal text — `?`, `{` and `}` are syntax unless escaped (`\?`, `\{`,
+// `\}`). Keys are already encoded by `normalizeRoute` except for `^` and those
+// escapes; a raw `baseURL` can carry any of it.
+// eslint-disable-next-line no-control-regex -- encoded controls count too
+const ROU3_ENCODED_RE = /[\0- "#<>^`\x7F-\uFFFF]|\\[{}?]/;
+
+// A percent-escape spelled with a lowercase / an uppercase hex letter.
+const LOWER_HEX_ESCAPE_RE = /%(?:[a-f][\da-fA-F]|[\dA-F][a-f])/;
+const UPPER_HEX_ESCAPE_RE = /%(?:[A-F][\da-fA-F]|[\da-f][A-F])/;
+
+/**
+ * The pattern a rule is registered under: its `baseURL` plus normalized key,
+ * as written — so it matches its route's own spelling directly — unless its
+ * escapes mix hex cases (a `baseURL` in the other case than the key, or a raw
+ * character, which normalization encodes uppercase, next to a lowercase
+ * escape, or text rou3 encodes in uppercase itself — `^`, `\{`, a raw `baseURL`).
+ * A mix is only reached by that exact spelling, since every recased
+ * reading recases the whole path, so such a pattern is registered uppercased:
+ * the browser's spelling then matches it directly, and the exact mixed spelling
+ * through the uppercase reading (union-only — a restricting rule is re-added).
+ * A pattern with a regex constraint stays exact: recasing an escape there
+ * would change the regex.
+ */
+function registeredPattern(pattern: string): string {
+  return LOWER_HEX_ESCAPE_RE.test(pattern) &&
+    (UPPER_HEX_ESCAPE_RE.test(pattern) || ROU3_ENCODED_RE.test(pattern)) &&
+    !hasConstraint(pattern)
+    ? recaseEscapes(pattern, true)
+    : pattern;
+}
+
+/** Whether `pattern` has a regex constraint: an unescaped `(` (`\(` is literal). */
+function hasConstraint(pattern: string): boolean {
+  for (let i = 0; i < pattern.length; i++) {
+    const c = pattern.charCodeAt(i);
+    if (c === 92 /* \ */) {
+      i++;
+    } else if (c === 40 /* ( */) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** `path` with every percent-escape's hex digits upper- or lowercased. */
+function recaseEscapes(path: string, upper: boolean): string {
+  return path.includes("%")
+    ? path.replace(ESCAPE_RE_G, (escape) => (upper ? escape.toUpperCase() : escape.toLowerCase()))
+    : path;
 }
 
 function pushReading(readings: string[], pathname: string, reading: string): void {
@@ -550,4 +645,19 @@ function withScopeBase(name: string, options: unknown, baseURL: string): unknown
     return { ...options, base: baseURL + (options as { base: string }).base };
   }
   return options;
+}
+
+/**
+ * `addRoute`, with rou3's parse errors re-thrown in h3's own voice, so an
+ * unparseable rule key surfaces as an h3 rules error rather than a bare `rou3:`
+ * (or raw `RegExp`) throw.
+ */
+function addRuleRoute<T>(router: RouterContext<T>, method: string, path: string, data: T): void {
+  try {
+    addRoute(router, method, path, data);
+  } catch (error) {
+    throw new Error(`[h3] rules: invalid route pattern \`${path}\`: ${(error as Error).message}`, {
+      cause: error,
+    });
+  }
 }

@@ -170,7 +170,7 @@ function prepareResponse(
     // `errHeaders` a second time — harmless for single-valued headers (`set`), but
     // `set-cookie` is appended and would be duplicated.
     (event as any)[kEventRes] = undefined;
-    return errorResponse(error, config.debug, errHeaders);
+    val = errorResponse(error, config.debug, errHeaders);
   }
 
   // Only set if event.res.headers is accessed
@@ -352,7 +352,7 @@ function nullBody(method: string, status: number | undefined): boolean | 0 | und
   return (method === "HEAD" ||
     status === 100 || status === 101 || status === 102 ||
     status === 204 || status === 205 || status === 304
-  )
+  );
 }
 
 function errorResponse(error: HTTPError, debug?: boolean, errHeaders?: Headers): Response {

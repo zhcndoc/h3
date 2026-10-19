@@ -70,10 +70,137 @@ describeMatrix("serve static", (t, { it, expect }) => {
     expect(headRes.headers.get("content-length")).toBe("18");
   });
 
+  it("Sets vary when a single encoding is accepted", async () => {
+    const res = await t.fetch("/test.png", {
+      headers: { "accept-encoding": "gzip" },
+    });
+    expect(await res.text()).toBe("asset:/test.png.gz");
+    expect(res.headers.get("vary")).toBe("accept-encoding");
+  });
+
+  it("Keeps existing vary values", async () => {
+    t.app.all("/cors/**", (event) => {
+      event.res.headers.set("vary", "origin");
+      return serveStatic(event, {
+        getContents: (id) => `asset:${id}`,
+        getMeta: (id) => ({ type: "text/plain", path: id }),
+        encodings: { gzip: ".gz" },
+      });
+    });
+    const res = await t.fetch("/cors/test.png", {
+      headers: { "accept-encoding": "gzip" },
+    });
+    expect(res.headers.get("vary")).toBe("origin, accept-encoding");
+  });
+
+  it("Sets vary when no encoding is accepted", async () => {
+    // Explicit `identity`: node's fetch adds `accept-encoding: gzip, deflate` when unset.
+    const res = await t.fetch("/test.png", {
+      headers: { "accept-encoding": "identity" },
+    });
+    expect(await res.text()).toBe("asset:/test.png");
+    expect(res.headers.get("vary")).toBe("accept-encoding");
+  });
+
+  it("Does not set vary without configured encodings", async () => {
+    t.app.all("/plain/**", (event) => {
+      return serveStatic(event, {
+        getContents: (id) => `asset:${id}`,
+        getMeta: (id) => ({ type: "text/plain", path: id }),
+      });
+    });
+    const res = await t.fetch("/plain/test.png", {
+      headers: { "accept-encoding": "gzip" },
+    });
+    expect(res.headers.get("vary")).toBeNull();
+  });
+
+  it("Does not duplicate vary values", async () => {
+    for (const [i, vary] of ["Accept-Encoding", "origin,accept-encoding", "*"].entries()) {
+      t.app.all(`/dedupe${i}/**`, (event) => {
+        event.res.headers.set("vary", vary);
+        return serveStatic(event, {
+          getContents: (id) => `asset:${id}`,
+          getMeta: (id) => ({ type: "text/plain", path: id }),
+          encodings: { gzip: ".gz" },
+        });
+      });
+      const res = await t.fetch(`/dedupe${i}/test.png`, {
+        headers: { "accept-encoding": "gzip" },
+      });
+      expect(res.headers.get("vary")).toBe(vary);
+    }
+  });
+
+  it("Matches encodings with q-values and any case", async () => {
+    for (const [acceptEncoding, expected] of [
+      ["gzip;q=1.0", "asset:/test.png.gz"],
+      ["GZIP", "asset:/test.png.gz"],
+      ["br ; q=1", "asset:/test.png.br"],
+      // Preferred by weight, not by header order.
+      ["gzip;q=0.5, br;q=0.8", "asset:/test.png.br"],
+      // Equal weights keep header order.
+      ["br, gzip", "asset:/test.png.br"],
+      // `q=0` means "not acceptable".
+      ["gzip;q=0, br;q=0.000", "asset:/test.png"],
+      ["gzip;q=0", "asset:/test.png"],
+      // A coding with an unparsable weight is dropped (identity is always safe).
+      ["gzip;q=0invalid, br;q=0.5", "asset:/test.png.br"],
+      ["gzip;q=0.0001", "asset:/test.png"],
+      ["gzip;q=-1", "asset:/test.png"],
+      ['gzip;q="0"', "asset:/test.png"],
+      ["br;q=0.001, gzip;q=0.0010", "asset:/test.png.br"],
+      // `x-gzip` is an alias of `gzip`.
+      ["X-GZIP", "asset:/test.png.gz"],
+      // `*` matches any coding not listed explicitly.
+      ["*", "asset:/test.png.gz"],
+      ["gzip;q=0, *", "asset:/test.png.br"],
+      ["br;q=0.5, *;q=0.8", "asset:/test.png.gz"],
+      ["*;q=0", "asset:/test.png"],
+      // Explicitly listed codings win ties with `*` matches.
+      ["*, br", "asset:/test.png.br"],
+      // The first occurrence of a coding wins.
+      ["gzip;q=0, gzip", "asset:/test.png"],
+    ]) {
+      const res = await t.fetch("/test.png", {
+        headers: { "accept-encoding": acceptEncoding! },
+      });
+      expect(await res.text(), acceptEncoding).toBe(expected);
+    }
+  });
+
+  it("Ignores inherited object keys in accept-encoding", async () => {
+    const res = await t.fetch("/test.png", {
+      headers: { "accept-encoding": "constructor, __proto__, toString" },
+    });
+    expect(await res.text()).toBe("asset:/test.png");
+  });
+
+  it("Normalizes configured encoding names", async () => {
+    t.app.all("/aliases/**", (event) => {
+      return serveStatic(event, {
+        getContents: (id) => `asset:${id}`,
+        getMeta: (id) => ({ type: "text/plain", path: id }),
+        encodings: { GZIP: ".gz", "x-compress": ".Z" },
+      });
+    });
+    for (const [acceptEncoding, expected] of [
+      ["gzip", "asset:/aliases/test.png.gz"],
+      ["compress", "asset:/aliases/test.png.Z"],
+      ["x-compress", "asset:/aliases/test.png.Z"],
+    ]) {
+      const res = await t.fetch("/aliases/test.png", {
+        headers: { "accept-encoding": acceptEncoding! },
+      });
+      expect(await res.text(), acceptEncoding).toBe(expected);
+    }
+  });
+
   it("Handles cache (if-none-match)", async () => {
     const res = await t.fetch("/test.png", {
       headers: { "if-none-match": "w/123" },
     });
+    expect(res.headers.get("vary")).toBe("accept-encoding");
     expect(res.headers.get("etag")).toBe(expectedHeaders.etag);
     expect(res.status).toEqual(304);
     expect(await res.text()).toBe("");
@@ -385,6 +512,14 @@ describeMatrix("serve static with fallthrough", (t, { it, expect }) => {
     expect(res.status).toEqual(200);
     expect(await res.json()).toEqual({ fallthroughTest: "passing" });
   });
+
+  it("Does not leak vary to the next handler", async () => {
+    const res = await t.fetch("/fallthrough/test.png", {
+      headers: { "accept-encoding": "gzip" },
+    });
+    expect(await res.json()).toEqual({ fallthroughTest: "passing" });
+    expect(res.headers.get("vary")).toBeNull();
+  });
 });
 
 describeMatrix("serve static MIME types", (t, { it, expect }) => {
@@ -426,6 +561,42 @@ describeMatrix("serve static MIME types", (t, { it, expect }) => {
     );
   });
 
+  it("resolves the MIME type of an uppercase extension", async () => {
+    const res = await t.fetch("/photos/IMG_0001.JPG");
+    expect(res.headers.get("content-type")).toBe("image/jpeg");
+  });
+
+  it("uses the requested asset's MIME type for a precompressed variant", async () => {
+    const files: Record<string, string> = {
+      "/pre/app.js": "js",
+      "/pre/app.js.gz": "js.gz",
+      "/pre/app.js.br": "js.br",
+      "/pre/style.css.gz": "css.gz",
+      "/pre/docs/index.html.br": "html.br",
+    };
+    const options: ServeStaticOptions = {
+      getContents: vi.fn((id) => files[id]),
+      getMeta: vi.fn((id) => (files[id] ? { size: files[id].length } : undefined)),
+      encodings: { gzip: ".gz", br: ".br" },
+    };
+
+    t.app.all("/pre/**", (event) => {
+      return serveStatic(event, options);
+    });
+
+    for (const [path, acceptEncoding, body, type] of [
+      ["/pre/app.js", "gzip", "js.gz", "text/javascript"],
+      ["/pre/app.js", "br, gzip;q=0.5", "js.br", "text/javascript"],
+      ["/pre/app.js", "identity", "js", "text/javascript"],
+      ["/pre/style.css", "gzip", "css.gz", "text/css"],
+      ["/pre/docs", "br", "html.br", "text/html"],
+    ] as const) {
+      const res = await t.fetch(path, { headers: { "accept-encoding": acceptEncoding } });
+      expect(await res.text(), `${path} (${acceptEncoding})`).toBe(body);
+      expect(res.headers.get("content-type"), `${path} (${acceptEncoding})`).toBe(type);
+    }
+  });
+
   it("does not overwrite a content-length already set on the response", async () => {
     // An explicit response content-length must win over the size derived from
     // meta — consistent with content-type / content-encoding / last-modified,
@@ -443,6 +614,12 @@ describeMatrix("serve static MIME types", (t, { it, expect }) => {
     const res = await t.fetch("/clen/file.txt", { method: "HEAD" });
     expect(res.status).toBe(200);
     expect(res.headers.get("content-length")).toBe("999");
+  });
+
+  it("serves .wasm as application/wasm", async () => {
+    // `WebAssembly.instantiateStreaming()` rejects any other type
+    const res = await t.fetch("/module.wasm");
+    expect(res.headers.get("content-type")).toBe("application/wasm");
   });
 });
 

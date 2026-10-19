@@ -54,14 +54,18 @@ type StringHeaders<T> = {
   [K in keyof T]: Extract<T[K], string>;
 };
 
-type ValidatedRequest<
+type QueryValues<T> = {
+  [K in keyof T]: Extract<T[K], string | string[]>;
+};
+
+export type ValidatedRequest<
   RequestBody extends StandardSchemaV1,
   RequestHeaders extends StandardSchemaV1,
   RequestQuery extends StandardSchemaV1,
 > = {
   body: InferOutput<RequestBody>;
   headers: StringHeaders<InferOutput<RequestHeaders>>;
-  query: StringHeaders<InferOutput<RequestQuery>>;
+  query: QueryValues<InferOutput<RequestQuery>>;
 };
 
 /**

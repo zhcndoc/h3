@@ -90,6 +90,7 @@ export interface SessionConfig {
    * Set to `false` to reject sessions sealed with the legacy default of 1
    * PBKDF2 iteration instead of unsealing and resealing them.
    *
+   * @deprecated The legacy seal fallback (and this option) will be removed in v3.
    */
   legacySealFallback?: boolean;
   crypto?: Crypto;
@@ -122,7 +123,7 @@ export async function useSession<T extends SessionData = SessionData>(
     },
     get data() {
       const context = getEventContext<H3EventContext>(event);
-      return (context.sessions?.[sessionName]?.data || {}) as T;
+      return (context.sessions?.[sessionName]?.data || new EmptyObject()) as T;
     },
     update: async (update: SessionUpdate<T>) => {
       await updateSession<T>(event, config, update);
@@ -198,6 +199,11 @@ export async function getSession<T extends SessionData = SessionData>(
         const legacySeal = unsealed && (unsealed as any)[kLegacySeal];
         if (legacySeal) {
           delete (unsealed as any)[kLegacySeal];
+        }
+        // `JSON.parse` yields plain objects; keep live data prototype-free so a
+        // `__proto__` key in a later `updateSession` cannot swap its prototype.
+        if (unsealed?.data) {
+          unsealed.data = Object.assign(new EmptyObject(), unsealed.data);
         }
         Object.assign(session, unsealed);
         delete context.sessions![sessionName][kGetSession];
@@ -317,7 +323,8 @@ export async function unsealSession(
   try {
     unsealed = (await unseal(sealed, config.password, sealOptions)) as Partial<Session>;
   } catch (error) {
-    // TODO: Remove this fallback before the v2 stable release
+    // TODO: Remove this fallback (and `legacySealFallback`) in v3. Removing it
+    // in a v2 release would invalidate existing sessions sealed with 1 iteration.
     // Sessions sealed before the default PBKDF2 iterations were raised from 1
     // to 8192 fail HMAC verification; retry with the legacy count so existing
     // sessions survive the upgrade (getSession reseals them with the current

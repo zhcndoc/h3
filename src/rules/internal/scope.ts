@@ -78,6 +78,23 @@ export function decodedPath(pathname: string): string {
   return decoded;
 }
 
+// The WHATWG path percent-encode set, which is also the set rou3 encodes in a
+// pattern's literal text (`/a b/**` is stored as `/a%20b/**`).
+// eslint-disable-next-line no-control-regex -- encoding controls is the point
+const PATH_ENCODE_RE = /(?:[\u0000-\u0020"#<>?^`{}]|[^\u0000-\u007E])+/gu;
+
+/**
+ * Re-encode a {@link decodedPath} reading into the spelling the router matches:
+ * rou3 percent-encodes a pattern's literal text and never decodes a lookup path,
+ * so a decoded `/a b/data` would miss the `/a b/**` rule it is meant to catch.
+ * Never touches `%` or a separator, so it cannot add a segment or an escape.
+ */
+export function encodedReading(pathname: string): string {
+  return pathname.replace(PATH_ENCODE_RE, (run) =>
+    encodeURIComponent(run.replace(/[\uD800-\uDFFF]/gu, "\uFFFD")),
+  );
+}
+
 // Preserve ordinary multi-decoder behavior before accelerating deep nesting.
 const EXACT_PASSES = 8;
 
@@ -163,6 +180,23 @@ export function isPathInScope(pathname: string, base: string): boolean {
   }
   const decoded = decodedPath(pathname);
   return decoded === pathname || isEveryCanonicalReadingInScope(decoded, base);
+}
+
+/**
+ * {@link isPathInScope} for a `base` spelled the way `event.url.pathname` serves
+ * it (`/caf%C3%A9`) rather than as pattern text: the {@link decodedPath} reading
+ * of `pathname` is held against the decoded base, since it can never literally
+ * start with the encoded one.
+ */
+export function isPathInServedScope(pathname: string, base: string): boolean {
+  const decodedBase = decodedPath(base);
+  if (decodedBase === base) {
+    return isPathInScope(pathname, base);
+  }
+  return (
+    isEveryCanonicalReadingInScope(pathname, base) &&
+    isEveryCanonicalReadingInScope(decodedPath(pathname), decodedBase)
+  );
 }
 
 function isEveryCanonicalReadingInScope(pathname: string, base: string): boolean {

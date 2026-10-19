@@ -74,6 +74,33 @@ describe("compiler parity", () => {
     expect(snapshotResult(compiledResult)).toEqual(snapshotResult(runtimeResult));
   });
 
+  // Pin: passes on HEAD too — guards runtime/compiled parity for recased readings.
+  it("compiled === runtime for a lowercase-escape constraint key, across spellings", () => {
+    // Recased readings come from the matcher, not the lookup, so the compiled
+    // lookup gets them too.
+    const config = {
+      "/(caf%c3%a9|tea)/**": { headers: { "x-a": "1" } },
+      "/b/caf%C3%A9/**": { headers: { "x-b": "1" } },
+    };
+    const runtime = createRouteRulesMatcher(normalizeRouteRules(config), {
+      handlers: FIXTURE_HANDLERS,
+    });
+    const compiled = evaluateCompiled(config);
+    for (const path of [
+      "/caf%c3%a9/x",
+      "/caf%C3%A9/x",
+      "/caf%25C3%25A9/x",
+      "/b/caf%c3%a9/x",
+      "/b/caf%C3%A9/x",
+      "/tea/x",
+    ]) {
+      expect(runtime("GET", path).routeRules.headers, path).toBeDefined();
+      expect(snapshotResult(compiled("GET", path)), path).toEqual(
+        snapshotResult(runtime("GET", path)),
+      );
+    }
+  });
+
   it("compiled method-scoped overrides match runtime (agnostic fallback)", () => {
     // Regression (rou3#190): compiled matchAll used to push BOTH the
     // method-scoped and the agnostic registration of a pattern, letting the
@@ -191,6 +218,41 @@ describe("compiler parity", () => {
   });
 });
 
+describe("plain apps compile exactly as before", () => {
+  // A rule set with no escapes in its keys, base or requests must not be
+  // touched by the encoding handling: the codegen is byte-identical to the
+  // stored output of the previous release, and `params` survive `preMerge`
+  // under a `baseURL`.
+  const config: Record<string, RouteRuleConfig> = {
+    "/users/:id": { headers: { "x-user": "1" } },
+    "/users/**": { cors: { origin: "*" } },
+    "/admin/**": { redirect: "/login" },
+  };
+
+  // Pin: passes on HEAD too — guards byte-identical output for plain apps.
+  it("emits byte-identical code for a plain baseURL + preMerge rule set", () => {
+    expect(compileFindRouteRules(config, { baseURL: "/api", preMerge: true })).toBe(
+      '/* @__PURE__ */ (() => { const $0={route:"/users/:id",rank:1,rules:[{name:"cors",route:"/users/**",handler:__ruleHandlers__$cors,options:{"origin":"*"}},{name:"headers",route:"/users/:id",handler:__ruleHandlers__$headers,options:{"x-user":"1"}}]},$1={route:"/users/**",rank:0,rules:[{name:"cors",route:"/users/**",handler:__ruleHandlers__$cors,options:{"origin":"*"}}]},$2={route:"/admin/**",rank:0,rules:[{name:"redirect",route:"/admin/**",handler:__ruleHandlers__$redirect,options:{"to":"/login","status":307,"base":"/api/admin"}}]}; return (m,p)=>{let r=[];if(p.charCodeAt(p.length-1)===47)p=p.slice(0,-1);let s=p.split("/");let l=s.length;let _w;if(l>1){if(s[1]==="api"){if(l>2){if(s[2]==="users"){if(l===4){if(s[3])r.push({data:$0,params:{"id":s[3],}});}r.push(l>3?{data:$1,params:{"0":_w=p.slice(11),_:_w,}}:{data:$1,params:{}});}else if(s[2]==="admin"){r.push(l>3?{data:$2,params:{"0":_w=p.slice(11),_:_w,}}:{data:$2,params:{}});}}}}return r.reverse();}})()',
+    );
+  });
+
+  // Pin: passes on HEAD too — regression guard (params were lost in an earlier iteration).
+  it("keeps params under preMerge + baseURL (runtime and compiled)", () => {
+    const rules = { "/users/:id": { headers: { "x-user": "1" } } };
+    const runtime = createRouteRulesMatcher(normalizeRouteRules(rules), {
+      handlers: FIXTURE_HANDLERS,
+      baseURL: "/api",
+      preMerge: true,
+    });
+    const compiled = createMatcherFromFind(
+      evaluateFind(compileFindRouteRules(rules, { baseURL: "/api", preMerge: true })),
+    );
+    for (const match of [runtime, compiled]) {
+      expect(match("GET", "/api/users/42").matchedRules.headers?.params).toEqual({ id: "42" });
+    }
+  });
+});
+
 describe("generated code shape", () => {
   it("references runtime handlers by name and skips data-only rules", () => {
     const code = compileFindRouteRules({ "/a/**": { redirect: "/b", prerender: true } });
@@ -205,10 +267,10 @@ describe("generated code shape", () => {
     // that merged layers in `findAllRoutes` order would lose gates the runtime
     // matcher keeps. `0` is the default and stays implicit.
     const code = compileFindRouteRules({
-      "/mod/reset/*/**": { cors: { origin: ["https://admin.example"] } },
-      "/mod/reset/*/:path*": { cors: false },
+      "/mod/reset/:path+": { cors: { origin: ["https://admin.example"] } },
+      "/mod/reset/:id/**": { cors: false },
     });
-    expect(code).toContain("rank:1"); // `/mod/reset/*/**`, subsumed by the `:path*` one
+    expect(code).toContain("rank:1"); // `/mod/reset/:path+`, subsumed by the `:id/**` one
     expect([...code.matchAll(/rank:/g)]).toHaveLength(1);
     expect(compileFindRouteRules({ "/a/**": { headers: { a: "1" } } })).not.toContain("rank:");
   });
@@ -216,15 +278,15 @@ describe("generated code shape", () => {
   it("a compiled matcher with no override predicate still keeps a subsumed rule", () => {
     // The divergence this pins: `createMatcherFromFind`'s dependency-free default
     // predicate (`canOverrideRouteShape`) is not exact for modifier params — it
-    // cannot prove either direction between `/mod/reset/*/**` and the
-    // `/mod/reset/*/:path*` that actually subsumes it. Ordering matched layers
+    // cannot prove either direction between `/mod/reset/:path+` and the
+    // `/mod/reset/:id/**` that actually subsumes it. Ordering matched layers
     // must therefore never consult a predicate, or the compiled default falls
     // back on arrival order and fails open: the broader pattern's `cors: false`
     // lands last and deletes the narrower rule. `evaluateCompiled` builds
     // exactly that predicate-less matcher.
     const config: Record<string, RouteRuleConfig> = {
-      "/mod/reset/*/**": { cors: { origin: ["https://admin.example"] } },
-      "/mod/reset/*/:path*": { cors: false },
+      "/mod/reset/:path+": { cors: { origin: ["https://admin.example"] } },
+      "/mod/reset/:id/**": { cors: false },
     };
     const compiled = evaluateCompiled(config);
     const runtime = createRouteRulesMatcher(normalizeRouteRules(config));

@@ -35,9 +35,8 @@ export function normalizeRouteRules(
       );
     }
     const { method, path: rawPath } = parseRouteKey(key);
-    // A pattern's literal characters are matched against a decoded reading of
-    // the request path, so an escaped one (`/%40admin/**`) has to decode here or
-    // it would cover only the encoded spelling (see `decodeRoutePattern`).
+    // The same pattern h3 registers for this string as a route, so the rule
+    // matches every request that route serves (see `decodeRoutePattern`).
     const path = decodeRoutePattern(rawPath);
     const canonicalKey = formatRouteKey(method, path);
 
@@ -51,8 +50,9 @@ export function normalizeRouteRules(
       const authored: { to?: string; status?: number } =
         typeof redirect === "string" ? { to: redirect } : redirect;
       const redirectOptions: RedirectRuleOptions = { to: "/", status: 307, ...authored };
-      if (path.endsWith("/**")) {
-        redirectOptions.base = path.slice(0, -3);
+      const base = catchAllBase(path);
+      if (base !== undefined) {
+        redirectOptions.base = base;
       }
       assertNoHostSplat(redirectOptions.to, "redirect", canonicalKey);
       routeRules.redirect = redirectOptions;
@@ -61,8 +61,9 @@ export function normalizeRouteRules(
     if (proxy) {
       const proxyOptions: ProxyRuleOptions =
         typeof proxy === "string" ? { to: proxy } : { ...proxy };
-      if (path.endsWith("/**")) {
-        proxyOptions.base = path.slice(0, -3);
+      const base = catchAllBase(path);
+      if (base !== undefined) {
+        proxyOptions.base = base;
       }
       assertNoHostSplat(proxyOptions.to, "proxy", canonicalKey);
       routeRules.proxy = proxyOptions;
@@ -136,6 +137,19 @@ export function normalizeRouteRules(
     }
   }
   return normalizedRules;
+}
+
+// A trailing catch-all segment, plain (`/**`) or named (`/**:path`).
+const TRAILING_CATCH_ALL_RE = /\/\*\*(?::[^/]+)?$/;
+
+/**
+ * The scope base of a rule key ending in a catch-all (`/old/**` and
+ * `/old/**:path` → `/old`), or `undefined` when it has no trailing catch-all
+ * and so no tail for a target `**` to take.
+ */
+function catchAllBase(path: string): string | undefined {
+  const match = TRAILING_CATCH_ALL_RE.exec(path);
+  return match ? path.slice(0, match.index) : undefined;
 }
 
 /**

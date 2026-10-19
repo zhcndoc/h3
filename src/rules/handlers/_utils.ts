@@ -1,7 +1,7 @@
 import { HTTPError } from "../../error.ts";
 import type { H3Event } from "../../event.ts";
 import { getURLPathname, joinURL, withoutBase } from "../../utils/internal/path.ts";
-import { decodedPath, isPathInScope } from "../internal/scope.ts";
+import { decodedPath, isPathInScope, isPathInServedScope } from "../internal/scope.ts";
 import type { ProxyRuleOptions, RedirectRuleOptions } from "../types.ts";
 import { interpolateSplat, parseSplatTemplate } from "./_splat.ts";
 
@@ -130,9 +130,11 @@ function prepareTailResolver(base: string | undefined): TailResolver {
       // never adds or removes a separator, so the counts line up), gated on
       // the decoded reading being in scope so a path that genuinely escapes
       // still fails closed. The forwarded remainder keeps its raw bytes.
+      // The base itself may keep escapes (`/%7Bq%7D`, rou3 syntax spelled
+      // literally), so the decoded path is held against the decoded base.
       const decoded = decodedPath(rawPath);
       const derived =
-        decoded === rawPath || !isLiterallyInScope(decoded, scopeBase)
+        decoded === rawPath || !isLiterallyInScope(decoded, decodedPath(scopeBase))
           ? undefined
           : leadingSegments(rawPath, countSegments(scopeBase));
       if (derived === undefined) {
@@ -234,11 +236,15 @@ function isFinalTargetInScope(pathname: string, baseTargetPath: string): boolean
   return run === null || run[0] === "/";
 }
 
-// Whether `pathname` sits under `base` under *every* reading (`isPathInScope`)
-// **and** literally starts with it — the second half is what makes the base
-// faithfully strippable from the bytes that get forwarded.
+// Whether `pathname` sits under `base` under *every* reading
+// (`isPathInServedScope`, which holds the decoded reading against the decoded
+// base when the base keeps an escape) **and** literally starts with it — the
+// second half is what makes the base faithfully strippable from the bytes that
+// get forwarded.
 function isLiterallyInScope(pathname: string, base: string): boolean {
-  return isPathInScope(pathname, base) && (pathname === base || pathname.startsWith(base + "/"));
+  return (
+    isPathInServedScope(pathname, base) && (pathname === base || pathname.startsWith(base + "/"))
+  );
 }
 
 /**

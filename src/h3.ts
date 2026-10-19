@@ -11,7 +11,7 @@ import {
 
 import type { ComposedMiddleware } from "./middleware.ts";
 import { requestWithBaseURL } from "./utils/request.ts";
-import { normalizeRoute, stripBase } from "./utils/internal/path.ts";
+import { hasEmptySegmentAfterBase, normalizeRoute, stripBase } from "./utils/internal/path.ts";
 
 import type { ServerRequest } from "srvx";
 import type { H3Config, H3CoreConfig, MatchedRoute, RouterContext } from "./types/h3.ts";
@@ -181,9 +181,11 @@ export const H3 = /* @__PURE__ */ (() => {
             ) {
               return next();
             }
-            // `stripBase` collapses the leading-slash run so `/base//evil.com`
-            // cannot strip to a protocol-relative `//evil.com` a downstream
-            // redirect could abuse (the boundary is already checked above).
+            // Not `next()`: skipping the mounted middleware would still let the
+            // mounted `/**` routes serve the request without it.
+            if (hasEmptySegmentAfterBase(originalPathname, base)) {
+              throw new HTTPError({ status: 404 });
+            }
             event.url.pathname = stripBase(originalPathname, base);
             const restore = () => {
               event.url.pathname = originalPathname;
@@ -217,6 +219,9 @@ export const H3 = /* @__PURE__ */ (() => {
       } else {
         const fetchHandler = "fetch" in input ? input.fetch : input;
         this.all(`${base}/**`, function _mountedMiddleware(event) {
+          if (hasEmptySegmentAfterBase(event.url.pathname, base)) {
+            throw new HTTPError({ status: 404 });
+          }
           return fetchHandler(requestWithBaseURL(event.req, base, { url: event.url }));
         });
       }

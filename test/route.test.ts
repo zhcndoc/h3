@@ -73,4 +73,21 @@ describe("defineRoute", () => {
       data: { issues: [{ path: ["id"] }] },
     });
   });
+
+  it("should use validate.onError for validation failures", async () => {
+    const app = new H3();
+    const routePlugin = defineRoute({
+      method: "GET",
+      route: "/users",
+      validate: {
+        query: z.object({ id: z.string().uuid() }),
+        onError: (result) => ({ status: 422, message: `Invalid ${result._source}` }),
+      },
+      handler: () => "ok",
+    });
+    app.register(routePlugin);
+    const res = await app.request("/users");
+    expect(res.status).toBe(422);
+    expect(await res.json()).toMatchObject({ message: "Invalid query" });
+  });
 });

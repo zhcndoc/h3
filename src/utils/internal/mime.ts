@@ -4,6 +4,8 @@ const COMMON_MIME_TYPES: Record<string, string> = {
   ".htm": "text/html",
   ".css": "text/css",
   ".js": "text/javascript",
+  ".mjs": "text/javascript",
+  ".cjs": "text/javascript",
   ".json": "application/json",
   ".txt": "text/plain",
   ".xml": "application/xml",
@@ -25,6 +27,8 @@ const COMMON_MIME_TYPES: Record<string, string> = {
   ".zip": "application/zip",
 
   ".pdf": "application/pdf",
+
+  ".wasm": "application/wasm",
 };
 
 export function getExtension(path: string): string | undefined {
@@ -39,5 +43,5 @@ export function getExtension(path: string): string | undefined {
 }
 
 export function getType(ext: string | undefined): string | undefined {
-  return ext ? COMMON_MIME_TYPES[ext] : undefined;
+  return ext ? COMMON_MIME_TYPES[ext.toLowerCase()] : undefined;
 }

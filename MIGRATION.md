@@ -19,7 +19,7 @@ H3 版本 2 包含一些行为和 API 变更，您在迁移时需要考虑应用
 ## 最新的 Node.js 和 ESM-only
 
 > [!TIP]
-> H3 v2 要求 Node.js >= 20.11（推荐使用最新 LTS）。
+> H3 v2 要求 Node.js >= 20.19（推荐使用最新 LTS）。
 
 如果您的应用当前使用 CommonJS 模块（`require` 和 `module.exports`），得益于最新 Node.js 版本支持 `require(esm)`，您仍可以使用 `require("h3")`。
 

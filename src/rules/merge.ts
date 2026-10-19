@@ -1,4 +1,6 @@
 import type { PreMergedRouteRules } from "./internal/premerge.ts";
+import { addReset, canReinstate, recordResets } from "./internal/resets.ts";
+import type { ResetRoutes } from "./internal/resets.ts";
 import type { MatchedRouteRule, MatchedRouteRules } from "./types.ts";
 
 /** Decide whether an alternate path reading may override a matched rule. */
@@ -32,56 +34,72 @@ export function mergeMatchedRouteRules(
   altLayers?: readonly (RouteRuleLayer[] | undefined)[],
   canOverride?: RouteOverridePredicate,
 ): MatchedRouteRules {
-  // Preserve explicit resets across alternate readings.
-  const resets = new Set<string>();
-  const routeRules = resolveLayers(rawLayers, resets);
-  for (const layers of altLayers || []) {
-    unionLayers(routeRules, layers, canOverride, resets);
+  if (!altLayers) {
+    return resolveLayers(rawLayers); // No other reading for a reset to constrain.
+  }
+  // Every route that reset each rule name, from every reading — all of them are
+  // resolved before any is unioned, so a reading cannot reinstate a rule ahead
+  // of another reading's narrower reset (the result never depends on order).
+  const resets: ResetRoutes = new Map();
+  const routeRules = resolveLayers(rawLayers, resets, canOverride);
+  const resolved = altLayers.map((layers) =>
+    layers?.length ? resolveLayers(layers, resets, canOverride) : undefined,
+  );
+  for (const rules of resolved) {
+    if (rules) {
+      unionRules(routeRules, rules, resets, canOverride);
+    }
   }
   return routeRules;
 }
 
 // Broader alternate readings cannot downgrade narrower served-path rules.
-function unionLayers(
+function unionRules(
   routeRules: MatchedRouteRules,
-  layers: RouteRuleLayer[] | undefined,
+  resolved: MatchedRouteRules,
+  resets: ResetRoutes,
   canOverride?: RouteOverridePredicate,
-  resets?: Set<string>,
 ): void {
-  if (!layers?.length) {
-    return;
-  }
-  const resolved = resolveLayers(layers, resets);
   for (const [name, rule] of Object.entries(resolved) as [string, MatchedRouteRule][]) {
     const current = routeRules[name as keyof MatchedRouteRules];
     if (current) {
       if (canOverride && !canOverride(current.route, rule.route)) {
         continue;
       }
-    } else if (resets?.has(name) && !rule.handler?.restricting) {
-      // Restricting handlers are re-added to fail closed; permissive rules stay reset.
+    } else if (
+      !rule.handler?.restricting &&
+      !canReinstate(resets.get(name), rule.route, canOverride)
+    ) {
+      // Restricting handlers are re-added to fail closed; a permissive rule
+      // stays reset unless the reading's pattern is inside every reset of it.
       continue;
     }
     mergeRouteRule(routeRules, name, rule, rule.params);
   }
 }
 
+// `resets` collects the reading's resets, when another reading needs them.
 function resolveLayers(
   layers: RouteRuleLayer[] | undefined,
-  resets?: Set<string>,
+  resets?: ResetRoutes,
+  canOverride?: RouteOverridePredicate,
 ): MatchedRouteRules {
   const firstData = layers?.[0]?.data;
   if (firstData && !Array.isArray(firstData)) {
     return resolvePreMergedLayers(layers!, resets);
   }
   const routeRules = emptyRouteRules();
+  let resetEntries: RouteRuleEntry[] | undefined;
   for (const layer of orderedLayers(layers)) {
     for (const entry of layer.data as RouteRuleEntry[]) {
-      if (entry.options === false) {
-        resets?.add(entry.name);
+      if (resets && entry.options === false) {
+        (resetEntries ||= []).push(entry);
       }
       mergeRouteRule(routeRules, entry.name, entry, layer.params);
     }
+  }
+  if (resetEntries) {
+    recordResets(resets!, resetEntries, routeRules, canOverride);
   }
   return routeRules;
 }
@@ -156,7 +174,7 @@ function layerRank(layer: RouteRuleLayer): number {
 // below in broad → narrow order, so a narrower contributor's params win.
 function resolvePreMergedLayers(
   rawLayers: RouteRuleLayer[],
-  resets?: Set<string>,
+  resets?: ResetRoutes,
 ): MatchedRouteRules {
   const layers =
     rawLayers.length < 2
@@ -166,9 +184,12 @@ function resolvePreMergedLayers(
         );
   const routeRules = emptyRouteRules();
   const winning = layers[layers.length - 1]!.data as PreMergedRouteRules;
+  // The chain resolved its resets at build time, so the pattern that reset a
+  // rule is gone — record the winning route instead: it is inside every pattern
+  // of its chain, so preMerge can only reinstate less than plain mode, never more.
   if (resets && winning.resets) {
     for (const name of winning.resets) {
-      resets.add(name);
+      addReset(resets, name, winning.route);
     }
   }
   for (const entry of winning.rules) {

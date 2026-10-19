@@ -371,8 +371,6 @@ describe("redirect rule", () => {
     // and pointing a proxy at a different upstream resource. Reject instead.
     const cases: [string, string[]][] = [
       ["/:lang?/old/**", ["/en/old/a/b", "/old/a/b"]],
-      ["/x/:seg*/old/**", ["/x/old/a", "/x/a/old/b", "/x/a/b/old/c"]],
-      ["/x/:seg+/old/**", ["/x/a/old/b", "/x/a/b/old/c"]],
       // A group that spans a separator varies the count the same way.
       ["/x{/a}?/:id/old/**", ["/x/1/old/b", "/x/a/1/old/b"]],
     ];
@@ -385,12 +383,21 @@ describe("redirect rule", () => {
     }
   });
 
+  it("rejects a key with more than one multi-segment wildcard", () => {
+    // `*`, `:name*` and `:name+` count as a `**`, and rou3 allows only one per route.
+    for (const key of ["/x/*/old/**", "/x/:seg*/old/**", "/x/:seg+/old/**"]) {
+      expect(() => createApp({ [key]: { redirect: "/new/**" } })).toThrow(
+        `rou3: a route can have only one \`*\`, \`**\`, \`:name+\` or \`:name*\` (${key})`,
+      );
+    }
+  });
+
   it("still strips a fixed-width dynamic prefix", async () => {
     // Every segment of these prefixes matches exactly one path segment, so the
     // count is exact and the tail is forwarded as authored.
     const cases: [string, string, string][] = [
       ["/:lang/old/**", "/en/old/a/b", "/new/a/b"],
-      ["/x/*/old/**", "/x/y/old/a", "/new/a"],
+      [String.raw`/x/([^\x2f]*)/old/**`, "/x/y/old/a", "/new/a"],
       [String.raw`/x/:id(\d+)/old/**`, "/x/12/old/a", "/new/a"],
       // An *intra*-segment group leaves the segment count alone.
       ["/blog{-:title}?/old/**", "/blog-post/old/a", "/new/a"],
@@ -431,6 +438,129 @@ describe("redirect rule", () => {
     // Interior opaque `%2f` is still forwarded verbatim (not a leading leak).
     const kept = await app.fetch(new Request("http://test/a%2fb"));
     expect(kept.headers.get("location")).toBe("/a%2fb");
+  });
+
+  it("skips when the request is already at a trailing `/**` target", async () => {
+    const app = createApp({ "/docs/**": { redirect: "/docs/v2/**" } });
+    app.get("/docs/v2/**", (event) => event.url.pathname);
+    const res = await app.fetch(new Request("http://test/docs/intro?x=1"));
+    expect(res.headers.get("location")).toBe("/docs/v2/intro?x=1");
+    for (const path of ["/docs/v2", "/docs/v2/", "/docs/v2/intro", "/docs/v2/a/b"]) {
+      const at = await app.fetch(new Request("http://test" + path));
+      expect(`${path} -> ${at.status}`).toBe(`${path} -> 200`);
+    }
+    // only whole segments: `/docs/v2x` is not under `/docs/v2`
+    const sibling = await app.fetch(new Request("http://test/docs/v2x"));
+    expect(sibling.headers.get("location")).toBe("/docs/v2/v2x");
+  });
+
+  it("skips when the request is already at an interpolated target", async () => {
+    const app = createApp({ "/blog/**": { redirect: "/blog/**.md" } });
+    app.get("/blog/**", (event) => event.url.pathname);
+    const res = await app.fetch(new Request("http://test/blog/a/b"));
+    expect(res.headers.get("location")).toBe("/blog/a/b.md");
+    for (const path of ["/blog/a.md", "/blog/a/b.md"]) {
+      const at = await app.fetch(new Request("http://test" + path));
+      expect(`${path} -> ${at.status}`).toBe(`${path} -> 200`);
+    }
+  });
+
+  it("skips an exact target only on its own path", async () => {
+    const app = createApp({ "/admin/**": { redirect: "/admin/login?next=1" } });
+    app.get("/admin/login", () => "login");
+    const res = await app.fetch(new Request("http://test/admin/users"));
+    expect(res.headers.get("location")).toBe("/admin/login?next=1");
+    // the target's query is not part of the comparison
+    const at = await app.fetch(new Request("http://test/admin/login?x=1"));
+    expect(at.status).toBe(200);
+    expect(await at.text()).toBe("login");
+  });
+
+  it("compares only the path when `**` sits in the query or fragment", async () => {
+    const app = createApp({
+      "/**": { redirect: "/maintenance?from=/**" },
+      "/spa/**": { redirect: "/app/#/**" },
+    });
+    app.get("/**", () => "ok");
+    const res = await app.fetch(new Request("http://test/maintena"));
+    expect(res.headers.get("location")).toBe("/maintenance?from=/maintena");
+    expect((await app.fetch(new Request("http://test/maintenance"))).status).toBe(200);
+    const spa = await app.fetch(new Request("http://test/spa/x"));
+    expect(spa.headers.get("location")).toBe("/app/#/x");
+  });
+
+  it("keeps a path `/**` literal without a tail when a query follows it", async () => {
+    // `to` doesn't end in `/**` and the key has no tail, so the target is sent
+    // verbatim: only that literal path is the target, not everything under it.
+    const app = createApp({ "/docs/v2/:page": { redirect: "/docs/v2/**?x=1" } });
+    app.get("/**", () => "leaked");
+    const res = await app.fetch(new Request("http://test/docs/v2/foo"));
+    expect(res.headers.get("location")).toBe("/docs/v2/**?x=1");
+  });
+
+  it("skips a target spelled with characters the pathname encodes", async () => {
+    const app = createApp({ "/**": { redirect: "/café" } });
+    app.get("/**", () => "ok");
+    expect((await app.fetch(new Request("http://test/cafe"))).status).toBe(307);
+    expect((await app.fetch(new Request("http://test/café"))).status).toBe(200);
+    // wildcard prefixes too, whose scope check also sees the decoded reading
+    const wild = createApp({
+      "/**": { redirect: "/café/**" },
+      "/blog/**": { redirect: "/blog/café/**.md" },
+    });
+    wild.get("/**", () => "ok");
+    for (const path of ["/café/x", "/blog/café/a.md"]) {
+      const at = await wild.fetch(new Request("http://test" + path));
+      expect(`${path} -> ${at.status}`).toBe(`${path} -> 200`);
+    }
+  });
+
+  it("never skips a request the rule would reject", async () => {
+    // A variable-width key prefix can't strip a reliable tail, so the rule
+    // answers 400 — a target-shaped path must not skip past that to the app.
+    const app = createApp({ "/:lang?/old/**": { redirect: "/old/**" } });
+    app.get("/**", () => "leaked");
+    const res = await app.fetch(new Request("http://test/old/a/b"));
+    expect(res.status).toBe(400);
+  });
+
+  it("stops a trailing-slash redirect from looping", async () => {
+    const app = createApp({ "/**": { redirect: "/**/" } });
+    app.get("/**", () => "ok");
+    const res = await app.fetch(new Request("http://test/foo"));
+    expect(res.headers.get("location")).toBe("/foo/");
+    expect((await app.fetch(new Request("http://test/foo/"))).status).toBe(200);
+  });
+
+  it("never skips an absolute URL target", async () => {
+    // Its origin could only be compared with the client-controlled `Host`.
+    const app = createApp({ "/docs/**": { redirect: "http://test/docs/v2/**" } });
+    const res = await app.fetch(new Request("http://test/docs/v2/a"));
+    expect(res.headers.get("location")).toBe("http://test/docs/v2/v2/a");
+  });
+
+  it("never skips a target whose shape covers every path", async () => {
+    // Skipping `/**` would disable the rule outright; it keeps redirecting.
+    const app = createApp({ "/old/**": { redirect: "/**" } });
+    const res = await app.fetch(new Request("http://test/old/old/a"));
+    expect(res.headers.get("location")).toBe("/old/a");
+  });
+
+  it("never skips an encoded traversal out of the target", async () => {
+    // Raw bytes sit under the target's prefix, but a decoding reading escapes
+    // it: the rule still runs and answers 400, as before.
+    const cases: [string, string, string][] = [
+      ["/docs/**", "/docs/v2/**", "/docs/v2/..%2f..%2fadmin"],
+      ["/blog/**", "/blog/**.md", "/blog/..%2f..%2fadmin.md"],
+      // a mid-segment placeholder is never skipped at all
+      ["/docs/**", "/docs/v2-**", "/docs/v2-..%2fadmin"],
+    ];
+    for (const [key, to, path] of cases) {
+      const app = createApp({ [key]: { redirect: to } });
+      app.get("/**", () => "leaked");
+      const res = await app.fetch(new Request("http://test" + path));
+      expect(`${to} ${path} -> ${res.status}`).toBe(`${to} ${path} -> 400`);
+    }
   });
 
   it("forwards the raw encoded pathname (opaque %2f)", async () => {
@@ -569,9 +699,9 @@ describe("encoded-separator hardening", () => {
 
   it("a single-wildcard rule is not bypassed by an encoded separator", async () => {
     // h3 routes on the raw path, so `/enc-single/a%2fb` is a single opaque
-    // segment there and matches the `/enc-single/*` rule — even though it
-    // canonicalizes to the two-segment `/enc-single/a/b`.
-    const app = createApp({ "/enc-single/*": { redirect: "/elsewhere" } });
+    // segment there and matches the `/enc-single/:id` rule — even though it
+    // canonicalizes to the two-segment `/enc-single/a/b`, which it does not.
+    const app = createApp({ "/enc-single/:id": { redirect: "/elsewhere" } });
     app.get("/enc-single/:id", () => "ok");
     const res = await app.fetch(new Request("http://test/enc-single/a%2fb"));
     expect(res.status).toBe(307);
@@ -620,7 +750,7 @@ describe("encoded-separator hardening", () => {
   });
 
   it("a single-wildcard headers rule still applies to an encoded separator", async () => {
-    const app = createApp({ "/single-headers/*": { headers: { "x-single": "single" } } });
+    const app = createApp({ "/single-headers/:id": { headers: { "x-single": "single" } } });
     app.get("/single-headers/:id", () => "ok");
     const res = await app.fetch(new Request("http://test/single-headers/a%2fb"));
     expect(res.status).toBe(200);
@@ -831,8 +961,8 @@ describe("method-scoped rules (end-to-end)", () => {
 
   it("a method-scoped rule is not bypassable with a lowercase/mixed-case method", async () => {
     // Rule keys are uppercased at parse time (internal/key.ts), so the lookup
-    // method must be too: rou3 resolves `methods[method] || methods[""]` and a
-    // method-scoped rule never populates `methods[""]`, making a case mismatch a
+    // method must be too: rou3 looks up `methods[method]` (plus `methods[""]`)
+    // and a method-scoped rule never populates `methods[""]`, making a case mismatch a
     // *total* miss that fails OPEN over a method-agnostic route (`app.all`, and
     // every `app.mount()` base, which registers `all(base + "/**")`).
     //

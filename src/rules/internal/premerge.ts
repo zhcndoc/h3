@@ -34,7 +34,10 @@ export interface PreMergedRouteRules {
    * matched" to stop a broader alternate reading resurrecting a permission
    * (`mergeMatchedRouteRules`). Plain mode reads the same information off the
    * `false` entries it merges per request; recording it keeps both modes — and
-   * the compiled table — resolving identically.
+   * the compiled table — resolving alike. The pattern that reset a rule is not
+   * kept: the union records the reset at this layer's {@link route}, which is
+   * inside every pattern of its chain, so only a pattern at least that specific
+   * may reinstate the rule — never more than plain mode allows.
    */
   resets?: string[];
 }
@@ -95,7 +98,7 @@ export function routeContainmentRanks(paths: string[]): Map<string, number> {
  * ordered by containment (rou3 `compareRoutes`); partial overlaps make "most
  * specific layer" ambiguous and throw. Method-scoped rules are materialized as a
  * `method × path` matrix so a broad method-scoped rule still reaches narrower
- * agnostic patterns via rou3's `methods[m] || methods[""]` fallback.
+ * agnostic patterns, whose own layer would otherwise win as the most specific.
  */
 export function preMergeRuleLayers(
   byPath: Map<string, Map<string, RouteRuleEntry[]>>,

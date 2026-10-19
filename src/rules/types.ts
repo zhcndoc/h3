@@ -87,13 +87,19 @@ export interface RouteRuleConfig {
    */
   cache?: CacheRuleOptions | false;
 
-  headers?: Record<string, string>;
+  /**
+   * Response headers to set. `false` disables headers inherited from a
+   * less-specific pattern.
+   */
+  headers?: Record<string, string> | false;
 
   /**
    * Server-side redirect; a plain string defaults to status `307`. When the rule
    * key ends in `/**`, a `**` in `to` is replaced with the matched tail — appended
    * for a trailing `to: "/new/**"`, or interpolated in place anywhere else in the
    * target's path, query, or fragment (`/new?from=**`).
+   * A request whose path already has the target's shape (`/docs/v2/…` for
+   * `to: "/docs/v2/**"`) is not redirected again.
    * `false` disables a redirect inherited from a less-specific pattern.
    */
   redirect?: string | { to: string; status?: HTTPStatus } | false;
@@ -153,7 +159,11 @@ export type RouteRuleName = Extract<keyof ResolvedRouteRules, string>;
 export interface MatchedRouteRule<K extends RouteRuleName = RouteRuleName> {
   /** The merged rule options (never `false` — a reset deletes the rule instead). */
   options: NonNullable<ResolvedRouteRules[K]>;
-  /** Most specific pattern that contributed to the rule. */
+  /**
+   * Most specific pattern that contributed to the rule, as normalized: spelled
+   * the way h3 stores the equivalent route, so `"/café/**"` reads
+   * `/caf%C3%A9/**` and `"/a b/**"` reads `/a%20b/**`.
+   */
   route: string;
   /** rou3 params from every matched pattern that contributed to this rule. */
   params?: Record<string, string>;

@@ -175,6 +175,41 @@ describeMatrix("cookies", (t, { it, expect, describe }) => {
       expect(await result.text()).toBe("200");
     });
 
+    it("does not deduplicate cookies that differ only by `partitioned` (CHIPS keeps them in separate jars)", async () => {
+      t.app.get("/", (event) => {
+        // e.g. clearing a legacy, pre-CHIPS cookie while also (re)writing
+        // today's partitioned one -- these must never collapse into one.
+        setCookie(event, "session", "", { sameSite: "lax", maxAge: 0 });
+        setCookie(event, "session", "new-value", {
+          sameSite: "none",
+          secure: true,
+          partitioned: true,
+        });
+        return "200";
+      });
+      const result = await t.fetch("/");
+      const cookies = result.headers.getSetCookie();
+      expect(cookies).toHaveLength(2);
+      expect(cookies[0]).toContain("Max-Age=0");
+      expect(cookies[0]).not.toContain("Partitioned");
+      expect(cookies[1]).toContain("session=new-value");
+      expect(cookies[1]).toContain("Partitioned");
+      expect(await result.text()).toBe("200");
+    });
+
+    it("still deduplicates cookies with the same `partitioned` value", async () => {
+      t.app.get("/", (event) => {
+        setCookie(event, "session", "old", { partitioned: true, secure: true, sameSite: "none" });
+        setCookie(event, "session", "new", { partitioned: true, secure: true, sameSite: "none" });
+        return "200";
+      });
+      const result = await t.fetch("/");
+      const cookies = result.headers.getSetCookie();
+      expect(cookies).toHaveLength(1);
+      expect(cookies[0]).toContain("session=new");
+      expect(await result.text()).toBe("200");
+    });
+
     it("deduplicates cookies with leading-dot / mixed-case domains", async () => {
       t.app.get("/", (event) => {
         setCookie(event, "foo", "old", { domain: ".Example.com" });
@@ -568,6 +603,81 @@ describeMatrix("cookies", (t, { it, expect, describe }) => {
           headers: { Cookie: cookieHeader },
         });
         expect(await readResult.text()).toBe("x".repeat(100));
+      });
+
+      it("keeps every encoded chunk within chunkMaxLength and readable", async () => {
+        // `"`, `{`, `:` and `,` are percent-encoded to three bytes each, so the
+        // raw value length understates what the browser has to store.
+        // 2771 characters, but 7453 once serialized.
+        const value = JSON.stringify(
+          Array.from({ length: 120 }, (_, i) => ({ id: i, name: "é😀" })),
+        );
+        t.app.get("/", (event) => {
+          setChunkedCookie(event, "cart", value);
+          return "200";
+        });
+        const result = await t.fetch("/");
+        expect(await result.text()).toBe("200");
+        const pairs = result.headers.getSetCookie().map((c) => c.split(";")[0]);
+        for (const pair of pairs) {
+          expect(pair.slice(pair.indexOf("=") + 1).length).toBeLessThanOrEqual(4000);
+        }
+
+        t.app.get("/read", (event) => getChunkedCookie(event, "cart") ?? "MISSING");
+        const readResult = await t.fetch("/read", {
+          headers: { Cookie: pairs.join("; ") },
+        });
+        expect(await readResult.text()).toBe(value);
+      });
+
+      it("does not split a surrogate pair across chunks", async () => {
+        // UTF-16 slicing at 12 would cut the emoji's surrogate pair in half.
+        const value = "12345678901😀abc";
+        t.app.get("/", (event) => {
+          setChunkedCookie(event, "emoji", value, { chunkMaxLength: 12 });
+          return "200";
+        });
+        const result = await t.fetch("/");
+        expect(await result.text()).toBe("200");
+        const pairs = result.headers.getSetCookie().map((c) => c.split(";")[0]);
+
+        t.app.get("/read", (event) => getChunkedCookie(event, "emoji") ?? "MISSING");
+        const readResult = await t.fetch("/read", {
+          headers: { Cookie: pairs.join("; ") },
+        });
+        expect(await readResult.text()).toBe(value);
+      });
+
+      it("sizes chunks for a custom encoder by the whole encoded chunk", async () => {
+        const encode = (v: string) => btoa(v);
+        const decode = (v: string) => atob(v);
+        const value = "a".repeat(100);
+        t.app.get("/", (event) => {
+          setChunkedCookie(event, "b64", value, { chunkMaxLength: 40, encode });
+          return "200";
+        });
+        const result = await t.fetch("/");
+        expect(await result.text()).toBe("200");
+        const pairs = result.headers.getSetCookie().map((c) => c.split(";")[0]);
+        // 30 characters encode to exactly 40, so 100 characters need 4 chunks.
+        expect(pairs[0]).toBe(`b64=${btoa("__chunked__4")}`);
+        for (const pair of pairs) {
+          expect(pair.slice(pair.indexOf("=") + 1).length).toBeLessThanOrEqual(40);
+        }
+        const chunks = pairs.slice(1).map((p) => decode(p.slice(p.indexOf("=") + 1)));
+        expect(chunks.join("")).toBe(value);
+      });
+
+      it("throws when a single character cannot fit in chunkMaxLength", async () => {
+        t.app.get("/", (event) => {
+          expect(() => setChunkedCookie(event, "emoji", "abcdef😀", { chunkMaxLength: 5 })).toThrow(
+            /does not fit/,
+          );
+          expect(event.res.headers.getSetCookie()).toEqual([]);
+          return "200";
+        });
+        const result = await t.fetch("/");
+        expect(await result.text()).toBe("200");
       });
 
       it("removes all previous chunks when reducing to a single non-chunked value", async () => {
