@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.0.6
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.5...v2.0.6)
+
+### 🩹 Fixes
+
+- **rules:** Fill target `**` for named catch-all keys (`/**:name`) ([48d650b](https://github.com/h3js/h3/commit/48d650b))
+- **rules:** Keep middleware-staged headers out of `cache` entries ([#1606](https://github.com/h3js/h3/pull/1606))
+
+### ❤️ Contributors
+
+- Pi0x <x@pi0.io>
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+
 ## v2.0.5
 
 [compare changes](https://github.com/h3js/h3/compare/v2.0.4...v2.0.5)
