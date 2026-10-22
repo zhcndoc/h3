@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.0.8
+
+[compare changes](https://github.com/h3js/h3/compare/v2.0.7...v2.0.8)
+
+### 🩹 Fixes
+
+- **rules:** Let `HTTPError.headers` opt out of `headers` rule on errors ([#1613](https://github.com/h3js/h3/pull/1613))
+
+### ❤️ Contributors
+
+- Pi0x <x@pi0.io>
+
 ## v2.0.7
 
 [compare changes](https://github.com/h3js/h3/compare/v2.0.6...v2.0.7)
