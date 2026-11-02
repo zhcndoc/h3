@@ -1,0 +1,29 @@
+FROM --platform=$BUILDPLATFORM node:24-bookworm AS builder
+
+WORKDIR /app
+
+ENV CI=true
+
+RUN corepack enable pnpm
+
+COPY . .
+
+WORKDIR /app/docs
+
+RUN pnpm install --frozen-lockfile
+
+RUN pnpm run build
+
+FROM node:24-bookworm-slim
+
+WORKDIR /app
+
+ENV NODE_ENV=production \
+    NITRO_HOST=0.0.0.0 \
+    PORT=8080
+
+COPY --from=builder /app/docs/.output ./.output
+
+EXPOSE 8080
+
+CMD ["node", ".output/server/index.mjs"]
